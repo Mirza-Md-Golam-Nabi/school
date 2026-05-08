@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Models;
 
 use App\Enums\UserType;
@@ -19,7 +20,7 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable implements FilamentUser, MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable, HasUserType, HasRoles;
+    use HasFactory, HasRoles, HasUserType, Notifiable;
 
     /**
      * Get the attributes that should be cast.
@@ -30,18 +31,18 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
     {
         return [
             'email_verified_at' => 'datetime',
-            'password'          => 'hashed',
-            'user_type'         => UserType::class,
+            'password' => 'hashed',
+            'user_type' => UserType::class,
         ];
     }
 
     public function canAccessPanel(Panel $panel): bool
     {
         return match ($panel->getId()) {
-            'admin'   => $this->isAdmin() || $this->isSuperAdmin() || $this->isStaff(),
+            'admin' => $this->isAdmin() || $this->isSuperAdmin() || $this->isStaff(),
             'teacher' => $this->isTeacher(),
             'student' => $this->isStudent(),
-            default   => false,
+            default => false,
         };
     }
 }
