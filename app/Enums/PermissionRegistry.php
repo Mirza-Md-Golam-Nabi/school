@@ -4,12 +4,12 @@ namespace App\Enums;
 
 use App\Enums\Permissions\UserPermission;
 
-enum PermissionRegistry: string
+class PermissionRegistry
 {
-    public static function all(): array
+    public function __invoke(): array
     {
         return [
-            ...UserPermission::cases(),
+            'User Management' => UserPermission::cases(),
         ];
     }
 }

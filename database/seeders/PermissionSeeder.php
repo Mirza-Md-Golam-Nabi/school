@@ -13,8 +13,13 @@ class PermissionSeeder extends Seeder
      */
     public function run(): void
     {
-        foreach (PermissionRegistry::all() as $permission) {
-            Permission::firstOrCreate(['name' => $permission->value]);
+        foreach ((new PermissionRegistry)() as $permission_set) {
+            foreach ($permission_set as $permission) {
+                Permission::firstOrCreate([
+                    'name' => $permission->value,
+                    'guard_name' => 'web',
+                ]);
+            }
         }
     }
 }
