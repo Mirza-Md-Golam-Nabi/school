@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Admin\Pages\Auth\EditProfile;
 use App\Filament\Admin\Pages\Auth\Login;
 use App\Filament\Admin\Pages\Auth\Register;
 use Filament\Actions\Action;
@@ -34,9 +35,10 @@ class AdminPanelProvider extends PanelProvider
             ->passwordReset()
             ->emailVerification()
             ->emailChangeVerification()
-            ->profile(isSimple: false)
+            ->profile(EditProfile::class, isSimple: false)
             ->userMenuItems([
-                'profile' => fn (Action $action) => $action->label(auth()->user()->name),
+                'profile' => fn (Action $action) => $action
+                    ->label(auth()->user()->name),
             ])
             ->colors([
                 'primary' => Color::Amber,

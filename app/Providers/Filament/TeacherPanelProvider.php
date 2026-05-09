@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Teacher\Pages\Auth\EditProfile;
 use App\Filament\Teacher\Pages\Auth\Login;
 use App\Filament\Teacher\Pages\Auth\Register;
 use Filament\Actions\Action;
@@ -33,9 +34,10 @@ class TeacherPanelProvider extends PanelProvider
             ->passwordReset()
             ->emailVerification()
             ->emailChangeVerification()
-            ->profile(isSimple: false)
+            ->profile(EditProfile::class, isSimple: false)
             ->userMenuItems([
-                'profile' => fn (Action $action) => $action->label(auth()->user()->name),
+                'profile' => fn (Action $action) => $action
+                    ->label(auth()->user()->name),
             ])
             ->colors([
                 'primary' => Color::Amber,
