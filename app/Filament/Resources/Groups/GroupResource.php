@@ -3,6 +3,7 @@ namespace App\Filament\Resources\Groups;
 
 use App\Filament\Resources\Groups\Pages\ManageGroups;
 use App\Models\Group;
+use App\Traits\Permissions\HasAcademicPermissions;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -27,6 +28,8 @@ use UnitEnum;
 
 class GroupResource extends Resource
 {
+    use HasAcademicPermissions;
+
     protected static ?string $model = Group::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUserGroup;
