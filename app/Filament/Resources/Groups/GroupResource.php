@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Filament\Resources\Groups;
 
 use App\Filament\Resources\Groups\Pages\ManageGroups;
@@ -28,7 +29,7 @@ use UnitEnum;
 
 class GroupResource extends Resource
 {
-    use HasAcademicPermissions;
+    // use HasAcademicPermissions;
 
     protected static ?string $model = Group::class;
 

@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Filament\Resources\Groups\Pages;
 
 use App\Filament\Resources\Groups\GroupResource;
