@@ -3,8 +3,10 @@
 namespace App\Models;
 
 use App\Enums\ClassLevel;
+use App\Models\ClassGroupSubject;
 use App\Models\Group;
 use App\Models\Section;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -34,5 +36,33 @@ class Classes extends Model
     {
         return $this->belongsToMany(Group::class, 'class_groups', 'class_id', 'group_id')
             ->withTimestamps();
+    }
+
+    public function classGroupSubjects(): HasMany
+    {
+        return $this->hasMany(ClassGroupSubject::class, 'class_id');
+    }
+
+    public function subjects(): BelongsToMany
+    {
+        return $this->belongsToMany(Subject::class, 'class_group_subjects')
+            ->using(ClassGroupSubject::class)
+            ->withPivot('group_id', 'subject_type')
+            ->withTimestamps();
+    }
+
+    public function subjectsForGroup(?int $groupId): Collection
+    {
+        return ClassGroupSubject::query()
+            ->where('class_id', $this->id)
+            ->where(function ($query) use ($groupId) {
+                $query->whereNull('group_id');
+
+                if ($groupId !== null) {
+                    $query->orWhere('group_id', $groupId);
+                }
+            })
+            ->with('subject')
+            ->get();
     }
 }
