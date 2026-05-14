@@ -45,7 +45,7 @@ class Classes extends Model
 
     public function subjects(): BelongsToMany
     {
-        return $this->belongsToMany(Subject::class, 'class_group_subjects')
+        return $this->belongsToMany(Subject::class, 'class_group_subject', 'class_id', 'subject_id')
             ->using(ClassGroupSubject::class)
             ->withPivot('group_id', 'subject_type')
             ->withTimestamps();

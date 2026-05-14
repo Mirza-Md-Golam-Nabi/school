@@ -59,7 +59,7 @@ class SubjectsTable
                     ->boolean()
                     ->alignCenter(),
 
-                TextColumn::make('classGroupSubjects_count')
+                TextColumn::make('class_group_subjects_count')
                     ->label('Assigned Classes')
                     ->counts('classGroupSubjects')
                     ->badge()

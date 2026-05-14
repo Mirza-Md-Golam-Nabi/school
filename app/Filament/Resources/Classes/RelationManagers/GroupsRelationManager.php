@@ -38,6 +38,7 @@ class GroupsRelationManager extends RelationManager
                 AttachAction::make()
                     ->attachAnother(false)
                     ->color('info')
+                    ->modalDescription('You can attach multiple group.')
                     ->preloadRecordSelect()
                     ->multiple()
                     ->recordSelectOptionsQuery(fn ($query) => $query
@@ -46,11 +47,13 @@ class GroupsRelationManager extends RelationManager
                     ),
             ])
             ->recordActions([
-                DetachAction::make(),
+                DetachAction::make()
+                    ->label('Remove'),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DetachBulkAction::make(),
+                    DetachBulkAction::make()
+                        ->label('Remove Selected'),
                 ]),
             ]);
     }

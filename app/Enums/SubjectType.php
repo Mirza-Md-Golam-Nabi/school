@@ -2,9 +2,10 @@
 
 namespace App\Enums;
 
+use Filament\Support\Contracts\HasColor;
 use Filament\Support\Contracts\HasLabel;
 
-enum SubjectType: string implements HasLabel
+enum SubjectType: string implements HasColor, HasLabel
 {
     case Compulsory = 'compulsory';
     case MainOptional = 'main_optional';
@@ -16,6 +17,15 @@ enum SubjectType: string implements HasLabel
             self::Compulsory => 'Compulsory',
             self::MainOptional => 'Main Optional',
             self::ExtraOptional => 'Extra Optional',
+        };
+    }
+
+    public function getColor(): string
+    {
+        return match ($this) {
+            self::Compulsory => 'danger',
+            self::MainOptional => 'warning',
+            self::ExtraOptional => 'success',
         };
     }
 }

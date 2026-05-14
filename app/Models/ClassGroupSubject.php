@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\Pivot;
 
 class ClassGroupSubject extends Pivot
 {
-    // protected $table = 'class_group_subjects';
+    // protected $table = 'class_group_subject';
 
     protected $fillable = [
         'class_id',
@@ -22,6 +22,7 @@ class ClassGroupSubject extends Pivot
 
     protected $casts = [
         'group_id' => 'integer',
+        'subject_type' => SubjectType::class,
     ];
 
     public function schoolClass(): BelongsTo
