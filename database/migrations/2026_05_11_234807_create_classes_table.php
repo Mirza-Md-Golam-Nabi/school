@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\ClassLevel;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -14,7 +15,7 @@ return new class extends Migration
         Schema::create('classes', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->enum('level', ['primary', 'secondary', 'college']);
+            $table->string('level')->default(ClassLevel::Primary);
             $table->integer('order')->default(0);
             $table->boolean('has_section')->default(false);
             $table->boolean('has_group')->default(false);
