@@ -19,6 +19,7 @@ return new class extends Migration
             $table->unsignedTinyInteger('contribution_percent');
             $table->unsignedSmallInteger('session_year');
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 

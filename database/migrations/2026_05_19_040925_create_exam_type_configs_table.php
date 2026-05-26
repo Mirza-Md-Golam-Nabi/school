@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string('count_method')->nullable();
             $table->unsignedTinyInteger('best_n_count')->nullable();
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 

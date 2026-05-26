@@ -6,9 +6,12 @@ use App\Enums\CountMethod;
 use App\Enums\ExamConfigType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class ExamTypeConfig extends Model
 {
+    use SoftDeletes;
+
     protected $fillable = [
         'exam_type_id',
         'type',
