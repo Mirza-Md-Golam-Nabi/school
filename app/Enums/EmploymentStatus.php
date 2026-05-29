@@ -5,7 +5,7 @@ namespace App\Enums;
 use Filament\Support\Contracts\HasColor;
 use Filament\Support\Contracts\HasLabel;
 
-enum TeacherStatus: string implements HasColor, HasLabel
+enum EmploymentStatus: string implements HasColor, HasLabel
 {
     case Active = 'active';
     case Resigned = 'resigned';

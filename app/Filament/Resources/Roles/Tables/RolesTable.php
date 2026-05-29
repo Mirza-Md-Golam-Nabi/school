@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Roles\Tables;
 
+use App\Enums\UserType;
 use App\Models\Role;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -51,7 +52,7 @@ class RolesTable
                 DeleteAction::make()
                     ->iconButton()
                     ->before(function (Role $record) {
-                        abort_if($record->name === 'super_admin', 403, 'Super Admin role cannot be deleted.');
+                        abort_if($record->name === UserType::SuperAdmin->roleName(), 403, 'Super Admin role cannot be deleted.');
                     }),
 
             ])

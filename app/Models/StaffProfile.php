@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class TeacherProfile extends Model
+class StaffProfile extends Model
 {
     use SoftDeletes;
 
@@ -23,8 +23,6 @@ class TeacherProfile extends Model
         'religion',
         'nationality',
         'designation',
-        'department',
-        'qualification',
         'joining_date',
         'status',
     ];
@@ -40,11 +38,16 @@ class TeacherProfile extends Model
 
     protected static function booted(): void
     {
-        static::deleting(function (TeacherProfile $profile) {
+        static::deleting(function (StaffProfile $profile) {
             if (! $profile->isForceDeleting()) {
                 $profile->status = EmploymentStatus::Terminated;
                 $profile->saveQuietly();
             }
+        });
+
+        static::restored(function (StaffProfile $profile) {
+            $profile->status = EmploymentStatus::Active;
+            $profile->saveQuietly();
         });
     }
 

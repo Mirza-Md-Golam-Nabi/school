@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Filament\Resources\TeacherProfiles\Tables;
+namespace App\Filament\Resources\StaffProfiles\Tables;
 
 use App\Enums\EmploymentStatus;
-use App\Models\TeacherProfile;
+use App\Models\StaffProfile;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -16,7 +16,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 
-class TeacherProfilesTable
+class StaffProfilesTable
 {
     public static function configure(Table $table): Table
     {
@@ -30,14 +30,6 @@ class TeacherProfilesTable
                 TextColumn::make('designation')
                     ->label('Designation')
                     ->searchable(),
-
-                TextColumn::make('department')
-                    ->label('Department')
-                    ->searchable(),
-
-                TextColumn::make('qualification')
-                    ->label('Qualification')
-                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('joining_date')
                     ->label('Joining Date')
@@ -58,10 +50,10 @@ class TeacherProfilesTable
                 EditAction::make()->iconButton(),
                 DeleteAction::make()
                     ->iconButton()
-                    ->modalHeading(fn (TeacherProfile $record): string => "Delete \"{$record->user?->name}\"?"),
+                    ->modalHeading(fn (StaffProfile $record): string => "Delete \"{$record->user?->name}\"?"),
                 RestoreAction::make()
                     ->iconButton()
-                    ->modalHeading(fn (TeacherProfile $record): string => "Restore \"{$record->user?->name}\"?"),
+                    ->modalHeading(fn (StaffProfile $record): string => "Restore \"{$record->user?->name}\"?"),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Resources\TeacherProfiles\Schemas;
+namespace App\Filament\Resources\StaffProfiles\Schemas;
 
 use App\Enums\BloodGroup;
 use App\Enums\EmploymentStatus;
@@ -20,7 +20,7 @@ use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Illuminate\Validation\Rule;
 
-class TeacherProfileForm
+class StaffProfileForm
 {
     public static function configure(Schema $schema): Schema
     {
@@ -51,7 +51,7 @@ class TeacherProfileForm
 
                                     if ($user) {
                                         $set('user_found', true);
-                                        $set('has_profile', $user->teacherProfile !== null);
+                                        $set('has_profile', $user->staffProfile !== null);
 
                                         if (blank($get('name'))) {
                                             $set('name', $user->name);
@@ -67,7 +67,7 @@ class TeacherProfileForm
                                 )
                                 ->helperText(fn (string $operation, Get $get): ?string => match (true) {
                                     $operation !== 'create' => null,
-                                    (bool) $get('has_profile') => '⚠️ এই ইমেইলে ইতিমধ্যে teacher profile আছে — সেটি আপডেট হবে',
+                                    (bool) $get('has_profile') => '⚠️ এই ইমেইলে ইতিমধ্যে staff profile আছে — সেটি আপডেট হবে',
                                     (bool) $get('user_found') => 'ℹ️ এই ইমেইলে account আছে — profile তৈরি হবে',
                                     default => null,
                                 }),
@@ -96,12 +96,6 @@ class TeacherProfileForm
                         Grid::make(3)->schema([
                             TextInput::make('designation')
                                 ->label('Designation'),
-
-                            TextInput::make('department')
-                                ->label('Department'),
-
-                            TextInput::make('qualification')
-                                ->label('Qualification'),
 
                             DatePicker::make('joining_date')
                                 ->label('Joining Date'),

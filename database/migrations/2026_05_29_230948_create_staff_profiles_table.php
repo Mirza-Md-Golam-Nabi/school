@@ -12,7 +12,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('teacher_profiles', function (Blueprint $table) {
+        Schema::create('staff_profiles', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->string('gender')->nullable();         // male, female, other
@@ -21,8 +21,6 @@ return new class extends Migration
             $table->string('religion')->nullable();       // muslim, hindu, christian, buddhist, other
             $table->string('nationality')->default('Bangladeshi');
             $table->string('designation')->nullable();
-            $table->string('department')->nullable();
-            $table->string('qualification')->nullable();
             $table->date('joining_date')->nullable();
             $table->string('status')->default(EmploymentStatus::Active->value);
             $table->timestamps();
@@ -35,6 +33,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('teacher_profiles');
+        Schema::dropIfExists('staff_profiles');
     }
 };

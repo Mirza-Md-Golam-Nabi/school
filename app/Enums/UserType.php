@@ -10,6 +10,18 @@ enum UserType: string
     case Student = 'student';
     case Staff = 'staff';
 
+    /**
+     * Returns the Spatie role name for this user type.
+     * SuperAdmin uses 'super-admin' (hyphen) to match AppServiceProvider's Gate::before check.
+     */
+    public function roleName(): string
+    {
+        return match ($this) {
+            self::SuperAdmin => 'super-admin',
+            default => $this->value,
+        };
+    }
+
     public function getLabel(): string
     {
         return match ($this) {
