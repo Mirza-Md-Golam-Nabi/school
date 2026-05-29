@@ -21,6 +21,15 @@ enum UserType: string
         };
     }
 
+    public function panelPath(): string
+    {
+        return match ($this) {
+            self::Student => '/student',
+            self::Teacher => '/teacher',
+            self::Admin, self::SuperAdmin, self::Staff => '/admin',
+        };
+    }
+
     public static function options(): array
     {
         return collect(self::cases())

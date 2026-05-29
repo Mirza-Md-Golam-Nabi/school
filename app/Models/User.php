@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\UserType;
+use App\Notifications\QueuedVerifyEmail;
 use App\Traits\HasUserType;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
@@ -12,6 +13,7 @@ use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Storage;
@@ -46,6 +48,16 @@ class User extends Authenticatable implements FilamentUser, HasAvatar, MustVerif
             'student' => $this->isStudent(),
             default => false,
         };
+    }
+
+    public function studentProfile(): HasOne
+    {
+        return $this->hasOne(StudentProfile::class);
+    }
+
+    public function sendEmailVerificationNotification(): void
+    {
+        $this->notify(new QueuedVerifyEmail);
     }
 
     public function getFilamentAvatarUrl(): ?string
