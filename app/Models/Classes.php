@@ -38,6 +38,11 @@ class Classes extends Model
             ->withTimestamps();
     }
 
+    public function studentProfiles(): HasMany
+    {
+        return $this->hasMany(StudentProfile::class, 'current_class_id');
+    }
+
     public function classGroupSubjects(): HasMany
     {
         return $this->hasMany(ClassGroupSubject::class, 'class_id');

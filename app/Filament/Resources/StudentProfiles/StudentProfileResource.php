@@ -5,6 +5,7 @@ namespace App\Filament\Resources\StudentProfiles;
 use App\Filament\Resources\StudentProfiles\Pages\CreateStudentProfile;
 use App\Filament\Resources\StudentProfiles\Pages\EditStudentProfile;
 use App\Filament\Resources\StudentProfiles\Pages\ListStudentProfiles;
+use App\Filament\Resources\StudentProfiles\Pages\StudentsByClass;
 use App\Filament\Resources\StudentProfiles\Schemas\StudentProfileForm;
 use App\Filament\Resources\StudentProfiles\Tables\StudentProfilesTable;
 use App\Models\StudentProfile;
@@ -49,6 +50,7 @@ class StudentProfileResource extends Resource
         return [
             'index' => ListStudentProfiles::route('/'),
             'create' => CreateStudentProfile::route('/create'),
+            'students-by-class' => StudentsByClass::route('/class'),
             'edit' => EditStudentProfile::route('/{record}/edit'),
         ];
     }

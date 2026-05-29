@@ -1,0 +1,62 @@
+<?php
+
+namespace App\Filament\Resources\StudentProfiles\Pages;
+
+use App\Filament\Resources\StudentProfiles\StudentProfileResource;
+use App\Filament\Resources\StudentProfiles\Tables\StudentProfilesTable;
+use App\Models\Classes;
+use Filament\Actions\Action;
+use Filament\Actions\CreateAction;
+use Filament\Resources\Pages\ListRecords;
+use Filament\Tables\Table;
+use Illuminate\Contracts\Support\Htmlable;
+use Livewire\Attributes\Url;
+
+class StudentsByClass extends ListRecords
+{
+    protected static string $resource = StudentProfileResource::class;
+
+    #[Url(as: 'classId')]
+    public int $classId = 0;
+
+    public function getTitle(): string|Htmlable
+    {
+        return $this->resolveClass()?->name ?? 'Students';
+    }
+
+    public function getBreadcrumbs(): array
+    {
+        return [
+            StudentProfileResource::getUrl() => 'Students',
+            '' => $this->getTitle(),
+        ];
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            Action::make('back')
+                ->label('All Classes')
+                ->icon('heroicon-o-arrow-left')
+                ->url(StudentProfileResource::getUrl())
+                ->color('gray'),
+
+            CreateAction::make(),
+        ];
+    }
+
+    public function table(Table $table): Table
+    {
+        return StudentProfilesTable::configure(
+            $table->query(
+                StudentProfileResource::getEloquentQuery()
+                    ->where('current_class_id', $this->classId)
+            )
+        );
+    }
+
+    private function resolveClass(): ?Classes
+    {
+        return $this->classId ? Classes::find($this->classId) : null;
+    }
+}
