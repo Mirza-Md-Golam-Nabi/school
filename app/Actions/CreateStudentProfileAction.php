@@ -12,6 +12,34 @@ class CreateStudentProfileAction
 {
     public function handle(array $data): StudentProfile
     {
+        $user = User::where('email', $data['email'])->first();
+
+        if ($user) {
+            // Case 1: user has an existing student profile → delegate entirely to UpdateStudentProfileAction
+            if ($user->studentProfile) {
+                return app(UpdateStudentProfileAction::class)->handle($user->studentProfile, $data);
+            }
+
+            // Case 2: user exists but has no student profile → update user + create profile
+            $userUpdate = ['name' => $data['name']];
+
+            if (filled($data['password'] ?? null)) {
+                $userUpdate['password'] = $data['password'];
+            }
+
+            $user->update($userUpdate);
+
+            if (! $user->hasRole('student')) {
+                $user->assignRole('student');
+            }
+
+            $profile = $user->studentProfile()->create($this->profileData($data));
+            $this->saveAddresses($profile, $data);
+
+            return $profile;
+        }
+
+        // Case 3: new email → create user + profile and send verification email
         $user = User::create([
             'name' => $data['name'],
             'email' => $data['email'],
@@ -21,11 +49,16 @@ class CreateStudentProfileAction
         ]);
 
         $user->assignRole('student');
-
         event(new Registered($user));
 
         $profile = $user->studentProfile()->create($this->profileData($data));
+        $this->saveAddresses($profile, $data);
 
+        return $profile;
+    }
+
+    private function saveAddresses(StudentProfile $profile, array $data): void
+    {
         $isSame = (bool) ($data['same_address'] ?? false);
 
         $profile->addresses()->create([
@@ -41,8 +74,6 @@ class CreateStudentProfileAction
                 'is_same' => false,
             ]);
         }
-
-        return $profile;
     }
 
     /**

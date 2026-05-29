@@ -9,8 +9,10 @@ use App\Enums\StudentStatus;
 use App\Models\Classes;
 use App\Models\Group;
 use App\Models\Section as SectionModel;
+use App\Models\User;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -20,6 +22,7 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
+use Illuminate\Validation\Rule;
 
 class StudentProfileForm
 {
@@ -31,30 +34,63 @@ class StudentProfileForm
                     ->icon('heroicon-o-user-circle')
                     ->columnSpanFull()
                     ->schema([
-                        Grid::make(3)->schema([
-                            TextInput::make('name')
-                                ->label('Full Name')
-                                ->required(),
+                        Hidden::make('user_found')->default(false)->saved(false),
+                        Hidden::make('has_profile')->default(false)->saved(false),
 
+                        Grid::make(3)->schema([
                             TextInput::make('email')
                                 ->label('Email')
                                 ->email()
-                                ->unique(
-                                    table: 'users',
-                                    column: 'email',
-                                    ignorable: fn ($record) => $record?->user,
+                                ->required()
+                                ->live(onBlur: true)
+                                ->afterStateUpdated(function (Set $set, Get $get, ?string $state) {
+                                    if (blank($state)) {
+                                        $set('user_found', false);
+                                        $set('has_profile', false);
+
+                                        return;
+                                    }
+
+                                    $user = User::where('email', $state)->first();
+
+                                    if ($user) {
+                                        $set('user_found', true);
+                                        $set('has_profile', $user->studentProfile !== null);
+
+                                        if (blank($get('name'))) {
+                                            $set('name', $user->name);
+                                        }
+                                    } else {
+                                        $set('user_found', false);
+                                        $set('has_profile', false);
+                                    }
+                                })
+                                ->rules(fn (string $operation, $record): array => $operation === 'edit'
+                                        ? [Rule::unique('users', 'email')->ignore($record?->user?->id)]
+                                        : []
                                 )
+                                ->helperText(fn (string $operation, Get $get): ?string => match (true) {
+                                    $operation !== 'create' => null,
+                                    (bool) $get('has_profile') => '⚠️ এই ইমেইলে ইতিমধ্যে student profile আছে — সেটি আপডেট হবে',
+                                    (bool) $get('user_found') => 'ℹ️ এই ইমেইলে account আছে — profile তৈরি হবে',
+                                    default => null,
+                                }),
+
+                            TextInput::make('name')
+                                ->label('Full Name')
                                 ->required(),
 
                             TextInput::make('password')
                                 ->label('Password')
                                 ->password()
                                 ->revealable()
-                                ->required(fn (string $operation): bool => $operation === 'create')
-                                ->helperText(fn (string $operation): ?string => $operation === 'edit'
-                                    ? 'খালি রাখলে password পরিবর্তন হবে না'
-                                    : null
-                                ),
+                                ->required(fn (string $operation, Get $get): bool => $operation === 'create' && ! (bool) $get('user_found')
+                                )
+                                ->helperText(fn (string $operation, Get $get): ?string => match (true) {
+                                    $operation === 'edit' => 'খালি রাখলে password পরিবর্তন হবে না',
+                                    (bool) $get('user_found') => 'ব্যবহারকারী পাওয়া গেছে — password পরিবর্তন হবে না',
+                                    default => null,
+                                }),
                         ]),
                     ]),
 
