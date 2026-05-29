@@ -55,6 +55,11 @@ class User extends Authenticatable implements FilamentUser, HasAvatar, MustVerif
         return $this->hasOne(StudentProfile::class);
     }
 
+    public function teacherProfile(): HasOne
+    {
+        return $this->hasOne(TeacherProfile::class);
+    }
+
     public function sendEmailVerificationNotification(): void
     {
         $this->notify(new QueuedVerifyEmail);
