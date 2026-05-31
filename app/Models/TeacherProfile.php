@@ -57,4 +57,9 @@ class TeacherProfile extends Model
     {
         return $this->morphMany(Address::class, 'addressable');
     }
+
+    public function attendances(): MorphMany
+    {
+        return $this->morphMany(Attendance::class, 'attendable');
+    }
 }
