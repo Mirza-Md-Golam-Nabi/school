@@ -4,6 +4,7 @@ namespace App\Filament\Pages;
 
 use App\Enums\AttendanceSource;
 use App\Enums\AttendanceStatus;
+use App\Enums\EmploymentStatus;
 use App\Models\Attendance;
 use App\Models\TeacherProfile;
 use App\Models\User;
@@ -12,6 +13,7 @@ use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Collection;
+use Livewire\Attributes\Url;
 use UnitEnum;
 
 class TeacherAttendance extends Page
@@ -26,6 +28,7 @@ class TeacherAttendance extends Page
 
     protected static ?int $navigationSort = 2;
 
+    #[Url(as: 'date')]
     public string $date = '';
 
     /** @var array<string> */
@@ -33,7 +36,9 @@ class TeacherAttendance extends Page
 
     public function mount(): void
     {
-        $this->date = now()->toDateString();
+        if (blank($this->date)) {
+            $this->date = now()->toDateString();
+        }
         $this->loadExistingAttendance();
     }
 
@@ -122,8 +127,16 @@ class TeacherAttendance extends Page
 
     public function getTeachers(): Collection
     {
+        $idsWithAttendance = Attendance::where('attendable_type', TeacherProfile::class)
+            ->where('date', $this->date)
+            ->pluck('attendable_id');
+
         return TeacherProfile::with('user')
-            ->whereNull('deleted_at')
+            ->withTrashed()
+            ->where(function ($q) use ($idsWithAttendance) {
+                $q->where(fn ($q2) => $q2->where('status', EmploymentStatus::Active)->whereNull('deleted_at'))
+                    ->orWhereIn('id', $idsWithAttendance);
+            })
             ->orderBy('id')
             ->get();
     }

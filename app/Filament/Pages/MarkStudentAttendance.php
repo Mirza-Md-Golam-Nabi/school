@@ -4,6 +4,7 @@ namespace App\Filament\Pages;
 
 use App\Enums\AttendanceSource;
 use App\Enums\AttendanceStatus;
+use App\Enums\StudentStatus;
 use App\Models\Attendance;
 use App\Models\Classes;
 use App\Models\StudentProfile;
@@ -30,6 +31,7 @@ class MarkStudentAttendance extends Page
     #[Url(as: 'classId')]
     public int $classId = 0;
 
+    #[Url(as: 'date')]
     public string $date = '';
 
     /** @var array<string> */
@@ -37,7 +39,9 @@ class MarkStudentAttendance extends Page
 
     public function mount(): void
     {
-        $this->date = now()->toDateString();
+        if (blank($this->date)) {
+            $this->date = now()->toDateString();
+        }
         $this->loadExistingAttendance();
     }
 
@@ -141,9 +145,18 @@ class MarkStudentAttendance extends Page
 
     public function getStudents(): Collection
     {
+        $idsWithAttendance = Attendance::where('attendable_type', StudentProfile::class)
+            ->where('date', $this->date)
+            ->where('class_id', $this->classId)
+            ->pluck('attendable_id');
+
         return StudentProfile::with('user')
+            ->withTrashed()
             ->where('current_class_id', $this->classId)
-            ->whereNull('deleted_at')
+            ->where(function ($q) use ($idsWithAttendance) {
+                $q->where(fn ($q2) => $q2->where('status', StudentStatus::Active)->whereNull('deleted_at'))
+                    ->orWhereIn('id', $idsWithAttendance);
+            })
             ->orderBy('roll_no')
             ->get();
     }
