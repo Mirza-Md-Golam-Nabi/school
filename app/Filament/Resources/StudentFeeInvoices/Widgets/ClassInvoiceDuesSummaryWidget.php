@@ -11,6 +11,11 @@ class ClassInvoiceDuesSummaryWidget extends StatsOverviewWidget
 {
     public int $classId = 0;
 
+    protected int|array|null $columns = [
+        'default' => 2,
+        'sm' => 3,
+    ];
+
     protected function getStats(): array
     {
         $baseQuery = fn () => StudentFeeInvoice::whereHas(
@@ -30,21 +35,26 @@ class ClassInvoiceDuesSummaryWidget extends StatsOverviewWidget
         $partialCount = $partialInvoices->count();
         $partialRemaining = $partialInvoices->sum(fn ($inv) => $inv->net_amount - ($inv->paid_amount ?? 0));
 
+        $compact = ['class' => '!py-3 !px-3 sm:!px-4 lg:!px-5'];
+
         return [
             Stat::make('Unpaid Invoices', $unpaid->count ?? 0)
                 ->description('৳'.number_format($unpaid->total ?? 0, 0).' total due')
                 ->color('danger')
-                ->icon('heroicon-o-exclamation-circle'),
+                ->icon('heroicon-o-exclamation-circle')
+                ->extraAttributes($compact),
 
             Stat::make('Partial Invoices', $partialCount)
                 ->description('৳'.number_format($partialRemaining, 0).' still remaining')
                 ->color('warning')
-                ->icon('heroicon-o-clock'),
+                ->icon('heroicon-o-clock')
+                ->extraAttributes($compact),
 
             Stat::make('Total Outstanding', ($unpaid->count ?? 0) + $partialCount)
                 ->description('৳'.number_format(($unpaid->total ?? 0) + $partialRemaining, 0).' combined due')
                 ->color('gray')
-                ->icon('heroicon-o-banknotes'),
+                ->icon('heroicon-o-banknotes')
+                ->extraAttributes($compact),
         ];
     }
 }

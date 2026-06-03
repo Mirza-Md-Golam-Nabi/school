@@ -37,6 +37,11 @@ class ManageClassStudentFeeInvoices extends ListRecords
             ));
     }
 
+    public function getHeaderWidgetsColumns(): int|array
+    {
+        return 1;
+    }
+
     protected function getHeaderWidgets(): array
     {
         return [

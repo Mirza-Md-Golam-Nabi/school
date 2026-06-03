@@ -7,6 +7,8 @@ use App\Models\Classes;
 use App\Models\FeeStructure;
 use App\Models\StudentFeeInvoice;
 use App\Models\StudentProfile;
+use App\Models\User;
+use App\Notifications\FeeInvoiceGeneratedNotification;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
@@ -45,19 +47,19 @@ class GenerateMonthlyFeeInvoices extends Command
                 continue;
             }
 
+            // Include user_id for sending notifications
             $students = StudentProfile::with([
                 'feeDiscounts:student_id,fee_type_id,session_year,discount_id',
                 'feeDiscounts.discount:id,discount_type,discount_value',
             ])
                 ->active()
                 ->where('current_class_id', $class->id)
-                ->get(['id']);
+                ->get(['id', 'user_id']);
 
             if ($students->isEmpty()) {
                 continue;
             }
 
-            // Only check existing invoices for this class's students
             $existingSet = StudentFeeInvoice::where('month', $month)
                 ->where('year', $year)
                 ->whereIn('student_id', $students->pluck('id'))
@@ -66,6 +68,9 @@ class GenerateMonthlyFeeInvoices extends Command
                 ->all();
 
             $toInsert = [];
+
+            // Track per-student invoice count and amount for notifications
+            $notificationData = [];
 
             foreach ($students as $student) {
                 foreach ($structures as $structure) {
@@ -78,6 +83,7 @@ class GenerateMonthlyFeeInvoices extends Command
                     }
 
                     $discountAmount = $this->resolveDiscount($student, $structure->fee_type_id, (float) $structure->amount, $year);
+                    $netAmount = max(0, $structure->amount - $discountAmount);
 
                     $toInsert[] = [
                         'student_id' => $student->id,
@@ -88,13 +94,19 @@ class GenerateMonthlyFeeInvoices extends Command
                         'discount_amount' => $discountAmount,
                         'fine_amount' => 0,
                         'waiver_amount' => 0,
-                        'net_amount' => max(0, $structure->amount - $discountAmount),
+                        'net_amount' => $netAmount,
                         'status' => InvoiceStatus::Unpaid->value,
                         'created_at' => $now,
                         'updated_at' => $now,
                     ];
 
                     $generated++;
+
+                    if ($student->user_id) {
+                        $notificationData[$student->user_id] ??= ['count' => 0, 'total' => 0.0];
+                        $notificationData[$student->user_id]['count']++;
+                        $notificationData[$student->user_id]['total'] += $netAmount;
+                    }
                 }
             }
 
@@ -102,7 +114,22 @@ class GenerateMonthlyFeeInvoices extends Command
                 StudentFeeInvoice::insert($chunk);
             }
 
-            unset($students, $structures, $toInsert);
+            // Notify each student about their new invoices
+            if ($notificationData) {
+                User::whereIn('id', array_keys($notificationData))
+                    ->get(['id'])
+                    ->each(function (User $user) use ($notificationData, $month, $year) {
+                        $data = $notificationData[$user->id];
+                        $user->notify(new FeeInvoiceGeneratedNotification(
+                            count: $data['count'],
+                            totalAmount: $data['total'],
+                            month: $month,
+                            year: $year,
+                        ));
+                    });
+            }
+
+            unset($students, $structures, $toInsert, $notificationData, $existingSet);
         }
 
         $this->info("Done! Generated: {$generated} | Skipped (already exists): {$skipped}");

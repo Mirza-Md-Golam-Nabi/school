@@ -116,9 +116,12 @@ class FeePaymentForm
                                     return [];
                                 }
 
+                                // Always include already-selected invoices (e.g. paid ones in edit mode)
+                                $selected = array_filter((array) ($get('invoice_ids') ?? []));
+
                                 return StudentFeeInvoice::with(['feeType', 'payments'])
                                     ->where('student_id', $studentId)
-                                    ->payable()
+                                    ->where(fn ($q) => $q->payable()->when($selected, fn ($q) => $q->orWhereIn('id', $selected)))
                                     ->orderBy('year')
                                     ->orderByRaw('COALESCE(month, 13)')
                                     ->get()

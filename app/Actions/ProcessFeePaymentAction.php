@@ -5,6 +5,8 @@ namespace App\Actions;
 use App\Enums\InvoiceStatus;
 use App\Models\FeePayment;
 use App\Models\StudentFeeInvoice;
+use App\Models\StudentProfile;
+use App\Notifications\FeePaymentReceivedNotification;
 use Illuminate\Support\Facades\DB;
 
 class ProcessFeePaymentAction
@@ -76,6 +78,12 @@ class ProcessFeePaymentAction
                 $invoice->update(['status' => $newStatus]);
             }
         });
+
+        // Notify the student's user about the payment
+        $student = StudentProfile::with('user')->find($data['student_id']);
+        if ($student?->user) {
+            $student->user->notify(new FeePaymentReceivedNotification($firstPayment));
+        }
 
         return $firstPayment;
     }
