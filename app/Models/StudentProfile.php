@@ -6,8 +6,10 @@ use App\Enums\BloodGroup;
 use App\Enums\Gender;
 use App\Enums\Religion;
 use App\Enums\StudentStatus;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -80,5 +82,34 @@ class StudentProfile extends Model
     public function attendances(): MorphMany
     {
         return $this->morphMany(Attendance::class, 'attendable');
+    }
+
+    public function feeDiscounts(): HasMany
+    {
+        return $this->hasMany(StudentFeeDiscount::class, 'student_id');
+    }
+
+    public function feeInvoices(): HasMany
+    {
+        return $this->hasMany(StudentFeeInvoice::class, 'student_id');
+    }
+
+    public function feePayments(): HasMany
+    {
+        return $this->hasMany(FeePayment::class, 'student_id');
+    }
+
+    public function scopeActive(Builder $query): void
+    {
+        $query->where('status', StudentStatus::Active);
+    }
+
+    public function scopeFormer(Builder $query): void
+    {
+        $query->whereIn('status', [
+            StudentStatus::Transferred,
+            StudentStatus::Dropped,
+            StudentStatus::Graduated,
+        ]);
     }
 }

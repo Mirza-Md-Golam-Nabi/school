@@ -56,6 +56,11 @@ class Classes extends Model
             ->withTimestamps();
     }
 
+    public function feeStructures(): HasMany
+    {
+        return $this->hasMany(FeeStructure::class, 'class_id');
+    }
+
     public function subjectsForGroup(?int $groupId): Collection
     {
         return ClassGroupSubject::query()
