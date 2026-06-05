@@ -44,7 +44,7 @@ class ManageClassFeePayments extends ListRecords
                 ->url(FeePaymentResource::getUrl('index'))
                 ->icon('heroicon-o-arrow-left')
                 ->color('gray'),
-                
+
             CreateAction::make()
                 ->url(fn (): string => FeePaymentResource::getUrl(
                     'create',

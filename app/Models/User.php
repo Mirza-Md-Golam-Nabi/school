@@ -13,7 +13,9 @@ use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Storage;
@@ -63,6 +65,16 @@ class User extends Authenticatable implements FilamentUser, HasAvatar, MustVerif
     public function staffProfile(): HasOne
     {
         return $this->hasOne(StaffProfile::class);
+    }
+
+    public function noticeReads(): HasMany
+    {
+        return $this->hasMany(NoticeRead::class);
+    }
+
+    public function noticeTargets(): MorphMany
+    {
+        return $this->morphMany(NoticeTarget::class, 'targetable');
     }
 
     public function sendEmailVerificationNotification(): void

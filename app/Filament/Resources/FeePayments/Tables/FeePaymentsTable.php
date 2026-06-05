@@ -73,22 +73,22 @@ class FeePaymentsTable
                         Section::make('Student & Invoice')
                             ->schema([
                                 TextEntry::make('student.user.name')
-                                ->label('Student'),
+                                    ->label('Student'),
                                 TextEntry::make('student.roll_no')
-                                ->label('Roll No.'),
+                                    ->label('Roll No.'),
                                 TextEntry::make('invoice.feeType.name')
-                                ->label('Fee Type'),
+                                    ->label('Fee Type'),
                                 TextEntry::make('invoice.month')
                                     ->label('Period')
                                     ->formatStateUsing(fn (?int $state, FeePayment $record): string => $state
                                         ? Carbon::create()->month($state)->format('M').' '.$record->invoice->year
                                         : (string) ($record->invoice?->year ?? '—')),
                                 TextEntry::make('invoice.net_amount')
-                                ->label('Invoice Amount')
-                                ->money('BDT'),
+                                    ->label('Invoice Amount')
+                                    ->money('BDT'),
                                 TextEntry::make('invoice.status')
-                                ->label('Invoice Status')
-                                ->badge(),
+                                    ->label('Invoice Status')
+                                    ->badge(),
                             ])
                             ->columns(['default' => 2, 'sm' => 3, 'lg' => 3]),
 

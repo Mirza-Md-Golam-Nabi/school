@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Classes extends Model
@@ -59,6 +60,11 @@ class Classes extends Model
     public function feeStructures(): HasMany
     {
         return $this->hasMany(FeeStructure::class, 'class_id');
+    }
+
+    public function noticeTargets(): MorphMany
+    {
+        return $this->morphMany(NoticeTarget::class, 'targetable');
     }
 
     public function subjectsForGroup(?int $groupId): Collection
