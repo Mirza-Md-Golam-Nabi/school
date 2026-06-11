@@ -6,6 +6,9 @@ use App\Enums\BloodGroup;
 use App\Enums\EmploymentStatus;
 use App\Enums\Gender;
 use App\Enums\Religion;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
@@ -13,6 +16,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class TeacherProfile extends Model
 {
+    use HasFactory;
     use SoftDeletes;
 
     protected $fillable = [
@@ -61,5 +65,16 @@ class TeacherProfile extends Model
     public function attendances(): MorphMany
     {
         return $this->morphMany(Attendance::class, 'attendable');
+    }
+
+    public function leaveApplications(): MorphMany
+    {
+        return $this->morphMany(LeaveApplication::class, 'applicant');
+    }
+
+    #[Scope]
+    protected function active(Builder $query): void
+    {
+        $query->where('status', EmploymentStatus::Active);
     }
 }
