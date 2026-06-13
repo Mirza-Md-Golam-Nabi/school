@@ -97,14 +97,23 @@ class WorkingDaysCalculator
         $currentYear = now()->year;
 
         return PublicHoliday::all()->flatMap(function (PublicHoliday $holiday) use ($currentYear) {
-            if ($holiday->is_recurring) {
-                // Apply the recurring holiday to the current year
-                $date = $holiday->date->copy()->setYear($currentYear);
+            $start = $holiday->start_date;
+            $end = $holiday->end_date ?? $holiday->start_date;
 
-                return [$date->format('Y-m-d')];
+            if ($holiday->is_recurring) {
+                $start = $start->copy()->setYear($currentYear);
+                $end = $end->copy()->setYear($currentYear);
             }
 
-            return [$holiday->date->format('Y-m-d')];
+            $dates = [];
+            $current = $start->copy();
+
+            while ($current->lte($end)) {
+                $dates[] = $current->format('Y-m-d');
+                $current->addDay();
+            }
+
+            return $dates;
         });
     }
 }
