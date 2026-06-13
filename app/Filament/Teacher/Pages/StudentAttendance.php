@@ -44,6 +44,8 @@ class StudentAttendance extends Page
                 $counts = $todayCounts->get($class->id, collect());
                 $class->present_today = $counts->where('status', AttendanceStatus::Present->value)->sum('total');
                 $class->absent_today = $counts->where('status', AttendanceStatus::Absent->value)->sum('total');
+                $class->not_marked = max(0, $class->student_profiles_count - $class->present_today - $class->absent_today);
+                $class->is_marked = ($class->present_today + $class->absent_today) > 0;
             });
 
         $totalStudents = $classes->sum('student_profiles_count');

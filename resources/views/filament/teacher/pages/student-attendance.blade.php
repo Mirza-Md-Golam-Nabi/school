@@ -75,22 +75,14 @@
                         </div>
                     </div>
 
-                    {{-- Today's mini attendance bar --}}
-                    @php
-                        $total = $class->student_profiles_count;
-                        $present = $class->present_today;
-                        $absent = $class->absent_today;
-                        $notMarked = max(0, $total - $present - $absent);
-                        $isMarked = ($present + $absent) > 0;
-                    @endphp
-
-                    @if ($isMarked)
+                    {{-- Today's mini attendance summary --}}
+                    @if ($class->is_marked)
                         <div class="flex flex-wrap items-center gap-1">
                             <x-filament::badge color="success" icon="heroicon-o-check-circle" size="sm">
-                                Present: {{ $present }}
+                                Present: {{ $class->present_today }}
                             </x-filament::badge>
                             <x-filament::badge color="danger" icon="heroicon-o-x-circle" size="sm">
-                                Absent: {{ $absent }}
+                                Absent: {{ $class->absent_today }}
                             </x-filament::badge>
                         </div>
                     @else
@@ -101,7 +93,7 @@
                     <div class="flex items-end justify-between">
                         <div>
                             <p class="text-xl font-bold tracking-tight text-gray-950 dark:text-white">
-                                {{ $total }}
+                                {{ $class->student_profiles_count }}
                             </p>
                             <p class="text-xs text-gray-500 dark:text-gray-400">Students</p>
                         </div>
