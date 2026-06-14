@@ -10,6 +10,7 @@ use App\Models\Classes;
 use App\Models\StudentProfile;
 use App\Models\User;
 use BackedEnum;
+use Carbon\Carbon;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
@@ -159,6 +160,20 @@ class MarkStudentAttendance extends Page
             })
             ->orderBy('roll_no')
             ->get();
+    }
+
+    public function getYesterdayAttendance(): Collection
+    {
+        $yesterday = Carbon::parse($this->date)->subDay()->toDateString();
+        $studentIds = $this->getStudents()->pluck('id');
+
+        return Attendance::query()
+            ->where('attendable_type', StudentProfile::class)
+            ->whereIn('attendable_id', $studentIds)
+            ->where('date', $yesterday)
+            ->where('class_id', $this->classId)
+            ->whereNull('subject_id')
+            ->pluck('status', 'attendable_id');
     }
 
     private function resolveClass(): ?Classes
