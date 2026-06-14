@@ -21,6 +21,12 @@
                             class="w-[7.5rem] border-0 bg-transparent py-0 text-sm font-medium text-gray-900 focus:ring-0 dark:text-white"
                         >
                     </div>
+
+                    <a href="{{ route('filament.teacher.pages.student-attendance-history') }}?classId={{ $classId }}">
+                        <x-filament::button color="gray" icon="heroicon-o-calendar-days" size="sm">
+                            View History
+                        </x-filament::button>
+                    </a>
                 </div>
             </div>
 
