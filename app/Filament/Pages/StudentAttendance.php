@@ -2,7 +2,10 @@
 
 namespace App\Filament\Pages;
 
+use App\Enums\AttendanceStatus;
+use App\Models\Attendance;
 use App\Models\Classes;
+use App\Models\StudentProfile;
 use BackedEnum;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
@@ -22,13 +25,33 @@ class StudentAttendance extends Page
 
     public function getViewData(): array
     {
+        $todayCounts = Attendance::query()
+            ->where('attendable_type', StudentProfile::class)
+            ->where('date', today())
+            ->whereNull('subject_id')
+            ->selectRaw('class_id, status, count(*) as total')
+            ->groupBy('class_id', 'status')
+            ->get()
+            ->groupBy('class_id');
+
         $classes = Classes::where('is_active', true)
             ->withCount([
                 'studentProfiles' => fn ($q) => $q->whereNull('deleted_at'),
             ])
             ->orderBy('order')
-            ->get();
+            ->get()
+            ->each(function (Classes $class) use ($todayCounts) {
+                $counts = $todayCounts->get($class->id, collect());
+                $class->present_today = $counts->where('status', AttendanceStatus::Present->value)->sum('total');
+                $class->absent_today = $counts->where('status', AttendanceStatus::Absent->value)->sum('total');
+                $class->is_marked = ($class->present_today + $class->absent_today) > 0;
+            });
 
-        return compact('classes');
+        $totalStudents = $classes->sum('student_profiles_count');
+        $presentToday = $classes->sum('present_today');
+        $absentToday = $classes->sum('absent_today');
+        $notMarkedToday = $totalStudents - $presentToday - $absentToday;
+
+        return compact('classes', 'totalStudents', 'presentToday', 'absentToday', 'notMarkedToday');
     }
 }

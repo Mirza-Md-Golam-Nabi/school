@@ -65,8 +65,10 @@
                 </div>
 
                 {{-- Student Checkboxes: 2 cols on mobile, 3 on tablet, 4 on lg --}}
+                @php $yesterdayAttendance = $this->getYesterdayAttendance(); @endphp
                 <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                     @foreach ($students as $student)
+                        @php $yesterdayStatus = $yesterdayAttendance->get($student->id); @endphp
                         <label class="flex cursor-pointer items-center gap-x-2 border-b border-gray-100 px-3 py-2.5 transition-colors hover:bg-gray-50 last:border-0 dark:border-gray-800 dark:hover:bg-gray-800/50">
                             <input
                                 type="checkbox"
@@ -82,6 +84,21 @@
                                     <p class="text-xs text-gray-500 dark:text-gray-400">Roll: {{ $student->roll_no }}</p>
                                 @endif
                             </div>
+                            {{-- Yesterday's attendance icon --}}
+                            @if ($yesterdayStatus?->value === 'present')
+                                <x-heroicon-o-check-circle class="h-4 w-4 shrink-0 text-success-500" title="Present yesterday" />
+                            @elseif ($yesterdayStatus?->value === 'absent')
+                                <x-heroicon-o-x-circle class="h-4 w-4 shrink-0 text-danger-500" title="Absent yesterday" />
+                            @endif
+
+                            <a
+                                href="{{ route('filament.teacher.pages.student-attendance-detail') }}?studentId={{ $student->id }}"
+                                @click.stop
+                                class="shrink-0 text-gray-300 transition-colors hover:text-primary-500 dark:text-gray-600 dark:hover:text-primary-400"
+                                title="View Attendance History"
+                            >
+                                <x-heroicon-o-eye class="h-4 w-4 text-gray-900" />
+                            </a>
                         </label>
                     @endforeach
                 </div>
