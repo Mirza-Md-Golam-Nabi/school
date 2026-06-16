@@ -12,8 +12,8 @@ return new class extends Migration
         Schema::create('student_profiles', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
-            $table->string('roll_no');
-            $table->string('registration_no')->nullable();
+            $table->unsignedMediumInteger('roll_no')->index();
+            $table->unsignedMediumInteger('registration_no')->nullable()->index();
             $table->foreignId('current_class_id')
                 ->nullable()
                 ->constrained('classes')
