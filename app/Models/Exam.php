@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\StudentMeritRanking;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -56,5 +57,10 @@ class Exam extends Model
     public function results(): HasMany
     {
         return $this->hasMany(StudentResult::class);
+    }
+
+    public function meritRankings(): HasMany
+    {
+        return $this->hasMany(StudentMeritRanking::class);
     }
 }

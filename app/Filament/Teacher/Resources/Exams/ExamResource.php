@@ -2,6 +2,7 @@
 
 namespace App\Filament\Teacher\Resources\Exams;
 
+use App\Filament\Resources\Exams\RelationManagers\MeritRankingsRelationManager;
 use App\Filament\Resources\Exams\RelationManagers\SubjectConfigsRelationManager;
 use App\Filament\Teacher\Resources\Exams\Pages\ListExams;
 use App\Filament\Teacher\Resources\Exams\Pages\ViewExam;
@@ -101,6 +102,7 @@ class ExamResource extends Resource
     {
         return [
             SubjectConfigsRelationManager::class,
+            MeritRankingsRelationManager::class,
         ];
     }
 
