@@ -13,6 +13,7 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Database\Eloquent\Model;
+use Livewire\Component;
 
 class EditExam extends EditRecord
 {
@@ -29,7 +30,7 @@ class EditExam extends EditRecord
                 ->modalHeading('Merit Rankings Calculate করবেন?')
                 ->modalDescription('সব student এর marks থেকে class rank, section rank ও GPA calculate হবে। আগের rankings আপডেট হয়ে যাবে।')
                 ->modalSubmitActionLabel('হ্যাঁ, Calculate করো')
-                ->action(function (Exam $record) {
+                ->action(function (Exam $record, Component $livewire) {
                     $count = app(CalculateExamRankings::class)->execute($record);
 
                     Notification::make()
@@ -37,6 +38,8 @@ class EditExam extends EditRecord
                         ->title('Rankings Calculate সম্পন্ন')
                         ->body("{$count} জন student এর ranking সেভ হয়েছে।")
                         ->send();
+
+                    $livewire->dispatch('$refresh');
                 }),
 
             DeleteAction::make(),

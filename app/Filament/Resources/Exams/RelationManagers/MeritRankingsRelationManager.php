@@ -116,35 +116,65 @@ class MeritRankingsRelationManager extends RelationManager
             ->get()
             ->keyBy('subject_id');
 
+        $subjectConfigs = ExamSubjectConfig::where('exam_id', $record->exam_id)
+            ->get()
+            ->keyBy('subject_id');
+
         $allResults = StudentResult::where('exam_id', $record->exam_id)
             ->with('student.user')
             ->get()
             ->groupBy('subject_id');
 
-        $subjectConfigs = ExamSubjectConfig::where('exam_id', $record->exam_id)
-            ->get()
-            ->keyBy('subject_id');
-
-        $subjectStats = [];
+        $subjectBestMap = [];
         foreach ($allResults as $subjectId => $results) {
             $bestMarks = $results->max('total_marks');
-            $bestStudentNames = $results
-                ->filter(fn ($r) => (float) $r->total_marks === (float) $bestMarks && ! $r->is_absent)
-                ->map(fn ($r) => $r->student?->user?->name)
-                ->filter()
-                ->values();
-
-            $subjectStats[$subjectId] = [
+            $subjectBestMap[$subjectId] = [
                 'best_marks' => $bestMarks,
-                'best_students' => $bestStudentNames,
+                'best_students' => $results
+                    ->filter(fn ($r) => (float) $r->total_marks === (float) $bestMarks && ! $r->is_absent)
+                    ->map(fn ($r) => $r->student?->user?->name)
+                    ->filter()
+                    ->implode(', '),
             ];
         }
 
-        return view('filament.shared.student-marks-detail', [
-            'myResults' => $myResults,
-            'subjectStats' => $subjectStats,
-            'subjectConfigs' => $subjectConfigs,
-            'ranking' => $record,
-        ]);
+        $rows = $myResults->map(function (StudentResult $result) use ($subjectConfigs, $subjectBestMap): array {
+            $subjectId = $result->subject_id;
+            $config = $subjectConfigs->get($subjectId);
+            $fullMarks = $config?->total_marks ?: 100;
+            $percentage = (! $result->is_absent && $fullMarks > 0)
+                ? ($result->total_marks / $fullMarks) * 100
+                : 0.0;
+            $grade = (! $result->is_absent && $result->total_marks > 0)
+                ? Grade::fromMarks($percentage)
+                : null;
+            $best = $subjectBestMap[$subjectId] ?? null;
+
+            return [
+                'subject_name' => $result->subject?->name ?? '—',
+                'is_absent' => $result->is_absent,
+                'total_marks' => $result->total_marks,
+                'grade_label' => $grade?->getLabel(),
+                'grade_color' => $grade?->getColor(),
+                'is_top_scorer' => $best !== null
+                    && ! $result->is_absent
+                    && (float) $result->total_marks === (float) $best['best_marks'],
+                'best_marks' => $best['best_marks'] ?? null,
+                'best_students' => $best['best_students'] ?? null,
+            ];
+        })->values();
+
+        $overallGrade = Grade::fromGpa((float) $record->gpa);
+
+        $summary = [
+            'total_marks' => $record->total_marks,
+            'class_rank' => $record->class_rank,
+            'section_rank' => $record->section_rank,
+            'gpa' => number_format((float) $record->gpa, 2),
+            'overall_grade_label' => $overallGrade->getLabel(),
+            'overall_grade_color' => $overallGrade->getColor(),
+        ];
+
+        return view('filament.shared.student-marks-detail', compact('rows', 'summary'));
     }
 }

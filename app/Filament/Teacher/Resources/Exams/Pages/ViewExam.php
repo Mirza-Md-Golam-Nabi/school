@@ -9,6 +9,7 @@ use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
 use Filament\Support\Icons\Heroicon;
+use Livewire\Component;
 
 class ViewExam extends ViewRecord
 {
@@ -25,7 +26,7 @@ class ViewExam extends ViewRecord
                 ->modalHeading('Merit Rankings Calculate করবেন?')
                 ->modalDescription('সব student এর marks থেকে class rank, section rank ও GPA calculate হবে। আগের rankings আপডেট হয়ে যাবে।')
                 ->modalSubmitActionLabel('হ্যাঁ, Calculate করো')
-                ->action(function (Exam $record) {
+                ->action(function (Exam $record, Component $livewire) {
                     $count = app(CalculateExamRankings::class)->execute($record);
 
                     Notification::make()
@@ -33,6 +34,8 @@ class ViewExam extends ViewRecord
                         ->title('Rankings Calculate সম্পন্ন')
                         ->body("{$count} জন student এর ranking সেভ হয়েছে।")
                         ->send();
+
+                    $livewire->dispatch('$refresh');
                 }),
         ];
     }
