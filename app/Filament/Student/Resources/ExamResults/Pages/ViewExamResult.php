@@ -60,7 +60,7 @@ class ViewExamResult extends Page
     {
         $ranking = StudentMeritRanking::findOrFail($rankingId);
 
-        abort_unless($ranking->student_id === $this->getMyStudentId(), 403);
+        abort_unless((int) $ranking->student_id === (int) $this->getMyStudentId(), 403);
 
         $myResults = StudentResult::where('exam_id', $ranking->exam_id)
             ->where('student_id', $ranking->student_id)

@@ -87,7 +87,7 @@
                         <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
                             @foreach ($rankings as $ranking)
                                 @php
-                                    $isMe = $ranking->student_id === $myStudentId;
+                                    $isMe = (int) $ranking->student_id === (int) $myStudentId;
                                     $grade = \App\Enums\Grade::fromGpa((float) $ranking->gpa);
                                     $gradeColor = $grade->getColor();
                                     $rankLabel = match ((int) $ranking->class_rank) {
