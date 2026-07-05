@@ -1,5 +1,6 @@
 <x-filament-panels::page>
     @php
+        use App\Enums\Grade;
         $rankings = $this->getRankings();
         $myStudentId = $this->getMyStudentId();
         $hasSections = $rankings->filter(fn($r) => $r->section !== null)->isNotEmpty();
@@ -15,7 +16,8 @@
                     <h2 class="text-base font-bold text-gray-800 dark:text-gray-100 sm:text-xl">
                         {{ $record->examType?->name ?? 'Exam Results' }}
                     </h2>
-                    <div class="mt-1 flex flex-col gap-0.5 text-xs text-gray-500 dark:text-gray-400 sm:flex-row sm:flex-wrap sm:gap-x-4 sm:gap-y-0.5">
+                    <div
+                        class="mt-1 flex flex-col gap-0.5 text-xs text-gray-500 dark:text-gray-400 sm:flex-row sm:flex-wrap sm:gap-x-4 sm:gap-y-0.5">
                         <span>
                             <span class="font-medium text-gray-700 dark:text-gray-300">Class:</span>
                             {{ $record->class?->name }}
@@ -88,7 +90,7 @@
                             @foreach ($rankings as $ranking)
                                 @php
                                     $isMe = (int) $ranking->student_id === (int) $myStudentId;
-                                    $grade = \App\Enums\Grade::fromGpa((float) $ranking->gpa);
+                                    $grade = Grade::fromGpa((float) $ranking->gpa);
                                     $gradeColor = $grade->getColor();
                                     $rankLabel = match ((int) $ranking->class_rank) {
                                         1 => '🥇 1st',

@@ -57,6 +57,11 @@ class Classes extends Model
             ->withTimestamps();
     }
 
+    public function teacherSubjects(): HasMany
+    {
+        return $this->hasMany(TeacherSubject::class, 'class_id');
+    }
+
     public function feeStructures(): HasMany
     {
         return $this->hasMany(FeeStructure::class, 'class_id');

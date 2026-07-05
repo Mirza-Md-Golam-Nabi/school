@@ -8,6 +8,7 @@ use App\Filament\Resources\Classes\Pages\ListClasses;
 use App\Filament\Resources\Classes\RelationManagers\GroupsRelationManager;
 use App\Filament\Resources\Classes\RelationManagers\SectionsRelationManager;
 use App\Filament\Resources\Classes\RelationManagers\SubjectsRelationManager;
+use App\Filament\Resources\Classes\RelationManagers\TeacherSubjectsRelationManager;
 use App\Filament\Resources\Classes\Schemas\ClassesForm;
 use App\Filament\Resources\Classes\Tables\ClassesTable;
 use App\Models\Classes;
@@ -46,6 +47,7 @@ class ClassesResource extends Resource
             SectionsRelationManager::class,
             GroupsRelationManager::class,
             SubjectsRelationManager::class,
+            TeacherSubjectsRelationManager::class,
         ];
     }
 
