@@ -99,6 +99,11 @@ class StudentProfile extends Model
         return $this->hasMany(FeePayment::class, 'student_id');
     }
 
+    public function classHistories(): HasMany
+    {
+        return $this->hasMany(StudentClassHistory::class, 'student_id');
+    }
+
     public function scopeActive(Builder $query): void
     {
         $query->where('status', StudentStatus::Active);

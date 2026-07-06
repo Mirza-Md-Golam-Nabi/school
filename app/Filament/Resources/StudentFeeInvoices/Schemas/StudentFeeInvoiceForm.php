@@ -33,7 +33,7 @@ class StudentFeeInvoiceForm
                     ->schema([
                         Select::make('class_id_filter')
                             ->label('Class')
-                            ->options(fn () => Classes::query()->where('is_active', true)->orderBy('order')->pluck('name', 'id'))
+                            ->options(fn () => Classes::active()->orderBy('order')->pluck('name', 'id'))
                             ->default(fn () => request()->integer('class_id') ?: null)
                             ->live()
                             ->dehydrated(false)

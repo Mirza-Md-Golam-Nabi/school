@@ -41,6 +41,12 @@ class StudentsByClass extends ListRecords
                 ->url(StudentProfileResource::getUrl())
                 ->color('gray'),
 
+            Action::make('promote')
+                ->label('Promote')
+                ->icon('heroicon-o-arrow-trending-up')
+                ->color('success')
+                ->url(StudentProfileResource::getUrl('promote-students', ['classId' => $this->classId])),
+
             CreateAction::make(),
         ];
     }
