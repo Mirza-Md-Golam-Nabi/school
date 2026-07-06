@@ -2,23 +2,17 @@
 
 namespace App\Filament\Teacher\Pages;
 
-use App\Models\TeacherProfile;
 use App\Models\TeacherSubject;
 use BackedEnum;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
-use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Concerns\InteractsWithTable;
-use Filament\Tables\Contracts\HasTable;
-use Filament\Tables\Filters\SelectFilter;
-use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Auth;
+use Livewire\Attributes\Computed;
 use UnitEnum;
 
-class MySubjects extends Page implements HasTable
+class MySubjects extends Page
 {
-    use InteractsWithTable;
-
     protected string $view = 'filament.teacher.pages.my-subjects';
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBookOpen;
@@ -29,56 +23,47 @@ class MySubjects extends Page implements HasTable
 
     protected static ?int $navigationSort = 1;
 
-    public function table(Table $table): Table
+    public int $sessionYear;
+
+    public function mount(): void
     {
-        return $table
-            ->query(fn (): Builder => TeacherSubject::query()
-                ->where('teacher_id', $this->resolveTeacherProfile()?->id ?? 0)
-                ->with(['subject', 'class', 'section'])
-            )
-            ->columns([
-                TextColumn::make('subject.name')
-                    ->label('Subject')
-                    ->searchable()
-                    ->sortable(),
-
-                TextColumn::make('class.name')
-                    ->label('Class')
-                    ->sortable(),
-
-                TextColumn::make('section.name')
-                    ->label('Section')
-                    ->alignCenter()
-                    ->placeholder('—'),
-
-                TextColumn::make('session_year')
-                    ->label('Session')
-                    ->alignCenter()
-                    ->sortable()
-                    ->badge()
-                    ->color('info'),
-            ])
-            ->filters([
-                SelectFilter::make('session_year')
-                    ->label('Session Year')
-                    ->options(function () {
-                        $currentYear = (int) now()->format('Y');
-                        $years = [];
-                        for ($year = 2026; $year <= $currentYear; $year++) {
-                            $years[$year] = (string) $year;
-                        }
-
-                        return $years;
-                    })
-                    ->default((int) now()->format('Y')),
-            ])
-            ->defaultSort('session_year', 'desc')
-            ->emptyStateHeading('No subjects assigned')
-            ->emptyStateDescription('Your subject assignments will appear here once added by the admin.');
+        $this->sessionYear = (int) now()->format('Y');
     }
 
-    private function resolveTeacherProfile(): ?TeacherProfile
+    public function getSessionYearOptions(): array
     {
-        return auth()->user()?->teacherProfile;
+        $currentYear = (int) now()->format('Y');
+        $years = [];
+        for ($year = 2026; $year <= $currentYear; $year++) {
+            $years[$year] = (string) $year;
+        }
+
+        return $years;
+    }
+
+    #[Computed]
+    public function classesBySubjects(): Collection
+    {
+        $teacherId = Auth::user()?->teacherProfile?->id;
+
+        if (! $teacherId) {
+            return collect();
+        }
+
+        return TeacherSubject::query()
+            ->where('teacher_id', $teacherId)
+            ->where('session_year', $this->sessionYear)
+            ->with(['subject', 'class', 'section'])
+            ->orderBy('class_id')
+            ->get()
+            ->groupBy('class_id')
+            ->map(fn (Collection $rows) => [
+                'class' => $rows->first()->class,
+                'subjects' => $rows->map(fn ($row) => [
+                    'name' => $row->subject?->name ?? '—',
+                    'section' => $row->section?->name,
+                ])->values(),
+            ])
+            ->values();
     }
 }
