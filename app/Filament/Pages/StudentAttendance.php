@@ -34,7 +34,7 @@ class StudentAttendance extends Page
             ->get()
             ->groupBy('class_id');
 
-        $classes = Classes::where('is_active', true)
+        $classes = Classes::active()
             ->withCount([
                 'studentProfiles' => fn ($q) => $q->whereNull('deleted_at'),
             ])

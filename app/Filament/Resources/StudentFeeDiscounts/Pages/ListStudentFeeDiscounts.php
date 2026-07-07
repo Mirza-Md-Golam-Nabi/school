@@ -20,7 +20,7 @@ class ListStudentFeeDiscounts extends Page
 
     public function mount(): void
     {
-        $this->classes = Classes::where('is_active', true)
+        $this->classes = Classes::active()
             ->withCount([
                 'studentProfiles as discounted_students_count' => fn ($q) => $q->where('status', StudentStatus::Active)
                     ->whereHas('feeDiscounts'),

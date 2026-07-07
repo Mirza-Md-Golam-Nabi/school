@@ -19,7 +19,7 @@ class ListFeePayments extends Page
 
     public function mount(): void
     {
-        $this->classes = Classes::where('is_active', true)
+        $this->classes = Classes::active()
             ->orderBy('order')
             ->get()
             ->each(function ($class) {

@@ -8,6 +8,7 @@ use App\Models\Group;
 use App\Models\Subject;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\Pivot;
+use Illuminate\Support\Collection;
 
 class ClassGroupSubject extends Pivot
 {
@@ -61,5 +62,16 @@ class ClassGroupSubject extends Pivot
     public function isExtraOptional(): bool
     {
         return $this->subject_type === SubjectType::ExtraOptional;
+    }
+
+    public static function dropdownOptionsByClass(int $classId): Collection
+    {
+        return static::query()
+            ->where('class_id', $classId)
+            ->with('subject')
+            ->get()
+            ->pluck('subject.name', 'subject_id')
+            ->unique()
+            ->filter();
     }
 }

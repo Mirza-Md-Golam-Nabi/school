@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -72,9 +73,24 @@ class TeacherProfile extends Model
         return $this->morphMany(LeaveApplication::class, 'applicant');
     }
 
+    public function teacherSubjects(): HasMany
+    {
+        return $this->hasMany(TeacherSubject::class, 'teacher_id');
+    }
+
     #[Scope]
     protected function active(Builder $query): void
     {
         $query->where('status', EmploymentStatus::Active);
+    }
+
+    public static function dropdownOptions(): array
+    {
+        return static::query()
+            ->active()
+            ->with('user')
+            ->get()
+            ->pluck('user.name', 'id')
+            ->toArray();
     }
 }

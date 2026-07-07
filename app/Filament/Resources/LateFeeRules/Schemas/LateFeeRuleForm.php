@@ -19,7 +19,7 @@ class LateFeeRuleForm
             ->components([
                 Select::make('class_id')
                     ->label('Class')
-                    ->options(Classes::where('is_active', true)->pluck('name', 'id'))
+                    ->options(Classes::active()->pluck('name', 'id'))
                     ->searchable()
                     ->required()
                     ->native(false),

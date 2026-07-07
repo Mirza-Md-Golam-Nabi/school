@@ -24,7 +24,7 @@ class GenerateMonthlyFeeInvoices extends Command
 
         $this->info("Generating fee invoices for {$month}/{$year}...");
 
-        $classes = Classes::where('is_active', true)->get(['id']);
+        $classes = Classes::active()->get(['id']);
 
         if ($classes->isEmpty()) {
             $this->info('No active classes found.');

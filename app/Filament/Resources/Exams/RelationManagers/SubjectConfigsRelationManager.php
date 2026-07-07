@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Exams\RelationManagers;
 
+use App\Models\ExamSubjectConfig;
 use App\Models\Subject;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
@@ -13,6 +14,7 @@ use Filament\Actions\ForceDeleteAction;
 use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreAction;
 use Filament\Actions\RestoreBulkAction;
+use Filament\Facades\Filament;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -23,6 +25,7 @@ use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Support\Enums\Width;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TrashedFilter;
@@ -203,34 +206,65 @@ class SubjectConfigsRelationManager extends RelationManager
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                TrashedFilter::make(),
+                TrashedFilter::make()
+                    ->visible(fn (): bool => self::isAdminPanel()),
             ])
             ->headerActions([
                 CreateAction::make()
                     ->modalWidth(Width::Large)
-                    ->createAnother(false),
+                    ->createAnother(false)
+                    ->visible(fn (): bool => self::isAdminPanel()),
             ])
             ->recordActions([
+                Action::make('enterMarks')
+                    ->label('Enter Marks')
+                    ->icon(Heroicon::OutlinedPencilSquare)
+                    ->color('info')
+                    ->iconButton()
+                    ->url(fn (ExamSubjectConfig $record): string => self::resolveEnterMarksUrl($record)),
+
                 EditAction::make()
                     ->modalWidth(Width::Large)
                     ->iconButton(),
-                RestoreAction::make()
-                    ->iconButton(),
+
                 DeleteAction::make()
-                    ->iconButton(),
-                ForceDeleteAction::make()
                     ->iconButton(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
-                    RestoreBulkAction::make(),
-                    ForceDeleteBulkAction::make(),
+                    DeleteBulkAction::make()
+                        ->visible(fn (): bool => self::isAdminPanel()),
+                    RestoreBulkAction::make()
+                        ->visible(fn (): bool => self::isAdminPanel()),
+                    ForceDeleteBulkAction::make()
+                        ->visible(fn (): bool => self::isAdminPanel()),
                 ]),
             ])
             ->modifyQueryUsing(
-                fn (Builder $query) => $query->withoutGlobalScopes([SoftDeletingScope::class])
+                fn (Builder $query) => $query
+                    ->with('exam')
+                    ->withoutGlobalScopes([SoftDeletingScope::class])
             );
+    }
+
+    private static function isAdminPanel(): bool
+    {
+        return Filament::getCurrentPanel()?->getId() === 'admin';
+    }
+
+    private static function resolveEnterMarksUrl(ExamSubjectConfig $record): string
+    {
+        $params = http_build_query([
+            'examId' => $record->exam_id,
+            'subjectId' => $record->subject_id,
+            'classId' => $record->exam->class_id,
+        ]);
+
+        if (Filament::getCurrentPanel()?->getId() === 'teacher') {
+            return route('filament.teacher.pages.enter-student-marks').'?'.$params;
+        }
+
+        return route('filament.admin.pages.enter-student-marks').'?'.$params;
     }
 
     private static function subjectHas(Get $get, string $attribute): bool

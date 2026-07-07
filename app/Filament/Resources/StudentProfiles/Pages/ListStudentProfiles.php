@@ -22,7 +22,7 @@ class ListStudentProfiles extends Page
 
     public function getViewData(): array
     {
-        $classes = Classes::where('is_active', true)
+        $classes = Classes::active()
             ->withCount([
                 'studentProfiles' => fn ($q) => $q->whereNull('deleted_at'),
             ])

@@ -29,6 +29,7 @@ class StudentPanelProvider extends PanelProvider
         return $panel
             ->id('student')
             ->path('student')
+            ->viteTheme('resources/css/filament/theme.css')
             ->login(Login::class)
             ->registration(Register::class)
             ->passwordReset()

@@ -22,7 +22,7 @@ class ListFeeStructures extends Page
             'feeStructures' => fn ($q) => $q->where('is_active', true)->with('feeType'),
         ])
             ->withCount(['feeStructures' => fn ($q) => $q->where('is_active', true)])
-            ->where('is_active', true)
+            ->active()
             ->orderBy('order')
             ->get()
             ->each(function ($class) {

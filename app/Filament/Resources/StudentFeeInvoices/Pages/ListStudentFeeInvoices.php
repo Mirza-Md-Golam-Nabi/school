@@ -20,7 +20,7 @@ class ListStudentFeeInvoices extends Page
 
     public function mount(): void
     {
-        $this->classes = Classes::where('is_active', true)
+        $this->classes = Classes::active()
             ->orderBy('order', 'asc')
             ->get()
             ->each(function ($class) {
