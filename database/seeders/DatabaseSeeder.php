@@ -12,6 +12,7 @@ use Database\Seeders\RoleSeeder;
 use Database\Seeders\StudentSeeder;
 use Database\Seeders\SubjectSeeder;
 use Database\Seeders\TeacherSeeder;
+use Database\Seeders\TeacherSubjectSeeder;
 use Database\Seeders\UserSeeder;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -35,6 +36,7 @@ class DatabaseSeeder extends Seeder
             TeacherSeeder::class,
             SubjectSeeder::class,
             ClassSubjectSeeder::class,
+            TeacherSubjectSeeder::class,
             ExamConfigSeeder::class,
             ExamSeeder::class,
         ]);
