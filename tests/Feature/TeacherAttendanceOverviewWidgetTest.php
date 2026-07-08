@@ -47,7 +47,8 @@ it('computes total, present, and absent teacher counts for today', function () {
 
     expect($data['totalTeachers'])->toBe(3)
         ->and($data['presentToday'])->toBe(1)
-        ->and($data['absentToday'])->toBe(1);
+        ->and($data['absentToday'])->toBe(1)
+        ->and($data['url'])->toBe(route('filament.admin.pages.teacher-attendance'));
 });
 
 it('ignores attendance from other dates', function () {
@@ -74,4 +75,5 @@ it('renders the widget on the admin dashboard', function () {
 
     $response->assertOk();
     $response->assertSee('Total Teachers');
+    $response->assertSee('href="'.route('filament.admin.pages.teacher-attendance').'"', false);
 });

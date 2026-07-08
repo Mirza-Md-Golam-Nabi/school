@@ -49,7 +49,8 @@ it('computes total, present, and absent student counts for today', function () {
 
     expect($data['totalStudents'])->toBe(3)
         ->and($data['presentToday'])->toBe(1)
-        ->and($data['absentToday'])->toBe(1);
+        ->and($data['absentToday'])->toBe(1)
+        ->and($data['url'])->toBe(route('filament.admin.pages.student-attendance'));
 });
 
 it('ignores attendance from other dates', function () {
@@ -78,4 +79,5 @@ it('renders the widget on the admin dashboard', function () {
     $response->assertSee('Total Students');
     $response->assertSee('Present :', false);
     $response->assertSee('Absent :', false);
+    $response->assertSee('href="'.route('filament.admin.pages.student-attendance').'"', false);
 });

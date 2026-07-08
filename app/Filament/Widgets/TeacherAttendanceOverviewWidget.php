@@ -3,6 +3,7 @@
 namespace App\Filament\Widgets;
 
 use App\Enums\AttendanceStatus;
+use App\Filament\Pages\TeacherAttendance;
 use App\Models\Attendance;
 use App\Models\TeacherProfile;
 use Filament\Widgets\Widget;
@@ -37,6 +38,7 @@ class TeacherAttendanceOverviewWidget extends Widget
             'totalTeachers' => $totalTeachers,
             'presentToday' => $todayCounts[AttendanceStatus::Present->value] ?? 0,
             'absentToday' => $todayCounts[AttendanceStatus::Absent->value] ?? 0,
+            'url' => TeacherAttendance::getUrl(),
         ];
     }
 }
