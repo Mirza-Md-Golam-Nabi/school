@@ -70,6 +70,11 @@ class StaffProfile extends Model
         return $this->morphMany(LeaveApplication::class, 'applicant');
     }
 
+    public function attendances(): MorphMany
+    {
+        return $this->morphMany(Attendance::class, 'attendable');
+    }
+
     #[Scope]
     protected function active(Builder $query): void
     {
