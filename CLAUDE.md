@@ -514,4 +514,8 @@ php artisan permission:cache-reset
 - **make command ব্যবহার করো** — `php artisan make:model`, `make:migration` ইত্যাদি
 - **Filament Resource** — admin panel-এর জন্য সবসময় Filament Resource তৈরি করো
 
+## Bash কমান্ড নির্দেশনা
+- `php artisan db:seed`, `php artisan migrate` ইত্যাদি কমান্ড চালানোর সময় 
+  `| tail` বা অন্য কোনো pipe ব্যবহার করবে না। কমান্ডটা সরাসরি, বিনা pipe-এ চালাও।
+
 </school-management-guidelines>
