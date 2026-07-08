@@ -18,6 +18,7 @@ use Database\Seeders\NoticeSeeder;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\PublicHolidaySeeder;
 use Database\Seeders\RoleSeeder;
+use Database\Seeders\StaffAttendanceSeeder;
 use Database\Seeders\StaffSeeder;
 use Database\Seeders\StudentAttendanceSeeder;
 use Database\Seeders\StudentFeeDiscountSeeder;
@@ -56,6 +57,7 @@ class DatabaseSeeder extends Seeder
             ActingAdminSeeder::class,
             NoticeSeeder::class,
             StaffSeeder::class,
+            StaffAttendanceSeeder::class,
             LeaveApplicationSeeder::class,
             SubjectSeeder::class,
             ClassSubjectSeeder::class,
