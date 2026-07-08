@@ -7,6 +7,8 @@ use Database\Seeders\ClassSeeder;
 use Database\Seeders\ClassSubjectSeeder;
 use Database\Seeders\ExamConfigSeeder;
 use Database\Seeders\ExamSeeder;
+use Database\Seeders\FeeStructureSeeder;
+use Database\Seeders\FeeTypeSeeder;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Database\Seeders\StudentAttendanceSeeder;
@@ -43,6 +45,8 @@ class DatabaseSeeder extends Seeder
             ClassSubjectSeeder::class,
             TeacherSubjectSeeder::class,
             ExamConfigSeeder::class,
+            FeeTypeSeeder::class,
+            FeeStructureSeeder::class,
             ExamSeeder::class,
             StudentResultSeeder::class,
         ]);
