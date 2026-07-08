@@ -29,12 +29,12 @@ class StudentSeeder extends Seeder
     /** @var array<int, string> */
     private array $femaleNames = [
         'Fatema Akter', 'Nusrat Jahan', 'Sumaiya Islam', 'Tania Sultana',
-        'Marium Begum', 'Jannatul Ferdous', 'Rima Akter', 'Sabrina Yasmin',
+        'Marium Khatun', 'Jannatul Ferdous', 'Rima Akter', 'Sabrina Yasmin',
         'Nasrin Sultana', 'Shirin Akter', 'Rehana Parvin', 'Salma Khatun',
-        'Sultana Razia', 'Ayesha Siddika', 'Rupa Akter', 'Rina Begum',
-        'Farzana Yeasmin', 'Tahmina Akter', 'Kohinoor Begum', 'Shahana Parvin',
-        'Mahmuda Khatun', 'Shabnam Sultana', 'Taslima Begum', 'Rowshan Ara',
-        'Afsana Mimi', 'Sharmin Sultana', 'Lubna Yasmin', 'Nazma Begum',
+        'Sultana Razia', 'Ayesha Siddika', 'Rupa Akter', 'Rina Khatun',
+        'Farzana Yeasmin', 'Tahmina Akter', 'Kohinoor Khatun', 'Shahana Parvin',
+        'Mahmuda Khatun', 'Shabnam Sultana', 'Taslima Khatun', 'Rowshan Ara',
+        'Afsana Mimi', 'Sharmin Sultana', 'Lubna Yasmin', 'Nazma Khatun',
         'Ismat Ara', 'Tasnim Jahan',
     ];
 

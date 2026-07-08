@@ -9,9 +9,11 @@ use Database\Seeders\ExamConfigSeeder;
 use Database\Seeders\ExamSeeder;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
+use Database\Seeders\StudentAttendanceSeeder;
 use Database\Seeders\StudentResultSeeder;
 use Database\Seeders\StudentSeeder;
 use Database\Seeders\SubjectSeeder;
+use Database\Seeders\TeacherAttendanceSeeder;
 use Database\Seeders\TeacherSeeder;
 use Database\Seeders\TeacherSubjectSeeder;
 use Database\Seeders\UserSeeder;
@@ -34,7 +36,9 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             ClassSeeder::class,
             StudentSeeder::class,
+            StudentAttendanceSeeder::class,
             TeacherSeeder::class,
+            TeacherAttendanceSeeder::class,
             SubjectSeeder::class,
             ClassSubjectSeeder::class,
             TeacherSubjectSeeder::class,
