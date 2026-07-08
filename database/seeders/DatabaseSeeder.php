@@ -11,6 +11,7 @@ use Database\Seeders\FeeDiscountSeeder;
 use Database\Seeders\FeePaymentSeeder;
 use Database\Seeders\FeeStructureSeeder;
 use Database\Seeders\FeeTypeSeeder;
+use Database\Seeders\LeaveTypeSeeder;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Database\Seeders\StudentAttendanceSeeder;
@@ -40,6 +41,7 @@ class DatabaseSeeder extends Seeder
             PermissionSeeder::class,
             ActingAdminRoleSeeder::class,
             UserSeeder::class,
+            LeaveTypeSeeder::class,
             ClassSeeder::class,
             StudentSeeder::class,
             StudentAttendanceSeeder::class,
