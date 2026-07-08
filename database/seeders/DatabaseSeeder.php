@@ -14,6 +14,7 @@ use Database\Seeders\FeeStructureSeeder;
 use Database\Seeders\FeeTypeSeeder;
 use Database\Seeders\LeaveApplicationSeeder;
 use Database\Seeders\LeaveTypeSeeder;
+use Database\Seeders\NoticeSeeder;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\PublicHolidaySeeder;
 use Database\Seeders\RoleSeeder;
@@ -53,6 +54,7 @@ class DatabaseSeeder extends Seeder
             TeacherSeeder::class,
             TeacherAttendanceSeeder::class,
             ActingAdminSeeder::class,
+            NoticeSeeder::class,
             StaffSeeder::class,
             LeaveApplicationSeeder::class,
             SubjectSeeder::class,
