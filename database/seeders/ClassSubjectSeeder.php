@@ -14,7 +14,7 @@ class ClassSubjectSeeder extends Seeder
     {
         $subjectNames = collect(SubjectSeeder::subjects())->pluck('name');
         $subjects = Subject::whereIn('name', $subjectNames)->get();
-        $classes = Classes::orderBy('order')->get();
+        $classes = Classes::active()->orderBy('order')->get();
 
         foreach ($classes as $class) {
             foreach ($subjects as $subject) {

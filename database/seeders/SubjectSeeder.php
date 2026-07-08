@@ -11,11 +11,11 @@ class SubjectSeeder extends Seeder
     public static function subjects(): array
     {
         return [
-            ['name' => 'Bangla',                       'code' => 'BAN', 'has_mcq' => true],
-            ['name' => 'English',                      'code' => 'ENG', 'has_mcq' => true],
-            ['name' => 'Mathematics',                  'code' => 'MAT', 'has_mcq' => false],
-            ['name' => 'Science',                      'code' => 'SCI', 'has_mcq' => true],
-            ['name' => 'Bangladesh and Global Studies', 'code' => 'BGS', 'has_mcq' => false],
+            ['code' => 'BAN', 'has_mcq' => true, 'name' => 'Bangla'],
+            ['code' => 'ENG', 'has_mcq' => true, 'name' => 'English'],
+            ['code' => 'MAT', 'has_mcq' => false, 'name' => 'Mathematics'],
+            ['code' => 'SCI', 'has_mcq' => true, 'name' => 'Science'],
+            ['code' => 'BGS', 'has_mcq' => false, 'name' => 'Bangladesh and Global Studies'],
         ];
     }
 

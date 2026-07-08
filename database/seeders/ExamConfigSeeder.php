@@ -19,7 +19,7 @@ class ExamConfigSeeder extends Seeder
      */
     private array $examTypes = [
         'Half Yearly' => [
-            'type' => ExamConfigType::Main,
+            'type' => ExamConfigType::NotSupporting,
             'count_method' => CountMethod::All,
             'best_n_count' => null,
         ],
@@ -42,7 +42,6 @@ class ExamConfigSeeder extends Seeder
      */
     private array $contributeRules = [
         'Tutorial' => ['Half Yearly' => 20, 'Annual' => 20],
-        'Half Yearly' => ['Annual' => 30],
     ];
 
     public function run(): void
@@ -71,7 +70,7 @@ class ExamConfigSeeder extends Seeder
         }
 
         // 2. ExamContributeRule — per class
-        $classes = Classes::whereNull('deleted_at')->get();
+        $classes = Classes::active()->get();
 
         foreach ($classes as $class) {
             foreach ($this->contributeRules as $sourceName => $targets) {
