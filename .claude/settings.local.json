@@ -1,8 +1,13 @@
 {
-  "permissions": {
-    "allow": [
-      "Bash(php artisan tinker --execute ' *)",
-      "Bash(vendor/bin/pint *)"
-    ]
-  }
+    "permissions": {
+        "allow": [
+            "Bash(php artisan tinker --execute ' *)",
+            "Bash(php artisan db:seed*)",
+            "Bash(vendor/bin/pint *)"
+        ],
+        "deny": [
+            "Bash(php artisan migrate:fresh*)",
+            "Bash(php artisan db:wipe*)"
+        ]
+    }
 }
