@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use Database\Seeders\ActingAdminRoleSeeder;
+use Database\Seeders\ActingAdminSeeder;
 use Database\Seeders\ClassSeeder;
 use Database\Seeders\ClassSubjectSeeder;
 use Database\Seeders\ExamConfigSeeder;
@@ -51,6 +52,7 @@ class DatabaseSeeder extends Seeder
             StudentAttendanceSeeder::class,
             TeacherSeeder::class,
             TeacherAttendanceSeeder::class,
+            ActingAdminSeeder::class,
             StaffSeeder::class,
             LeaveApplicationSeeder::class,
             SubjectSeeder::class,
