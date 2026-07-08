@@ -11,9 +11,12 @@ use Database\Seeders\FeeDiscountSeeder;
 use Database\Seeders\FeePaymentSeeder;
 use Database\Seeders\FeeStructureSeeder;
 use Database\Seeders\FeeTypeSeeder;
+use Database\Seeders\LeaveApplicationSeeder;
 use Database\Seeders\LeaveTypeSeeder;
 use Database\Seeders\PermissionSeeder;
+use Database\Seeders\PublicHolidaySeeder;
 use Database\Seeders\RoleSeeder;
+use Database\Seeders\StaffSeeder;
 use Database\Seeders\StudentAttendanceSeeder;
 use Database\Seeders\StudentFeeDiscountSeeder;
 use Database\Seeders\StudentFeeInvoiceSeeder;
@@ -42,11 +45,14 @@ class DatabaseSeeder extends Seeder
             ActingAdminRoleSeeder::class,
             UserSeeder::class,
             LeaveTypeSeeder::class,
+            PublicHolidaySeeder::class,
             ClassSeeder::class,
             StudentSeeder::class,
             StudentAttendanceSeeder::class,
             TeacherSeeder::class,
             TeacherAttendanceSeeder::class,
+            StaffSeeder::class,
+            LeaveApplicationSeeder::class,
             SubjectSeeder::class,
             ClassSubjectSeeder::class,
             TeacherSubjectSeeder::class,

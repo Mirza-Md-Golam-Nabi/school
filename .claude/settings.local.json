@@ -3,7 +3,8 @@
         "allow": [
             "Bash(php artisan tinker --execute ' *)",
             "Bash(php artisan db:seed*)",
-            "Bash(vendor/bin/pint *)"
+            "Bash(vendor/bin/pint *)",
+            "Bash(tail *)"
         ],
         "deny": [
             "Bash(php artisan migrate:fresh*)",
