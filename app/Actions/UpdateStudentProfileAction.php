@@ -50,13 +50,15 @@ class UpdateStudentProfileAction
 
         $profile->addresses()->delete();
 
-        $profile->addresses()->create([
-            'type' => AddressType::Present,
-            'address' => $data['present_address'],
-            'is_same' => $isSame,
-        ]);
+        if (filled($data['present_address'] ?? null)) {
+            $profile->addresses()->create([
+                'type' => AddressType::Present,
+                'address' => $data['present_address'],
+                'is_same' => $isSame,
+            ]);
+        }
 
-        if (! $isSame) {
+        if (! $isSame && filled($data['permanent_address'] ?? null)) {
             $profile->addresses()->create([
                 'type' => AddressType::Permanent,
                 'address' => $data['permanent_address'],

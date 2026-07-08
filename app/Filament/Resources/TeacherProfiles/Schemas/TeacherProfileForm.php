@@ -80,6 +80,7 @@ class TeacherProfileForm
                                 ->label('Password')
                                 ->password()
                                 ->revealable()
+                                ->default(fn (string $operation): ?string => $operation === 'create' ? 'password' : null)
                                 ->required(fn (string $operation, Get $get): bool => $operation === 'create' && ! (bool) $get('user_found'))
                                 ->helperText(fn (string $operation, Get $get): ?string => match (true) {
                                     $operation === 'edit' => 'খালি রাখলে password পরিবর্তন হবে না',
@@ -122,6 +123,7 @@ class TeacherProfileForm
                             Select::make('gender')
                                 ->label('Gender')
                                 ->options(Gender::class)
+                                ->default(Gender::Male)
                                 ->required(),
 
                             DatePicker::make('date_of_birth')
@@ -149,7 +151,6 @@ class TeacherProfileForm
                         Textarea::make('present_address')
                             ->label('Present Address')
                             ->rows(3)
-                            ->required()
                             ->columnSpanFull(),
 
                         Toggle::make('same_address')
@@ -160,7 +161,6 @@ class TeacherProfileForm
                         Textarea::make('permanent_address')
                             ->label('Permanent Address')
                             ->rows(3)
-                            ->required(fn (Get $get): bool => ! (bool) $get('same_address'))
                             ->hidden(fn (Get $get): bool => (bool) $get('same_address'))
                             ->columnSpanFull(),
                     ]),

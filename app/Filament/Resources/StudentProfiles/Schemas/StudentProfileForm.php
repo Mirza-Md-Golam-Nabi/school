@@ -84,6 +84,7 @@ class StudentProfileForm
                                 ->label('Password')
                                 ->password()
                                 ->revealable()
+                                ->default(fn (string $operation): ?string => $operation === 'create' ? 'password' : null)
                                 ->required(fn (string $operation, Get $get): bool => $operation === 'create' && ! (bool) $get('user_found')
                                 )
                                 ->helperText(fn (string $operation, Get $get): ?string => match (true) {
@@ -103,7 +104,11 @@ class StudentProfileForm
                                 ->label('Roll No')
                                 ->integer()
                                 ->minValue(1)
-                                ->required(),
+                                ->live(onBlur: true)
+                                ->required()
+                                ->afterStateUpdated(function (Set $set, Get $get) {
+                                    self::fillGeneratedEmail($set, $get);
+                                }),
 
                             TextInput::make('registration_no')
                                 ->label('Registration No')
@@ -122,9 +127,10 @@ class StudentProfileForm
                                 ->searchable()
                                 ->live()
                                 ->required()
-                                ->afterStateUpdated(function (Set $set) {
+                                ->afterStateUpdated(function (Set $set, Get $get) {
                                     $set('current_section_id', null);
                                     $set('current_group_id', null);
+                                    self::fillGeneratedEmail($set, $get);
                                 }),
 
                             Select::make('current_section_id')
@@ -170,6 +176,7 @@ class StudentProfileForm
                             Select::make('gender')
                                 ->label('Gender')
                                 ->options(Gender::class)
+                                ->default(Gender::Male)
                                 ->required(),
 
                             DatePicker::make('date_of_birth')
@@ -181,7 +188,8 @@ class StudentProfileForm
 
                             Select::make('religion')
                                 ->label('Religion')
-                                ->options(Religion::class),
+                                ->options(Religion::class)
+                                ->default(Religion::Muslim),
 
                             TextInput::make('nationality')
                                 ->label('Nationality')
@@ -250,7 +258,6 @@ class StudentProfileForm
                         Textarea::make('present_address')
                             ->label('Present Address')
                             ->rows(3)
-                            ->required()
                             ->columnSpanFull(),
 
                         Toggle::make('same_address')
@@ -261,10 +268,38 @@ class StudentProfileForm
                         Textarea::make('permanent_address')
                             ->label('Permanent Address')
                             ->rows(3)
-                            ->required(fn (Get $get): bool => ! (bool) $get('same_address'))
                             ->hidden(fn (Get $get): bool => (bool) $get('same_address'))
                             ->columnSpanFull(),
                     ]),
             ]);
+    }
+
+    private static function fillGeneratedEmail(Set $set, Get $get): void
+    {
+        if (filled($get('email'))) {
+            return;
+        }
+
+        $rollNo = $get('roll_no');
+        $classId = $get('current_class_id');
+
+        if (blank($rollNo) || blank($classId)) {
+            return;
+        }
+
+        $classNumber = Classes::find($classId)?->order;
+
+        if ($classNumber === null) {
+            return;
+        }
+
+        $email = sprintf('class_%02d_%02d@example.com', $classNumber, $rollNo);
+
+        if (User::where('email', $email)->exists()) {
+            $nextId = (User::max('id') ?? 0) + 1;
+            $email = sprintf('class_%02d_%02d_%d@example.com', $classNumber, $rollNo, $nextId);
+        }
+
+        $set('email', $email);
     }
 }
