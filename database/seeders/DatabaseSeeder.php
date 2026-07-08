@@ -14,6 +14,7 @@ use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Database\Seeders\StudentAttendanceSeeder;
 use Database\Seeders\StudentFeeDiscountSeeder;
+use Database\Seeders\StudentFeeInvoiceSeeder;
 use Database\Seeders\StudentResultSeeder;
 use Database\Seeders\StudentSeeder;
 use Database\Seeders\SubjectSeeder;
@@ -52,6 +53,7 @@ class DatabaseSeeder extends Seeder
             FeeDiscountSeeder::class,
             StudentFeeDiscountSeeder::class,
             ExamSeeder::class,
+            StudentFeeInvoiceSeeder::class,
             StudentResultSeeder::class,
         ]);
     }
