@@ -17,13 +17,16 @@ class UserSeeder extends Seeder
 
         foreach ($user_types as $user_type) {
             $is_super_admin = $user_type === UserType::SuperAdmin;
+            $email = $user_type->value.'@example.com';
 
-            User::factory()->create([
-                'email' => $user_type->value.'@example.com',
-                'user_type' => $user_type,
-                'is_super_admin' => $is_super_admin,
-                'is_active' => true,
-            ]);
+            if (! User::where('email', $email)->exists()) {
+                User::factory()->create([
+                    'email' => $email,
+                    'user_type' => $user_type,
+                    'is_super_admin' => $is_super_admin,
+                    'is_active' => true,
+                ]);
+            }
         }
     }
 }
