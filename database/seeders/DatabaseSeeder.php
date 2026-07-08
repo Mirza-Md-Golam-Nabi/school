@@ -9,6 +9,7 @@ use Database\Seeders\ExamConfigSeeder;
 use Database\Seeders\ExamSeeder;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
+use Database\Seeders\StudentResultSeeder;
 use Database\Seeders\StudentSeeder;
 use Database\Seeders\SubjectSeeder;
 use Database\Seeders\TeacherSeeder;
@@ -39,6 +40,7 @@ class DatabaseSeeder extends Seeder
             TeacherSubjectSeeder::class,
             ExamConfigSeeder::class,
             ExamSeeder::class,
+            StudentResultSeeder::class,
         ]);
     }
 }
