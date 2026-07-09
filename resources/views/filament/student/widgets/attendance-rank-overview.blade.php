@@ -5,7 +5,7 @@
                 <x-heroicon-o-calendar-days class="h-5 w-5 text-primary-600 dark:text-primary-400 sm:h-7 sm:w-7" />
             </div>
             <div class="min-w-0">
-                <p class="text-xl font-bold tracking-tight text-gray-900 dark:text-white md:text-3xl">{{ $presentDays }}/{{ $workingDays }}</p>
+                <p class="text-xs font-bold tracking-tight text-gray-900 dark:text-white sm:text-2xl md:text-3xl">{{ $presentDays }}/{{ $workingDays }}</p>
                 <p class="text-xs text-gray-500 dark:text-gray-400 sm:text-sm">Present Days</p>
             </div>
         </div>
@@ -15,7 +15,7 @@
                 <x-heroicon-o-trophy class="h-4 w-4 shrink-0 text-warning-600 dark:text-warning-400" />
                 <span class="text-xs text-gray-500 dark:text-gray-400 sm:text-sm">Your Rank</span>
             </div>
-            <span class="text-xl font-bold text-primary-600 dark:text-primary-400 sm:text-2xl">
+            <span class="text-xs font-bold text-primary-600 dark:text-primary-400 sm:text-2xl">
                 {{ $rank ? '#'.$rank : '—' }}
             </span>
         </div>
