@@ -48,6 +48,12 @@ class TeacherSeeder extends Seeder
      */
     public function run(): void
     {
+        $email = UserType::Teacher->value.'@example.com';
+        $user = User::where('email', $email)->first();
+        $user->teacherProfile()->firstOrCreate([], [
+            'gender' => Gender::Male,
+        ]);
+
         $teachers = collect($this->maleNames)->map(fn (string $name) => ['name' => $name, 'is_male' => true])
             ->merge(collect($this->femaleNames)->map(fn (string $name) => ['name' => $name, 'is_male' => false]))
             ->shuffle()
@@ -68,6 +74,7 @@ class TeacherSeeder extends Seeder
             ['email' => $email],
             [
                 'name' => $name,
+                'email_verified_at' => now(),
                 'password' => Hash::make('password'),
                 'user_type' => UserType::Teacher,
                 'is_active' => true,

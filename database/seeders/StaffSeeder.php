@@ -36,6 +36,12 @@ class StaffSeeder extends Seeder
      */
     public function run(): void
     {
+        $email = UserType::Staff->value.'@example.com';
+        $user = User::where('email', $email)->first();
+        $user->staffProfile()->firstOrCreate([], [
+            'gender' => Gender::Male,
+        ]);
+
         $staffMembers = collect($this->maleNames)->map(fn (string $name) => ['name' => $name, 'is_male' => true])
             ->merge(collect($this->femaleNames)->map(fn (string $name) => ['name' => $name, 'is_male' => false]))
             ->shuffle()

@@ -50,6 +50,13 @@ class StudentSeeder extends Seeder
             ->orderBy('order')
             ->get();
 
+        $email = UserType::Student->value.'@example.com';
+        $user = User::where('email', $email)->first();
+
+        if ($user) {
+            $this->createStudentProfile($user);
+        }
+
         foreach ($classes as $class) {
             $studentCount = fake()->numberBetween(5, 10);
 
@@ -57,6 +64,22 @@ class StudentSeeder extends Seeder
                 $this->createStudent($class, $rollNo, $sessionYear);
             }
         }
+    }
+
+    private function createStudentProfile(User $user): void
+    {
+        if ($user->studentProfile) {
+            return;
+        }
+
+        $firstClass = Classes::active()->orderBy('order')->first();
+
+        $user->studentProfile()->create([
+            'roll_no' => 20,
+            'current_class_id' => $firstClass?->id,
+            'session_year' => (int) now()->format('Y'),
+            'gender' => Gender::Male,
+        ]);
     }
 
     private function createStudent(Classes $class, int $rollNo, int $sessionYear): void
@@ -72,6 +95,7 @@ class StudentSeeder extends Seeder
             ['email' => $email],
             [
                 'name' => $name,
+                'email_verified_at' => now(),
                 'password' => Hash::make('password'),
                 'user_type' => UserType::Student,
                 'is_active' => true,
