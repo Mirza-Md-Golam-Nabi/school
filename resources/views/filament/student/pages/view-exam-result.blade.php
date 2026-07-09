@@ -1,6 +1,5 @@
 <x-filament-panels::page>
     @php
-        use App\Enums\Grade;
         $rankings = $this->getRankings();
         $myStudentId = $this->getMyStudentId();
         $hasSections = $rankings->filter(fn($r) => $r->section !== null)->isNotEmpty();
@@ -90,7 +89,7 @@
                             @foreach ($rankings as $ranking)
                                 @php
                                     $isMe = (int) $ranking->student_id === (int) $myStudentId;
-                                    $grade = Grade::fromGpa((float) $ranking->gpa);
+                                    $grade = \App\Enums\Grade::fromGpa((float) $ranking->gpa);
                                     $gradeColor = $grade->getColor();
                                     $rankLabel = match ((int) $ranking->class_rank) {
                                         1 => '🥇 1st',
