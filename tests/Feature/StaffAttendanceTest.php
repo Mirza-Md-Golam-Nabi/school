@@ -58,7 +58,9 @@ it('marks selected staff present and the rest absent', function () {
     $record2 = Attendance::where('attendable_type', StaffProfile::class)->where('attendable_id', $staff2->id)->first();
 
     expect($record1->status)->toBe(AttendanceStatus::Present)
-        ->and($record2->status)->toBe(AttendanceStatus::Absent);
+        ->and($record1->entry_time)->not->toBeNull()
+        ->and($record2->status)->toBe(AttendanceStatus::Absent)
+        ->and($record2->entry_time)->toBeNull();
 });
 
 it('loads existing attendance for the selected date', function () {
