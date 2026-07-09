@@ -9,8 +9,8 @@ use App\Models\User;
 use BackedEnum;
 use Carbon\Carbon;
 use Filament\Actions\ViewAction;
-use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
+use Filament\Infolists\Components\ViewEntry;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Support\Icons\Heroicon;
@@ -106,15 +106,9 @@ class FeeInvoiceResource extends Resource
 
                         Section::make('Payment History')
                             ->schema([
-                                RepeatableEntry::make('payments')
+                                ViewEntry::make('payments')
                                     ->hiddenLabel()
-                                    ->schema([
-                                        TextEntry::make('receipt_no')->label('Receipt'),
-                                        TextEntry::make('amount_paid')->label('Amount')->money('BDT'),
-                                        TextEntry::make('payment_date')->label('Date')->date(),
-                                        TextEntry::make('payment_method')->label('Method')->badge(),
-                                    ])
-                                    ->columns(['default' => 2, 'sm' => 3, 'lg' => 4]),
+                                    ->view('filament.student.infolists.payment-history'),
                             ]),
                     ])
                     ->modalSubmitAction(false)
