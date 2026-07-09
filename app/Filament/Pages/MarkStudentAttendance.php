@@ -112,6 +112,7 @@ class MarkStudentAttendance extends Page
                     'status' => $isPresent ? AttendanceStatus::Present : AttendanceStatus::Absent,
                     'source' => AttendanceSource::Manual,
                     'marked_by' => $markedBy,
+                    'entry_time' => $isPresent ? now()->format('H:i:s') : null,
                 ]
             );
         }

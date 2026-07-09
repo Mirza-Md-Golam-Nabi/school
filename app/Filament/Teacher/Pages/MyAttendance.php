@@ -57,6 +57,8 @@ class MyAttendance extends Page
             return;
         }
 
+        $isPresentLike = in_array($status, ['present', 'late'], true);
+
         Attendance::updateOrCreate(
             [
                 'attendable_type' => TeacherProfile::class,
@@ -69,6 +71,7 @@ class MyAttendance extends Page
                 'status' => $status,
                 'source' => AttendanceSource::Manual,
                 'marked_by' => auth()->id(),
+                'entry_time' => $isPresentLike ? now()->format('H:i:s') : null,
             ]
         );
 
