@@ -39,7 +39,9 @@ class TeacherSubjectsOverview extends StatsOverviewWidget
 
         return [
             'classCount' => $assignments->pluck('class_id')->unique()->count(),
-            'subjectCount' => $assignments->pluck('subject_id')->unique()->count(),
+            // Each row is a distinct class-subject teaching assignment, so the
+            // same subject taught across multiple classes counts separately.
+            'subjectCount' => $assignments->count(),
             'url' => $url,
         ];
     }

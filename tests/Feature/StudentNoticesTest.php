@@ -92,6 +92,27 @@ it('shows an individually-targeted notice only to that student', function () {
         ->and(Notice::query()->visibleToStudent($otherStudent)->pluck('id'))->not->toContain($notice->id);
 });
 
+it('excludes notices published in a previous year', function () {
+    $student = createNoticeTestStudent();
+    $thisYear = createNoticeTestNotice(NoticeTargetType::All, now()->subDay());
+    $lastYear = createNoticeTestNotice(NoticeTargetType::All, now()->subYear());
+
+    $visible = Notice::query()->visibleToStudent($student)->pluck('id');
+
+    expect($visible)->toContain($thisYear->id)
+        ->not->toContain($lastYear->id);
+});
+
+it('refuses to view a previous year notice detail even if otherwise visible', function () {
+    $student = createNoticeTestStudent();
+    $lastYear = createNoticeTestNotice(NoticeTargetType::All, now()->subYear());
+
+    $this->actingAs($student->user);
+
+    expect(fn () => (new StudentNoticesOverview)->markAsRead($lastYear->id))
+        ->toThrow(ModelNotFoundException::class);
+});
+
 it('excludes unpublished (draft or scheduled) notices', function () {
     $student = createNoticeTestStudent();
     $draft = createNoticeTestNotice(NoticeTargetType::All, null);

@@ -15,7 +15,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
-it('counts the distinct classes and subjects a teacher is assigned for the current session year', function () {
+it('counts distinct classes but every subject assignment, even when a subject repeats across classes', function () {
     $user = User::factory()->create(['user_type' => UserType::Teacher, 'is_active' => true]);
 
     $teacher = TeacherProfile::create([
@@ -43,8 +43,10 @@ it('counts the distinct classes and subjects a teacher is assigned for the curre
 
     $data = (new TeacherSubjectsOverview)->getViewData();
 
+    // Bangla is taught in both classA and classB, so it counts as two
+    // separate teaching assignments, not one deduplicated subject.
     expect($data['classCount'])->toBe(2)
-        ->and($data['subjectCount'])->toBe(2)
+        ->and($data['subjectCount'])->toBe(3)
         ->and($data['url'])->toBe(MySubjects::getUrl(panel: 'teacher'));
 });
 
