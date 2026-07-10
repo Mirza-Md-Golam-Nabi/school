@@ -3,6 +3,7 @@
 namespace App\Filament\Student\Widgets;
 
 use App\Enums\AttendanceStatus;
+use App\Filament\Student\Pages\MyAttendanceRanking;
 use App\Models\Attendance;
 use App\Models\StudentProfile;
 use Filament\Widgets\Widget;
@@ -31,6 +32,7 @@ class StudentAttendanceRankOverview extends Widget
                 'presentDays' => 0,
                 'rank' => null,
                 'topStudent' => null,
+                'url' => MyAttendanceRanking::getUrl(panel: 'student'),
             ];
         }
 
@@ -72,6 +74,7 @@ class StudentAttendanceRankOverview extends Widget
             'presentDays' => $counts->get($profile->id)?->present_count ?? 0,
             'rank' => $rank === false ? null : $rank + 1,
             'topStudent' => $ranking->first(),
+            'url' => MyAttendanceRanking::getUrl(panel: 'student'),
         ];
     }
 }

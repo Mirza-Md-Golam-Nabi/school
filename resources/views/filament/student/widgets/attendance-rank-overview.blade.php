@@ -1,5 +1,9 @@
 <x-filament-widgets::widget>
-    <div class="rounded-xl bg-white p-3 shadow-sm ring-1 ring-gray-950/5 transition-shadow duration-150 hover:shadow-md dark:bg-gray-900 dark:ring-white/10 sm:p-4">
+    <a
+        href="{{ $url }}"
+        wire:navigate
+        class="block rounded-xl bg-white p-3 shadow-sm ring-1 ring-gray-950/5 transition-shadow duration-150 hover:shadow-md dark:bg-gray-900 dark:ring-white/10 sm:p-4"
+    >
         <div class="flex items-center gap-x-2 sm:gap-x-4">
             <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary-50 dark:bg-primary-950 sm:h-14 sm:w-14">
                 <x-heroicon-o-calendar-days class="h-5 w-5 text-primary-600 dark:text-primary-400 sm:h-7 sm:w-7" />
@@ -26,5 +30,5 @@
                 <span class="shrink-0 font-semibold text-success-600 dark:text-success-400">{{ $topStudent['present_count'] }} days</span>
             </div>
         @endif
-    </div>
+    </a>
 </x-filament-widgets::widget>
