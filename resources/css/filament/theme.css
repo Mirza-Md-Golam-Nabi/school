@@ -7,7 +7,10 @@
 @media (max-width: 640px) {
     .fi-student-profile-tabs .fi-section-content,
     .fi-student-profile-tabs .fi-section-header,
-    .fi-student-profile-tabs .fi-section-footer {
+    .fi-student-profile-tabs .fi-section-footer,
+    .fi-teacher-profile-tabs .fi-section-content,
+    .fi-teacher-profile-tabs .fi-section-header,
+    .fi-teacher-profile-tabs .fi-section-footer {
         padding: 0.75rem !important;
     }
 }
