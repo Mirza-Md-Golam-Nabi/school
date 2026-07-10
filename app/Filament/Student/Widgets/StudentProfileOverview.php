@@ -2,6 +2,7 @@
 
 namespace App\Filament\Student\Widgets;
 
+use App\Filament\Student\Pages\MyProfile;
 use Filament\Widgets\StatsOverviewWidget;
 use Illuminate\Support\Facades\Auth;
 
@@ -29,6 +30,7 @@ class StudentProfileOverview extends StatsOverviewWidget
             'class' => $profile?->class?->name ?? '—',
             'section' => $profile?->section?->name ?? null,
             'group' => $profile?->group?->name ?? null,
+            'url' => MyProfile::getUrl(panel: 'student'),
         ];
     }
 }

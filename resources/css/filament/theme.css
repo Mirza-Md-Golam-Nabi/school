@@ -3,3 +3,11 @@
 @source '../../../app/Filament/**/*';
 @source '../../../app/Enums/**/*';
 @source '../../../resources/views/filament/**/*';
+
+@media (max-width: 640px) {
+    .fi-student-profile-tabs .fi-section-content,
+    .fi-student-profile-tabs .fi-section-header,
+    .fi-student-profile-tabs .fi-section-footer {
+        padding: 0.75rem !important;
+    }
+}
