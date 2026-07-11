@@ -19,6 +19,8 @@ class Register extends BaseRegister
             'user_type' => UserType::Admin,
         ]);
 
+        $user->assignRole(UserType::Admin->roleName());
+
         return $user;
     }
 }

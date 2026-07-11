@@ -4,7 +4,6 @@ namespace App\Filament\Resources\FeePayments\Pages;
 
 use App\Actions\ProcessFeePaymentAction;
 use App\Filament\Resources\FeePayments\FeePaymentResource;
-use App\Models\Classes;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Database\Eloquent\Model;
 
@@ -25,8 +24,7 @@ class CreateFeePayment extends CreateRecord
         parent::fillForm();
 
         if ($this->filterClassId) {
-            $this->data['class_id_filter'] = Classes::query()->where('id', $this->filterClassId)->value('name');
-            $this->data['filter_class_id'] = $this->filterClassId;
+            $this->data['class_id_filter'] = $this->filterClassId;
         }
     }
 

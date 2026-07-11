@@ -4,6 +4,8 @@ namespace App\Filament\Student\Pages\Auth;
 
 use Filament\Auth\Pages\EditProfile as BaseEditProfile;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Components\Component;
 use Filament\Schemas\Schema;
 
 class EditProfile extends BaseEditProfile
@@ -30,5 +32,13 @@ class EditProfile extends BaseEditProfile
             $this->getPasswordFormComponent(),
             $this->getPasswordConfirmationFormComponent(),
         ]);
+    }
+
+    protected function getNameFormComponent(): Component
+    {
+        return TextInput::make('name')
+            ->label(__('filament-panels::auth/pages/edit-profile.form.name.label'))
+            ->disabled()
+            ->dehydrated(false);
     }
 }

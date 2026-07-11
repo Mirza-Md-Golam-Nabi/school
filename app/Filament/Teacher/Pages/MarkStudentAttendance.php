@@ -5,17 +5,23 @@ namespace App\Filament\Teacher\Pages;
 use App\Enums\AttendanceSource;
 use App\Enums\AttendanceStatus;
 use App\Enums\StudentStatus;
+use App\Filament\Pages\AttendanceModificationDetails;
 use App\Models\Attendance;
+use App\Models\AttendanceStatusChange;
 use App\Models\Classes;
 use App\Models\StudentProfile;
 use App\Models\User;
+use App\Services\WorkingDaysCalculator;
 use BackedEnum;
 use Carbon\Carbon;
+use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Contracts\Support\Htmlable;
+use Illuminate\Support\Carbon as SupportCarbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 use Livewire\Attributes\Url;
 use UnitEnum;
 
@@ -97,29 +103,56 @@ class MarkStudentAttendance extends Page
     {
         $markedBy = auth()->id();
         $students = $this->getStudents();
+        $isPastDate = $this->date < now()->toDateString();
+        $isNonWorkingDay = ! app(WorkingDaysCalculator::class)->isWorkingDay(SupportCarbon::parse($this->date));
+        $batchId = (string) Str::uuid();
+        $changes = collect();
 
         foreach ($students as $student) {
             $isPresent = in_array((string) $student->id, $this->presentIds);
+            $newStatus = $isPresent ? AttendanceStatus::Present : AttendanceStatus::Absent;
 
-            Attendance::updateOrCreate(
-                [
-                    'attendable_type' => StudentProfile::class,
-                    'attendable_id' => $student->id,
-                    'date' => $this->date,
+            $keys = [
+                'attendable_type' => StudentProfile::class,
+                'attendable_id' => $student->id,
+                'date' => $this->date,
+                'class_id' => $this->classId,
+                'subject_id' => null,
+            ];
+
+            $existing = Attendance::where($keys)->first();
+
+            $attendance = Attendance::updateOrCreate($keys, [
+                'status' => $newStatus,
+                'source' => AttendanceSource::Manual,
+                'marked_by' => $markedBy,
+                'entry_time' => $isPresent ? now()->format('H:i:s') : null,
+            ]);
+
+            $statusChanged = $existing && $existing->status !== $newStatus;
+
+            // A past working day only warrants a flag when an already-recorded
+            // status is actually changed. A weekend/holiday warrants a flag for
+            // any attendance activity at all, since none is normally taken then.
+            $shouldFlag = ($isPastDate && $statusChanged)
+                || ($isNonWorkingDay && (! $existing || $statusChanged));
+
+            if ($shouldFlag) {
+                $changes->push(AttendanceStatusChange::create([
+                    'attendance_id' => $attendance->id,
                     'class_id' => $this->classId,
-                    'subject_id' => null,
-                ],
-                [
-                    'status' => $isPresent ? AttendanceStatus::Present : AttendanceStatus::Absent,
-                    'source' => AttendanceSource::Manual,
-                    'marked_by' => $markedBy,
-                    'entry_time' => $isPresent ? now()->format('H:i:s') : null,
-                ]
-            );
+                    'student_profile_id' => $student->id,
+                    'date' => $this->date,
+                    'old_status' => $existing?->status,
+                    'new_status' => $newStatus,
+                    'changed_by' => $markedBy,
+                    'batch_id' => $batchId,
+                ]));
+            }
         }
 
-        if ($this->date !== now()->toDateString()) {
-            $this->sendBackdatingNotification();
+        if ($changes->isNotEmpty()) {
+            $this->notifyAdminsOfChanges($changes, $batchId);
         }
 
         Notification::make()
@@ -129,18 +162,27 @@ class MarkStudentAttendance extends Page
             ->send();
     }
 
-    private function sendBackdatingNotification(): void
+    private function notifyAdminsOfChanges(Collection $changes, string $batchId): void
     {
         $class = $this->resolveClass();
         $marker = auth()->user()?->name ?? 'Unknown';
-        $type = $this->date < now()->toDateString() ? 'past' : 'future';
+        $count = $changes->count();
 
-        $body = "{$marker} marked {$type} attendance for {$class?->name} on {$this->date}.";
+        $body = "{$marker} recorded/changed {$count} ".Str::plural('student', $count)."' attendance in {$class?->name} on {$this->date}.";
 
         Notification::make()
             ->warning()
-            ->title('Backdated Attendance Marked')
+            ->title('Attendance Flagged for Review')
             ->body($body)
+            ->actions([
+                // Explicit panel: this notification is created from the teacher panel,
+                // but the target page only exists in the admin panel.
+                Action::make('view')
+                    ->label('View Details')
+                    ->button()
+                    ->url(AttendanceModificationDetails::getUrl(['batch' => $batchId], panel: 'admin'))
+                    ->markAsRead(),
+            ])
             ->sendToDatabase(
                 User::role(['admin', 'super-admin'])->get()
             );

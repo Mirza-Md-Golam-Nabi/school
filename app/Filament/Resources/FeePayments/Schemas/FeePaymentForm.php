@@ -3,11 +3,11 @@
 namespace App\Filament\Resources\FeePayments\Schemas;
 
 use App\Enums\PaymentMethod;
+use App\Models\Classes;
 use App\Models\StudentFeeInvoice;
 use App\Models\StudentProfile;
 use Carbon\Carbon;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -37,13 +37,16 @@ class FeePaymentForm
                             ->required()
                             ->default(now())
                             ->native(false),
-                        TextInput::make('class_id_filter')
+                        Select::make('class_id_filter')
                             ->label('Class')
-                            ->disabled()
+                            ->options(fn () => Classes::pluck('name', 'id'))
+                            ->default(fn () => request()->integer('class_id') ?: null)
+                            ->searchable()
+                            ->native(false)
+                            ->live()
                             ->dehydrated(false)
+                            ->afterStateUpdated(fn (Set $set) => $set('student_id', null))
                             ->columnSpanFull(),
-                        Hidden::make('filter_class_id')
-                            ->dehydrated(false),
 
                         Select::make('student_type')
                             ->label('Student Type')
@@ -61,7 +64,7 @@ class FeePaymentForm
                         Select::make('student_id')
                             ->label('Student')
                             ->options(function (Get $get) {
-                                $classId = $get('filter_class_id');
+                                $classId = $get('class_id_filter');
                                 $type = $get('student_type') ?? 'current';
 
                                 if ($type === 'former') {
@@ -175,8 +178,10 @@ class FeePaymentForm
                         Select::make('received_by')
                             ->label('Received By')
                             ->relationship('receivedBy', 'name')
+                            ->default(fn (string $operation): ?int => $operation === 'create' ? auth()->id() : null)
+                            ->disabled()
+                            ->dehydrated()
                             ->searchable()
-                            ->nullable()
                             ->native(false),
                         Textarea::make('remarks')
                             ->nullable()

@@ -2,9 +2,12 @@
 
 namespace App\Models;
 
+use App\Enums\InvoiceStatus;
 use App\Enums\PaymentMethod;
+use App\Notifications\FeePaymentReceivedNotification;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Notifications\DatabaseNotification;
 
 class FeePayment extends Model
 {
@@ -25,6 +28,31 @@ class FeePayment extends Model
         'payment_method' => PaymentMethod::class,
         'payment_date' => 'date',
     ];
+
+    protected static function booted(): void
+    {
+        static::deleted(function (FeePayment $payment) {
+            DatabaseNotification::where('type', FeePaymentReceivedNotification::class)
+                ->where('data->receipt_no', $payment->receipt_no)
+                ->delete();
+
+            $invoice = $payment->invoice;
+
+            if (! $invoice || $invoice->status === InvoiceStatus::Waived) {
+                return;
+            }
+
+            $totalPaid = (float) $invoice->payments()->sum('amount_paid');
+
+            $newStatus = match (true) {
+                $totalPaid <= 0 => InvoiceStatus::Unpaid,
+                $totalPaid >= (float) $invoice->net_amount => InvoiceStatus::Paid,
+                default => InvoiceStatus::Partial,
+            };
+
+            $invoice->update(['status' => $newStatus]);
+        });
+    }
 
     public function student(): BelongsTo
     {

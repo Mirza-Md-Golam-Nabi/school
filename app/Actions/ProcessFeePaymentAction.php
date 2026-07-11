@@ -30,9 +30,10 @@ class ProcessFeePaymentAction
             ->get();
 
         $firstPayment = null;
+        $payments = [];
         $paymentIndex = 0;
 
-        DB::transaction(function () use ($invoices, $data, &$remaining, &$firstPayment, &$paymentIndex) {
+        DB::transaction(function () use ($invoices, $data, &$remaining, &$firstPayment, &$payments, &$paymentIndex) {
             foreach ($invoices as $invoice) {
                 if ($remaining <= 0) {
                     break;
@@ -68,6 +69,7 @@ class ProcessFeePaymentAction
                     $firstPayment = $payment;
                 }
 
+                $payments[] = $payment;
                 $paymentIndex++;
 
                 $totalPaidForInvoice = $alreadyPaid + $payAmount;
@@ -79,10 +81,12 @@ class ProcessFeePaymentAction
             }
         });
 
-        // Notify the student's user about the payment
+        // Notify the student's user about each invoice paid
         $student = StudentProfile::with('user')->find($data['student_id']);
         if ($student?->user) {
-            $student->user->notify(new FeePaymentReceivedNotification($firstPayment));
+            foreach ($payments as $payment) {
+                $student->user->notify(new FeePaymentReceivedNotification($payment));
+            }
         }
 
         return $firstPayment;
