@@ -17,8 +17,7 @@ class EditFeePayment extends EditRecord
         $student = $record->student;
 
         if ($student) {
-            $data['filter_class_id'] = $student->current_class_id;
-            $data['class_id_filter'] = $student->class?->name;
+            $data['class_id_filter'] = $student->current_class_id;
             $data['student_type'] = $student->status === StudentStatus::Active ? 'current' : 'former';
         }
 
