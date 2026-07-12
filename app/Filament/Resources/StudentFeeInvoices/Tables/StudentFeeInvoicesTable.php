@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\StudentFeeInvoices\Tables;
 
 use App\Enums\InvoiceStatus;
-use App\Models\Classes;
 use App\Models\FeeType;
 use App\Models\StudentFeeInvoice;
 use Carbon\Carbon;
@@ -13,7 +12,6 @@ use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
-use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
@@ -34,10 +32,12 @@ class StudentFeeInvoicesTable
                     ->sortable(),
                 TextColumn::make('student.roll_no')
                     ->label('Roll')
+                    ->searchable()
                     ->badge()
                     ->color('gray'),
                 TextColumn::make('feeType.name')
                     ->label('Fee Type')
+                    ->searchable()
                     ->sortable(),
                 TextColumn::make('month')
                     ->formatStateUsing(fn (?int $state): string => $state

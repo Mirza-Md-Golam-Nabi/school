@@ -2,11 +2,15 @@
 
 namespace App\Filament\Resources\FeeStructures\Tables;
 
+use App\Actions\GenerateOneTimeFeeInvoicesAction;
 use App\Models\Classes;
+use App\Models\FeeStructure;
 use App\Models\FeeType;
+use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Notifications\Notification;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
@@ -64,6 +68,26 @@ class FeeStructuresTable
                     ->label('Active Status'),
             ])
             ->recordActions([
+                Action::make('generateInvoices')
+                    ->label('Generate Invoices')
+                    ->icon('heroicon-o-document-plus')
+                    ->color('success')
+                    ->iconButton()
+                    ->tooltip('Generate one-time invoices for every student in this class')
+                    ->visible(fn (FeeStructure $record): bool => $record->is_active && ! $record->feeType?->is_monthly)
+                    ->requiresConfirmation()
+                    ->modalHeading('Generate One-Time Invoices')
+                    ->modalDescription(fn (FeeStructure $record): string => "This will create a \"{$record->feeType->name}\" invoice for every active student in {$record->class->name} ({$record->session_year}). Students who already have this invoice will be skipped.")
+                    ->modalSubmitActionLabel('Generate')
+                    ->action(function (FeeStructure $record) {
+                        $result = app(GenerateOneTimeFeeInvoicesAction::class)->handle($record);
+
+                        Notification::make()
+                            ->title('Invoices generated')
+                            ->body("Generated: {$result['generated']} | Skipped (already exists): {$result['skipped']}")
+                            ->success()
+                            ->send();
+                    }),
                 EditAction::make()->iconButton(),
             ])
             ->toolbarActions([
