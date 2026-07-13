@@ -7,7 +7,7 @@ git pull origin dev
 echo "✅ Git pull done"
 
 # Composer install
-composer install --no-dev --optimize-autoloader
+/opt/cpanel/ea-php83/root/usr/bin/php composer.phar install --no-dev --optimize-autoloader
 echo "✅ Composer done"
 
 # .env file না থাকলে copy করো
