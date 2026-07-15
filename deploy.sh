@@ -29,9 +29,5 @@ echo "✅ Migration done"
 php artisan optimize
 echo "✅ Cache rebuilt"
 
-# Permission
-chmod -R 775 storage
-chmod -R 775 bootstrap/cache
-echo "✅ Permission set"
 
 echo "🎉 Deployment finished!"
