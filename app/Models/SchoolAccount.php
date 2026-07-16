@@ -20,4 +20,9 @@ class SchoolAccount extends Model
     {
         return $this->hasMany(AccountTransaction::class, 'account_id');
     }
+
+    public function feeTypes(): HasMany
+    {
+        return $this->hasMany(FeeType::class);
+    }
 }
