@@ -14,7 +14,7 @@ use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
-use Filament\Widgets\AccountWidget;
+use Filament\View\PanelsRenderHook;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
@@ -43,6 +43,10 @@ class TeacherPanelProvider extends PanelProvider
             ->colors([
                 'primary' => Color::Amber,
             ])
+            ->renderHook(
+                PanelsRenderHook::HEAD_END,
+                fn (): string => '<link rel="manifest" href="/manifest/teacher.json">',
+            )
             ->discoverResources(in: app_path('Filament/Teacher/Resources'), for: 'App\Filament\Teacher\Resources')
             ->discoverPages(in: app_path('Filament/Teacher/Pages'), for: 'App\Filament\Teacher\Pages')
             ->pages([
@@ -50,7 +54,7 @@ class TeacherPanelProvider extends PanelProvider
             ])
             ->discoverWidgets(in: app_path('Filament/Teacher/Widgets'), for: 'App\Filament\Teacher\Widgets')
             ->widgets([
-                // AccountWidget::class,
+                // 
             ])
             ->middleware([
                 EncryptCookies::class,
