@@ -46,6 +46,7 @@ class CreateTeacherProfileAction
             'password' => $data['password'],
             'user_type' => UserType::Teacher,
             'is_active' => true,
+            'email_verified_at' => now(),
         ]);
 
         $user->assignRole('teacher');
