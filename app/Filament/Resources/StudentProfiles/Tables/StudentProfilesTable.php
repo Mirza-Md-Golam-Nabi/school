@@ -20,6 +20,7 @@ class StudentProfilesTable
     public static function configure(Table $table): Table
     {
         return $table
+            ->defaultSort('roll_no')
             ->columns([
                 TextColumn::make('user.name')
                     ->label('Name')
@@ -28,7 +29,9 @@ class StudentProfilesTable
 
                 TextColumn::make('roll_no')
                     ->label('Roll No')
-                    ->searchable(),
+                    ->numeric()
+                    ->searchable()
+                    ->sortable(),
 
                 TextColumn::make('class.name')
                     ->label('Class')
