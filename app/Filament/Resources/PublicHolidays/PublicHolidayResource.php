@@ -23,6 +23,8 @@ class PublicHolidayResource extends Resource
 
     protected static string|UnitEnum|null $navigationGroup = 'HR & Staff Management';
 
+    protected static ?int $navigationSort = 4;
+
     protected static ?string $recordTitleAttribute = 'name';
 
     public static function form(Schema $schema): Schema
