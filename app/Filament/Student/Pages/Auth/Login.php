@@ -28,9 +28,11 @@ class Login extends BaseLogin
     {
         parent::mount();
 
-        $this->form->fill([
-            'email' => 'student@example.com',
-            'password' => 'password',
-        ]);
+        if (app()->isLocal()) {
+            $this->form->fill([
+                'email' => 'student@example.com',
+                'password' => 'password',
+            ]);
+        }
     }
 }

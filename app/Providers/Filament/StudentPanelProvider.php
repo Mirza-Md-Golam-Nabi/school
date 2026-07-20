@@ -31,7 +31,6 @@ class StudentPanelProvider extends PanelProvider
             ->path('student')
             ->viteTheme('resources/css/filament/theme.css')
             ->login(Login::class)
-            ->registration(Register::class)
             ->passwordReset()
             ->emailVerification()
             ->emailChangeVerification()
@@ -55,7 +54,7 @@ class StudentPanelProvider extends PanelProvider
             ])
             ->discoverWidgets(in: app_path('Filament/Student/Widgets'), for: 'App\Filament\Student\Widgets')
             ->widgets([
-                // 
+                //
             ])
             ->middleware([
                 EncryptCookies::class,
