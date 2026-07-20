@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Actions\SyncFeePaymentAccountTransactionAction;
 use App\Enums\InvoiceStatus;
 use App\Enums\PaymentMethod;
 use App\Notifications\FeePaymentReceivedNotification;
@@ -31,7 +32,21 @@ class FeePayment extends Model
 
     protected static function booted(): void
     {
+        static::created(function (FeePayment $payment) {
+            app(SyncFeePaymentAccountTransactionAction::class)->sync($payment);
+        });
+
+        static::updated(function (FeePayment $payment) {
+            if (! $payment->wasChanged(['amount_paid', 'invoice_id', 'payment_date', 'received_by', 'receipt_no'])) {
+                return;
+            }
+
+            app(SyncFeePaymentAccountTransactionAction::class)->sync($payment);
+        });
+
         static::deleted(function (FeePayment $payment) {
+            app(SyncFeePaymentAccountTransactionAction::class)->reverse($payment);
+
             DatabaseNotification::where('type', FeePaymentReceivedNotification::class)
                 ->where('data->receipt_no', $payment->receipt_no)
                 ->delete();

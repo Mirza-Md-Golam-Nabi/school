@@ -71,6 +71,7 @@ class DatabaseSeeder extends Seeder
             StudentFeeInvoiceSeeder::class,
             FeePaymentSeeder::class,
             StudentResultSeeder::class,
+            DocumentSettingsSeeder::class,
         ]);
     }
 }
