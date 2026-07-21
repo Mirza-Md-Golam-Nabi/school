@@ -21,12 +21,7 @@
 
                             {{-- Subject --}}
                             <td class="px-2 py-1.5 text-left font-medium text-gray-800 dark:text-gray-200 sm:px-3 sm:py-2">
-                                <span
-                                    x-data="{ expanded: false }"
-                                    @click="expanded = ! expanded"
-                                    class="block cursor-pointer select-none"
-                                    :class="expanded ? 'whitespace-normal break-words' : 'max-w-[80px] truncate sm:max-w-[140px] md:max-w-none'"
-                                >
+                                <span class="block whitespace-normal break-words">
                                     {{ $row['subject_name'] }}
                                 </span>
                             </td>

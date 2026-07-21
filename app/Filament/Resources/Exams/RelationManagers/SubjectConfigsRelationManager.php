@@ -10,9 +10,7 @@ use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
-use Filament\Actions\ForceDeleteAction;
 use Filament\Actions\ForceDeleteBulkAction;
-use Filament\Actions\RestoreAction;
 use Filament\Actions\RestoreBulkAction;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Select;
@@ -69,7 +67,7 @@ class SubjectConfigsRelationManager extends RelationManager
                                 TextInput::make('mcq_total')
                                     ->label('MCQ Total')
                                     ->numeric()
-                                    ->minValue(1)
+                                    ->minValue(0)
                                     ->live(onBlur: true)
                                     ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateTotalMarks($get, $set))
                                     ->required(),
@@ -77,7 +75,7 @@ class SubjectConfigsRelationManager extends RelationManager
                                 TextInput::make('mcq_pass_mark')
                                     ->label('MCQ Pass Mark')
                                     ->numeric()
-                                    ->minValue(1)
+                                    ->minValue(0)
                                     ->visible(fn (Get $get): bool => (bool) $get('check_mcq_pass'))
                                     ->required(fn (Get $get): bool => (bool) $get('check_mcq_pass')),
                             ]),
@@ -97,7 +95,7 @@ class SubjectConfigsRelationManager extends RelationManager
                                 TextInput::make('written_total')
                                     ->label('Written Total')
                                     ->numeric()
-                                    ->minValue(1)
+                                    ->minValue(0)
                                     ->live(onBlur: true)
                                     ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateTotalMarks($get, $set))
                                     ->required(),
@@ -105,7 +103,7 @@ class SubjectConfigsRelationManager extends RelationManager
                                 TextInput::make('written_pass_mark')
                                     ->label('Written Pass Mark')
                                     ->numeric()
-                                    ->minValue(1)
+                                    ->minValue(0)
                                     ->visible(fn (Get $get): bool => (bool) $get('check_written_pass'))
                                     ->required(fn (Get $get): bool => (bool) $get('check_written_pass')),
                             ]),
@@ -125,7 +123,7 @@ class SubjectConfigsRelationManager extends RelationManager
                                 TextInput::make('practical_total')
                                     ->label('Practical Total')
                                     ->numeric()
-                                    ->minValue(1)
+                                    ->minValue(0)
                                     ->live(onBlur: true)
                                     ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateTotalMarks($get, $set))
                                     ->required(),
@@ -133,7 +131,7 @@ class SubjectConfigsRelationManager extends RelationManager
                                 TextInput::make('practical_pass_mark')
                                     ->label('Practical Pass Mark')
                                     ->numeric()
-                                    ->minValue(1)
+                                    ->minValue(0)
                                     ->visible(fn (Get $get): bool => (bool) $get('check_practical_pass'))
                                     ->required(fn (Get $get): bool => (bool) $get('check_practical_pass')),
                             ]),
@@ -145,14 +143,14 @@ class SubjectConfigsRelationManager extends RelationManager
                         TextInput::make('total_marks')
                             ->label('Total Marks')
                             ->numeric()
-                            ->minValue(1)
+                            ->minValue(0)
                             ->helperText('MCQ + Written + Practical স্বয়ংক্রিয়ভাবে হিসাব হয়')
                             ->required(),
 
                         TextInput::make('pass_mark')
                             ->label('Pass Mark')
                             ->numeric()
-                            ->minValue(1)
+                            ->minValue(0)
                             ->required(),
                     ]),
             ]);
