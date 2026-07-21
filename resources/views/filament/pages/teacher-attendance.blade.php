@@ -70,7 +70,7 @@
                                 class="h-4 w-4 shrink-0 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-gray-600"
                             >
                             <div class="min-w-0 flex-1">
-                                <p class="truncate text-sm font-medium text-gray-900 dark:text-white">
+                                <p class="break-words text-xs sm:text-sm font-medium text-gray-900 dark:text-white" title="{{ $teacher->user?->name }}">
                                     {{ $teacher->user?->name ?? '—' }}
                                 </p>
                                 @if ($teacher->designation)
