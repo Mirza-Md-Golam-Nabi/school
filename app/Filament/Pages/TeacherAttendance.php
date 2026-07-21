@@ -9,6 +9,7 @@ use App\Models\Attendance;
 use App\Models\TeacherProfile;
 use App\Models\User;
 use BackedEnum;
+use Carbon\Carbon;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
@@ -128,17 +129,24 @@ class TeacherAttendance extends Page
 
     public function getTeachers(): Collection
     {
-        $idsWithAttendance = Attendance::where('attendable_type', TeacherProfile::class)
-            ->where('date', $this->date)
-            ->pluck('attendable_id');
-
         return TeacherProfile::with('user')
-            ->withTrashed()
-            ->where(function ($q) use ($idsWithAttendance) {
-                $q->where(fn ($q2) => $q2->where('status', EmploymentStatus::Active)->whereNull('deleted_at'))
-                    ->orWhereIn('id', $idsWithAttendance);
-            })
-            ->orderBy('id')
-            ->get();
+            ->where('status', EmploymentStatus::Active)
+            ->get()
+            ->sortBy('user.name')
+            ->values();
+    }
+
+    public function getYesterdayAttendance(): Collection
+    {
+        $yesterday = Carbon::parse($this->date)->subDay()->toDateString();
+        $teacherIds = $this->getTeachers()->pluck('id');
+
+        return Attendance::query()
+            ->where('attendable_type', TeacherProfile::class)
+            ->whereIn('attendable_id', $teacherIds)
+            ->where('date', $yesterday)
+            ->whereNull('class_id')
+            ->whereNull('subject_id')
+            ->pluck('status', 'attendable_id');
     }
 }

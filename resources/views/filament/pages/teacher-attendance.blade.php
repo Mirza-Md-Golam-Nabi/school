@@ -60,22 +60,45 @@
                 </div>
 
                 {{-- Teacher Checkboxes: 2 cols mobile, 3 tablet, 4 laptop --}}
+                @php $yesterdayAttendance = $this->getYesterdayAttendance(); @endphp
                 <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                     @foreach ($teachers as $teacher)
-                        <label class="flex cursor-pointer items-center gap-x-2 border-b border-gray-100 px-3 py-2.5 transition-colors hover:bg-gray-50 last:border-0 dark:border-gray-800 dark:hover:bg-gray-800/50">
-                            <input
-                                type="checkbox"
-                                wire:model.live="presentIds"
-                                value="{{ $teacher->id }}"
-                                class="h-4 w-4 shrink-0 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-gray-600"
-                            >
-                            <div class="min-w-0 flex-1">
-                                <p class="break-words text-xs sm:text-sm font-medium text-gray-900 dark:text-white" title="{{ $teacher->user?->name }}">
+                        @php $yesterdayStatus = $yesterdayAttendance->get($teacher->id); @endphp
+                        <label class="flex cursor-pointer flex-col gap-y-1.5 border-b border-gray-100 px-3 py-2.5 transition-colors hover:bg-gray-50 last:border-0 dark:border-gray-800 dark:hover:bg-gray-800/50">
+                            <div class="flex items-center gap-x-2">
+                                <input
+                                    type="checkbox"
+                                    wire:model.live="presentIds"
+                                    value="{{ $teacher->id }}"
+                                    class="h-4 w-4 shrink-0 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-gray-600"
+                                >
+                                <p class="min-w-0 flex-1 break-words text-xs sm:text-sm font-medium text-gray-900 dark:text-white" title="{{ $teacher->user?->name }}">
                                     {{ $teacher->user?->name ?? '—' }}
                                 </p>
-                                @if ($teacher->designation)
-                                    <p class="truncate text-xs text-gray-500 dark:text-gray-400">{{ $teacher->designation }}</p>
-                                @endif
+                            </div>
+
+                            <div class="flex items-center justify-between pl-6">
+                                <span class="truncate text-xs text-gray-500 dark:text-gray-400">
+                                    {{ $teacher->designation }}
+                                </span>
+
+                                <div class="flex items-center gap-x-2">
+                                    {{-- Yesterday's attendance icon --}}
+                                    @if ($yesterdayStatus?->value === 'present')
+                                        <x-heroicon-o-check-circle class="h-4 w-4 shrink-0 text-success-500" title="Present yesterday" />
+                                    @elseif ($yesterdayStatus?->value === 'absent')
+                                        <x-heroicon-o-x-circle class="h-4 w-4 shrink-0 text-danger-500" title="Absent yesterday" />
+                                    @endif
+
+                                    <a
+                                        href="{{ route('filament.admin.pages.teacher-attendance-detail') }}?teacherId={{ $teacher->id }}"
+                                        @click.stop
+                                        class="shrink-0 text-gray-900 transition-colors hover:text-primary-500 dark:text-gray-600 dark:hover:text-primary-400"
+                                        title="View Attendance History"
+                                    >
+                                        <x-heroicon-o-eye class="h-4 w-4" />
+                                    </a>
+                                </div>
                             </div>
                         </label>
                     @endforeach
