@@ -11,6 +11,23 @@ class CreateExam extends CreateRecord
 {
     protected static string $resource = ExamResource::class;
 
+    public int $filterClassId = 0;
+
+    public function mount(): void
+    {
+        $this->filterClassId = request()->integer('classId');
+        parent::mount();
+    }
+
+    protected function fillForm(): void
+    {
+        parent::fillForm();
+
+        if ($this->filterClassId) {
+            $this->data['class_id'] = [$this->filterClassId];
+        }
+    }
+
     protected function handleRecordCreation(array $data): Model
     {
         $classIds = (array) $data['class_id'];
@@ -26,6 +43,8 @@ class CreateExam extends CreateRecord
 
     protected function getRedirectUrl(): string
     {
-        return $this->getResource()::getUrl('index');
+        return $this->filterClassId
+            ? ExamResource::getUrl('exams-by-class', ['classId' => $this->filterClassId])
+            : $this->getResource()::getUrl('index');
     }
 }

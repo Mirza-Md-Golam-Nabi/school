@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Exams;
 
 use App\Filament\Resources\Exams\Pages\CreateExam;
 use App\Filament\Resources\Exams\Pages\EditExam;
+use App\Filament\Resources\Exams\Pages\ExamsByClass;
 use App\Filament\Resources\Exams\Pages\ListExams;
 use App\Filament\Resources\Exams\RelationManagers\MeritRankingsRelationManager;
 use App\Filament\Resources\Exams\RelationManagers\SubjectConfigsRelationManager;
@@ -52,6 +53,7 @@ class ExamResource extends Resource
         return [
             'index' => ListExams::route('/'),
             'create' => CreateExam::route('/create'),
+            'exams-by-class' => ExamsByClass::route('/class'),
             'edit' => EditExam::route('/{record}/edit'),
         ];
     }
