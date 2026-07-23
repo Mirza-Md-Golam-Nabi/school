@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\LeaveTypes\Tables;
 
+use App\Enums\LeaveApplicability;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -9,6 +10,7 @@ use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 
 class LeaveTypesTable
@@ -22,6 +24,9 @@ class LeaveTypesTable
                 TextColumn::make('allowed_days_per_year')
                     ->numeric()
                     ->sortable(),
+                TextColumn::make('applicable_gender')
+                    ->label('Applicable To')
+                    ->badge(),
                 IconColumn::make('is_active')
                     ->boolean(),
                 TextColumn::make('created_at')
@@ -33,14 +38,12 @@ class LeaveTypesTable
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
-            ->recordUrl(null)
-            ->recordAction(ViewAction::class)
             ->filters([
-                //
+                SelectFilter::make('applicable_gender')
+                    ->label('Applicable To')
+                    ->options(LeaveApplicability::options()),
             ])
             ->recordActions([
-                ViewAction::make()
-                    ->iconButton(),
                 EditAction::make()
                     ->iconButton(),
                 DeleteAction::make()

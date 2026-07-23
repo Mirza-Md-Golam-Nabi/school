@@ -2,11 +2,12 @@
 
 namespace App\Filament\Resources\LeaveApplications\Schemas;
 
+use App\Enums\Gender;
+use App\Models\LeaveType;
 use App\Models\StaffProfile;
 use App\Models\TeacherProfile;
 use App\Services\WorkingDaysCalculator;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -34,7 +35,10 @@ class LeaveApplicationForm
                                 ])
                                 ->required()
                                 ->live()
-                                ->afterStateUpdated(fn (Set $set) => $set('applicant_id', null)),
+                                ->afterStateUpdated(function (Set $set) {
+                                    $set('applicant_id', null);
+                                    $set('leave_type_id', null);
+                                }),
 
                             Select::make('applicant_id')
                                 ->label('Applicant')
@@ -57,7 +61,8 @@ class LeaveApplicationForm
                                     return [];
                                 })
                                 ->searchable()
-                                ->live(),
+                                ->live()
+                                ->afterStateUpdated(fn (Set $set) => $set('leave_type_id', null)),
                         ]),
                     ]),
 
@@ -65,7 +70,19 @@ class LeaveApplicationForm
                     ->schema([
                         Select::make('leave_type_id')
                             ->label('Leave Type')
-                            ->relationship('leaveType', 'name', fn ($query) => $query->where('is_active', true))
+                            ->options(function (Get $get) {
+                                $gender = self::resolveApplicantGender($get('applicant_type'), $get('applicant_id'));
+
+                                $query = LeaveType::query()->active();
+
+                                if ($gender) {
+                                    $query->applicableTo($gender);
+                                }
+
+                                return $query->pluck('name', 'id');
+                            })
+                            ->helperText('শুধু আবেদনকারীর জন্য বরাদ্দকৃত ছুটির ধরন এখানে দেখাবে।')
+                            ->disabled(fn (Get $get) => blank($get('applicant_id')))
                             ->required(),
 
                         Grid::make(3)->schema([
@@ -95,6 +112,23 @@ class LeaveApplicationForm
                             ->columnSpanFull(),
                     ]),
             ]);
+    }
+
+    private static function resolveApplicantGender(?string $applicantType, mixed $applicantId): ?Gender
+    {
+        if (blank($applicantType) || blank($applicantId)) {
+            return null;
+        }
+
+        if ($applicantType === TeacherProfile::class) {
+            return TeacherProfile::find($applicantId)?->gender;
+        }
+
+        if ($applicantType === StaffProfile::class) {
+            return StaffProfile::find($applicantId)?->gender;
+        }
+
+        return null;
     }
 
     private static function recalculateTotalDays(Get $get, Set $set): void

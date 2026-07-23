@@ -5,6 +5,7 @@ namespace App\Filament\Resources\LeaveTypes;
 use App\Filament\Resources\LeaveTypes\Pages\CreateLeaveType;
 use App\Filament\Resources\LeaveTypes\Pages\EditLeaveType;
 use App\Filament\Resources\LeaveTypes\Pages\ListLeaveTypes;
+use App\Filament\Resources\LeaveTypes\RelationManagers\AssignmentsRelationManager;
 use App\Filament\Resources\LeaveTypes\Schemas\LeaveTypeForm;
 use App\Filament\Resources\LeaveTypes\Tables\LeaveTypesTable;
 use App\Models\LeaveType;
@@ -40,7 +41,7 @@ class LeaveTypeResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            AssignmentsRelationManager::class,
         ];
     }
 
