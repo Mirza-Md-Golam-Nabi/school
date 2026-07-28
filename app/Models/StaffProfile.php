@@ -29,6 +29,7 @@ class StaffProfile extends Model
         'designation',
         'joining_date',
         'status',
+        'default_school_account_id',
     ];
 
     protected $casts = [
@@ -73,6 +74,21 @@ class StaffProfile extends Model
     public function attendances(): MorphMany
     {
         return $this->morphMany(Attendance::class, 'attendable');
+    }
+
+    public function defaultSchoolAccount(): BelongsTo
+    {
+        return $this->belongsTo(SchoolAccount::class, 'default_school_account_id');
+    }
+
+    public function salaryStructures(): MorphMany
+    {
+        return $this->morphMany(SalaryStructure::class, 'profileable');
+    }
+
+    public function salaryInvoices(): MorphMany
+    {
+        return $this->morphMany(SalaryInvoice::class, 'profileable');
     }
 
     #[Scope]

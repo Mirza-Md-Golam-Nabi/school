@@ -32,6 +32,7 @@ class TeacherProfile extends Model
         'qualification',
         'joining_date',
         'status',
+        'default_school_account_id',
     ];
 
     protected $casts = [
@@ -76,6 +77,21 @@ class TeacherProfile extends Model
     public function teacherSubjects(): HasMany
     {
         return $this->hasMany(TeacherSubject::class, 'teacher_id');
+    }
+
+    public function defaultSchoolAccount(): BelongsTo
+    {
+        return $this->belongsTo(SchoolAccount::class, 'default_school_account_id');
+    }
+
+    public function salaryStructures(): MorphMany
+    {
+        return $this->morphMany(SalaryStructure::class, 'profileable');
+    }
+
+    public function salaryInvoices(): MorphMany
+    {
+        return $this->morphMany(SalaryInvoice::class, 'profileable');
     }
 
     #[Scope]
