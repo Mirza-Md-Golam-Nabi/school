@@ -7,10 +7,10 @@ use App\Filament\Resources\Concerns\ResponsiveText;
 use App\Models\SalaryPayment;
 use Carbon\Carbon;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 
@@ -24,15 +24,15 @@ class SalaryPaymentEditForm
                 Section::make('Payment')
                     ->columns(2)
                     ->schema([
-                        Placeholder::make('invoice_info')
+                        TextEntry::make('invoice_info')
                             ->label('Invoice')
-                            ->content(fn (?SalaryPayment $record): string => $record
+                            ->state(fn (?SalaryPayment $record): string => $record
                                 ? $record->invoice?->invoice_no.' — '.($record->invoice?->profileable?->user?->name ?? '')
                                 : '—')
                             ->extraAttributes(['class' => ResponsiveText::CLASSES]),
-                        Placeholder::make('period')
+                        TextEntry::make('period')
                             ->label('Period')
-                            ->content(fn (?SalaryPayment $record): string => $record?->invoice
+                            ->state(fn (?SalaryPayment $record): string => $record?->invoice
                                 ? Carbon::create()->month($record->invoice->month)->format('F').' '.$record->invoice->year
                                 : '—')
                             ->extraAttributes(['class' => ResponsiveText::CLASSES]),

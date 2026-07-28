@@ -35,4 +35,9 @@ class SchoolAccount extends Model
     {
         return $this->hasMany(SalaryBulkPayment::class);
     }
+
+    public function fundTransactions(): HasMany
+    {
+        return $this->hasMany(FundTransaction::class);
+    }
 }

@@ -11,10 +11,10 @@ use Carbon\Carbon;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Schemas\Components\Utilities\Get;
@@ -77,9 +77,9 @@ class ListSalaryPayments extends ListRecords
                         ->extraAttributes(['class' => ResponsiveText::CLASSES])
                         ->columnSpanFull(),
 
-                    Placeholder::make('total_due')
+                    TextEntry::make('total_due')
                         ->label('মোট পরিমাণ')
-                        ->content(function (Get $get): string {
+                        ->state(function (Get $get): string {
                             $ids = array_filter((array) ($get('invoice_ids') ?? []));
 
                             if (empty($ids)) {
