@@ -48,7 +48,9 @@ class HasProfileableFields
                     ->active()
                     ->with('user')
                     ->get()
-                    ->mapWithKeys(fn ($profile) => [$profile->id => $profile->user?->name ?? "#{$profile->id}"]);
+                    ->mapWithKeys(fn ($profile) => [$profile->id => $profile->user?->name ?? "#{$profile->id}"])
+                    ->sort()
+                    ->toArray();
             })
             ->searchable()
             ->native(false)

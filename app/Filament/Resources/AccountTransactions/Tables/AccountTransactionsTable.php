@@ -7,11 +7,14 @@ use App\Enums\TransactionType;
 use App\Filament\Resources\Concerns\ResponsiveText;
 use App\Models\SchoolAccount;
 use Filament\Actions\ViewAction;
+use Filament\Forms\Components\DatePicker;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class AccountTransactionsTable
 {
@@ -60,6 +63,23 @@ class AccountTransactionsTable
                 SelectFilter::make('source_type')
                     ->label('Source')
                     ->options(TransactionSource::class),
+                Filter::make('transaction_date')
+                    ->label('Date Range')
+                    ->schema([
+                        DatePicker::make('from'),
+                        DatePicker::make('until'),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when(
+                                $data['from'] ?? null,
+                                fn (Builder $query, $date): Builder => $query->whereDate('transaction_date', '>=', $date),
+                            )
+                            ->when(
+                                $data['until'] ?? null,
+                                fn (Builder $query, $date): Builder => $query->whereDate('transaction_date', '<=', $date),
+                            );
+                    }),
             ])
             ->recordActions([
                 ViewAction::make()

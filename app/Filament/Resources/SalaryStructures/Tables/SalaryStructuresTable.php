@@ -14,18 +14,19 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class SalaryStructuresTable
 {
     public static function configure(Table $table): Table
     {
         return $table
-            ->defaultSort('created_at', 'desc')
+            ->defaultSort(fn (Builder $query, string $direction): Builder => self::orderByProfileableName($query, $direction))
             ->columns([
                 TextColumn::make('profileable.user.name')
                     ->label('Name')
                     ->searchable()
-                    ->sortable()
+                    ->sortable(query: fn (Builder $query, string $direction): Builder => self::orderByProfileableName($query, $direction))
                     ->extraAttributes(['class' => ResponsiveText::CLASSES]),
                 TextColumn::make('profileable_type')
                     ->label('Type')
@@ -78,5 +79,25 @@ class SalaryStructuresTable
                     DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    /**
+     * `profileable` is a MorphTo relation, which Filament's built-in relationship
+     * sorting doesn't support (only BelongsTo/HasOne/MorphOne/*Through chains are
+     * allowed) — sorting by `profileable.user.name` directly would throw. Ordering
+     * by a correlated subquery per possible profileable type sidesteps that.
+     */
+    private static function orderByProfileableName(Builder $query, string $direction): Builder
+    {
+        $table = $query->getModel()->getTable();
+        $direction = strtolower($direction) === 'desc' ? 'desc' : 'asc';
+
+        return $query->orderByRaw(
+            "(CASE {$table}.profileable_type
+                WHEN ? THEN (SELECT users.name FROM teacher_profiles INNER JOIN users ON users.id = teacher_profiles.user_id WHERE teacher_profiles.id = {$table}.profileable_id)
+                WHEN ? THEN (SELECT users.name FROM staff_profiles INNER JOIN users ON users.id = staff_profiles.user_id WHERE staff_profiles.id = {$table}.profileable_id)
+            END) {$direction}",
+            [TeacherProfile::class, StaffProfile::class]
+        );
     }
 }
