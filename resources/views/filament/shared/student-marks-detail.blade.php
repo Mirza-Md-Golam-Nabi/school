@@ -24,6 +24,16 @@
                                 <span class="block whitespace-normal break-words">
                                     {{ $row['subject_name'] }}
                                 </span>
+                                @if ($row['contribution'])
+                                    @php $c = $row['contribution']; @endphp
+                                    <span class="mt-0.5 block text-[9px] font-normal text-gray-500 dark:text-gray-400 sm:text-[11px]">
+                                        নিজের: {{ $c['own_marks'] }}/{{ $c['own_total'] }}
+                                        + {{ $c['source_name'] }} ({{ $c['source_percent'] }}%): {{ $c['contributed_marks'] }}
+                                        @if ($c['breakdown'])
+                                            <span class="italic">(সেরা: {{ $c['breakdown'] }})</span>
+                                        @endif
+                                    </span>
+                                @endif
                             </td>
 
                             {{-- Marks --}}

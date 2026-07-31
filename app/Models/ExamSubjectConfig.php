@@ -24,12 +24,14 @@ class ExamSubjectConfig extends Model
         'check_mcq_pass',
         'check_written_pass',
         'check_practical_pass',
+        'contributes_to_target',
     ];
 
     protected $casts = [
         'check_mcq_pass' => 'boolean',
         'check_written_pass' => 'boolean',
         'check_practical_pass' => 'boolean',
+        'contributes_to_target' => 'boolean',
     ];
 
     public function exam(): BelongsTo

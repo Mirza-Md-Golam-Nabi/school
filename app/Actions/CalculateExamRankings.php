@@ -14,6 +14,10 @@ use Illuminate\Support\Collection;
 
 class CalculateExamRankings
 {
+    public function __construct(
+        private readonly ApplyExamSubjectContributions $applyExamSubjectContributions,
+    ) {}
+
     public function execute(Exam $exam): int
     {
         $subjectConfigs = ExamSubjectConfig::where('exam_id', $exam->id)
@@ -23,6 +27,8 @@ class CalculateExamRankings
         if ($subjectConfigs->isEmpty()) {
             return 0;
         }
+
+        $this->applyExamSubjectContributions->execute($exam);
 
         $results = StudentResult::where('exam_id', $exam->id)
             ->get()
@@ -94,7 +100,7 @@ class CalculateExamRankings
                 ? (int) $profile->current_group_id
                 : null;
 
-            $totalMarks = $studentResults->sum('total_marks');
+            $totalMarks = $studentResults->sum(fn (StudentResult $r) => $r->effective_marks);
             $hasAnyAbsent = $studentResults->contains(fn (StudentResult $r) => $r->is_absent);
 
             $isOverallFail = false;
@@ -117,9 +123,9 @@ class CalculateExamRankings
                 }
 
                 $config = $subjectConfigs->get($result->subject_id);
-                $fullMarks = $config?->total_marks ?? 100;
+                $fullMarks = $result->resolveFullMarks($config?->total_marks ?? 100);
                 $percentage = $fullMarks > 0
-                    ? ($result->total_marks / $fullMarks) * 100
+                    ? ($result->effective_marks / $fullMarks) * 100
                     : 0.0;
 
                 $grade = Grade::fromMarks($percentage);

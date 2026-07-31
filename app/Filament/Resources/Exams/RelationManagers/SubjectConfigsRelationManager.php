@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Exams\RelationManagers;
 
+use App\Models\ExamContributeRule;
 use App\Models\ExamSubjectConfig;
 use App\Models\Subject;
 use Filament\Actions\Action;
@@ -13,6 +14,7 @@ use Filament\Actions\EditAction;
 use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreBulkAction;
 use Filament\Facades\Filament;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -37,12 +39,25 @@ class SubjectConfigsRelationManager extends RelationManager
 
     public function form(Schema $schema): Schema
     {
-        $classId = $this->getOwnerRecord()->class_id;
+        $exam = $this->getOwnerRecord();
+        $classId = $exam->class_id;
 
         $subjectOptions = Subject::whereHas(
             'classes',
             fn (Builder $q) => $q->where('classes.id', $classId)
         )->pluck('name', 'id')->toArray();
+
+        $sourceRule = ExamContributeRule::where('source_exam_type_id', $exam->exam_type_id)
+            ->where('class_id', $classId)
+            ->where('session_year', $exam->session_year)
+            ->with('targetExamType')
+            ->first();
+
+        $targetRule = ExamContributeRule::where('target_exam_type_id', $exam->exam_type_id)
+            ->where('class_id', $classId)
+            ->where('session_year', $exam->session_year)
+            ->with('sourceExamType')
+            ->first();
 
         return $schema
             ->columns(1)
@@ -197,10 +212,16 @@ class SubjectConfigsRelationManager extends RelationManager
                     ])
                     ->visible(fn (Get $get): bool => self::subjectHas($get, 'has_practical')),
 
+                Toggle::make('contributes_to_target')
+                    ->label("এই subject-এর মার্কস কি {$sourceRule?->targetExamType?->name}-এ যোগ হবে?")
+                    ->default(true)
+                    ->visible($sourceRule !== null),
+
                 Grid::make(2)
                     ->schema([
                         TextInput::make('total_marks')
                             ->label('Total Marks')
+                            ->live(onBlur: true)
                             ->numeric()
                             ->minValue(0)
                             ->helperText('MCQ + Written + Practical স্বয়ংক্রিয়ভাবে হিসাব হয়')
@@ -212,6 +233,11 @@ class SubjectConfigsRelationManager extends RelationManager
                             ->minValue(0)
                             ->required(),
                     ]),
+
+                Placeholder::make('contribution_grand_total_info')
+                    ->label('Grand Total (contribution সহ)')
+                    ->content(fn (Get $get): string => self::grandTotalHelperText($get, $targetRule))
+                    ->visible($targetRule !== null),
             ]);
     }
 
@@ -351,5 +377,19 @@ class SubjectConfigsRelationManager extends RelationManager
         if ($total > 0) {
             $set('total_marks', $total);
         }
+    }
+
+    private static function grandTotalHelperText(Get $get, ?ExamContributeRule $targetRule): string
+    {
+        if (! $targetRule) {
+            return '';
+        }
+
+        $ownTotal = (float) ($get('total_marks') ?? 0);
+        $percent = (int) $targetRule->contribution_percent;
+        $grandTotal = $percent < 100 ? $ownTotal / (1 - ($percent / 100)) : $ownTotal;
+        $sourceName = $targetRule->sourceExamType?->name ?? 'Source Exam';
+
+        return "নিজের Total: {$ownTotal} + {$sourceName} ({$percent}%) = Grand Total: ".round($grandTotal, 2);
     }
 }

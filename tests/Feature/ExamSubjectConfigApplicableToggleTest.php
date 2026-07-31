@@ -6,6 +6,7 @@ use App\Filament\Resources\Exams\Pages\EditExam;
 use App\Filament\Resources\Exams\RelationManagers\SubjectConfigsRelationManager;
 use App\Models\Classes;
 use App\Models\Exam;
+use App\Models\ExamContributeRule;
 use App\Models\ExamSubjectConfig;
 use App\Models\ExamType;
 use App\Models\Subject;
@@ -42,6 +43,18 @@ function createExamConfigTestExam(Classes $class): Exam
 function attachExamConfigTestSubjectToClass(Subject $subject, Classes $class): void
 {
     $subject->classes()->attach($class->id, ['subject_type' => SubjectType::Compulsory->value]);
+}
+
+function createExamOfType(Classes $class, ExamType $examType): Exam
+{
+    return Exam::create([
+        'exam_type_id' => $examType->id,
+        'class_id' => $class->id,
+        'session_year' => now()->year,
+        'start_date' => now()->toDateString(),
+        'end_date' => now()->addDay()->toDateString(),
+        'is_published' => false,
+    ]);
 }
 
 it('lets an admin skip MCQ on a written-only exam instead of forcing a 0', function () {
@@ -172,4 +185,95 @@ it('defaults the applicable toggle to on when editing a config that already has 
         ->assertSchemaStateSet([
             'mcq_applicable' => true,
         ]);
+});
+
+it('shows the contributes_to_target toggle, defaulted on, when the exam type is an active contribution source', function () {
+    $admin = User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]);
+    $this->actingAs($admin);
+
+    $class = Classes::create(['name' => 'Class 11', 'order' => 11, 'is_active' => true]);
+
+    $classTestType = ExamType::create(['name' => 'Class Test', 'is_active' => true]);
+    $halfYearlyType = ExamType::create(['name' => 'Half Yearly', 'is_active' => true]);
+
+    ExamContributeRule::create([
+        'class_id' => $class->id,
+        'source_exam_type_id' => $classTestType->id,
+        'target_exam_type_id' => $halfYearlyType->id,
+        'contribution_percent' => 20,
+        'session_year' => now()->year,
+    ]);
+
+    $exam = createExamOfType($class, $classTestType);
+    $subject = Subject::create(['name' => 'Bangla', 'has_mcq' => false, 'has_written' => true, 'has_practical' => false, 'is_active' => true]);
+    attachExamConfigTestSubjectToClass($subject, $class);
+
+    Livewire::test(SubjectConfigsRelationManager::class, ['ownerRecord' => $exam, 'pageClass' => EditExam::class])
+        ->callAction(TestAction::make(CreateAction::class)->table(), [
+            'subject_id' => $subject->id,
+            'written_total' => 10,
+            'total_marks' => 10,
+            'pass_mark' => 4,
+        ])
+        ->assertHasNoFormErrors();
+
+    assertDatabaseHas(ExamSubjectConfig::class, [
+        'exam_id' => $exam->id,
+        'subject_id' => $subject->id,
+        'contributes_to_target' => true,
+    ]);
+});
+
+it('lets an admin turn off contributes_to_target for a specific subject', function () {
+    $admin = User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]);
+    $this->actingAs($admin);
+
+    $class = Classes::create(['name' => 'Class 12', 'order' => 12, 'is_active' => true]);
+
+    $classTestType = ExamType::create(['name' => 'Class Test', 'is_active' => true]);
+    $halfYearlyType = ExamType::create(['name' => 'Half Yearly', 'is_active' => true]);
+
+    ExamContributeRule::create([
+        'class_id' => $class->id,
+        'source_exam_type_id' => $classTestType->id,
+        'target_exam_type_id' => $halfYearlyType->id,
+        'contribution_percent' => 20,
+        'session_year' => now()->year,
+    ]);
+
+    $exam = createExamOfType($class, $classTestType);
+    $subject = Subject::create(['name' => 'Bangla', 'has_mcq' => false, 'has_written' => true, 'has_practical' => false, 'is_active' => true]);
+    attachExamConfigTestSubjectToClass($subject, $class);
+
+    Livewire::test(SubjectConfigsRelationManager::class, ['ownerRecord' => $exam, 'pageClass' => EditExam::class])
+        ->callAction(TestAction::make(CreateAction::class)->table(), [
+            'subject_id' => $subject->id,
+            'written_total' => 10,
+            'total_marks' => 10,
+            'pass_mark' => 4,
+            'contributes_to_target' => false,
+        ])
+        ->assertHasNoFormErrors();
+
+    assertDatabaseHas(ExamSubjectConfig::class, [
+        'exam_id' => $exam->id,
+        'subject_id' => $subject->id,
+        'contributes_to_target' => false,
+    ]);
+});
+
+it('does not show the contributes_to_target toggle when the exam type has no active contribution rule', function () {
+    $admin = User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]);
+    $this->actingAs($admin);
+
+    $class = Classes::create(['name' => 'Class 13', 'order' => 13, 'is_active' => true]);
+    $exam = createExamConfigTestExam($class);
+
+    $subject = Subject::create(['name' => 'Bangla', 'has_mcq' => false, 'has_written' => true, 'has_practical' => false, 'is_active' => true]);
+    attachExamConfigTestSubjectToClass($subject, $class);
+
+    Livewire::test(SubjectConfigsRelationManager::class, ['ownerRecord' => $exam, 'pageClass' => EditExam::class])
+        ->mountAction(TestAction::make(CreateAction::class)->table())
+        ->fillForm(['subject_id' => $subject->id])
+        ->assertFormFieldDoesNotExist('contributes_to_target');
 });

@@ -63,7 +63,7 @@ class ViewExamResult extends Page
 
         $myResults = StudentResult::where('exam_id', $ranking->exam_id)
             ->where('student_id', $ranking->student_id)
-            ->with('subject')
+            ->with(['subject', 'contributionSourceExamType'])
             ->get()
             ->keyBy('subject_id');
 
@@ -78,11 +78,11 @@ class ViewExamResult extends Page
 
         $subjectBestMap = [];
         foreach ($allResults as $subjectId => $results) {
-            $bestMarks = $results->max('total_marks');
+            $bestMarks = $results->max(fn (StudentResult $r) => $r->effective_marks);
             $subjectBestMap[$subjectId] = [
                 'best_marks' => $bestMarks,
                 'best_students' => $results
-                    ->filter(fn ($r) => (float) $r->total_marks === (float) $bestMarks && ! $r->is_absent)
+                    ->filter(fn (StudentResult $r) => (float) $r->effective_marks === (float) $bestMarks && ! $r->is_absent)
                     ->map(fn ($r) => $r->student?->user?->name)
                     ->filter()
                     ->implode(', '),
@@ -92,26 +92,43 @@ class ViewExamResult extends Page
         $rows = $myResults->map(function (StudentResult $result) use ($subjectConfigs, $subjectBestMap): array {
             $subjectId = $result->subject_id;
             $config = $subjectConfigs->get($subjectId);
-            $fullMarks = $config?->total_marks ?: 100;
+            $ownTotal = $config?->total_marks ?: 100;
+            $fullMarks = $result->resolveFullMarks((float) $ownTotal);
             $percentage = (! $result->is_absent && $fullMarks > 0)
-                ? ($result->total_marks / $fullMarks) * 100
+                ? ($result->effective_marks / $fullMarks) * 100
                 : 0.0;
-            $grade = (! $result->is_absent && $result->total_marks > 0)
+            $grade = (! $result->is_absent && $result->effective_marks > 0)
                 ? Grade::fromMarks($percentage)
                 : null;
             $best = $subjectBestMap[$subjectId] ?? null;
 
+            $contribution = null;
+
+            if (! $result->is_absent && $result->contribution_percent) {
+                $contribution = [
+                    'own_marks' => $result->total_marks,
+                    'own_total' => $ownTotal,
+                    'contributed_marks' => $result->contributed_marks,
+                    'source_name' => $result->contributionSourceExamType?->name ?? 'Source Exam',
+                    'source_percent' => $result->contribution_percent,
+                    'breakdown' => collect($result->contribution_source_breakdown ?? [])
+                        ->map(fn (array $item) => $item['marks'])
+                        ->implode(', '),
+                ];
+            }
+
             return [
                 'subject_name' => $result->subject?->name ?? '—',
                 'is_absent' => $result->is_absent,
-                'total_marks' => $result->total_marks,
+                'total_marks' => $result->effective_marks,
                 'grade_label' => $grade?->getLabel(),
                 'grade_color' => $grade?->getColor(),
                 'is_top_scorer' => $best !== null
                     && ! $result->is_absent
-                    && (float) $result->total_marks === (float) $best['best_marks'],
+                    && (float) $result->effective_marks === (float) $best['best_marks'],
                 'best_marks' => $best['best_marks'] ?? null,
                 'best_students' => $best['best_students'] ?? null,
+                'contribution' => $contribution,
             ];
         })->values();
 
