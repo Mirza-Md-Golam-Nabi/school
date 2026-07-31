@@ -52,16 +52,38 @@ class SubjectConfigsRelationManager extends RelationManager
                     ->options($subjectOptions)
                     ->searchable()
                     ->live()
-                    ->required(),
+                    ->required()
+                    ->afterStateUpdated(function (Set $set, Get $get): void {
+                        $set('mcq_applicable', self::subjectHas($get, 'has_mcq'));
+                        $set('written_applicable', self::subjectHas($get, 'has_written'));
+                        $set('practical_applicable', self::subjectHas($get, 'has_practical'));
+                    }),
 
                 Section::make('MCQ')
                     ->schema([
                         Grid::make(2)
                             ->schema([
+                                Toggle::make('mcq_applicable')
+                                    ->label('এই পরীক্ষায় MCQ Exam নেয়া হবে?')
+                                    ->live()
+                                    ->dehydrated(false)
+                                    ->default(fn (Get $get): bool => self::subjectHas($get, 'has_mcq'))
+                                    ->afterStateUpdated(function (Set $set, Get $get, bool $state): void {
+                                        if (! $state) {
+                                            $set('mcq_total', null);
+                                            $set('mcq_pass_mark', null);
+                                            $set('check_mcq_pass', false);
+                                        }
+
+                                        self::recalculateTotalMarks($get, $set);
+                                    })
+                                    ->columnSpanFull(),
+
                                 Toggle::make('check_mcq_pass')
                                     ->label('MCQ আলাদা pass করতে হবে?')
                                     ->default(false)
                                     ->live()
+                                    ->visible(fn (Get $get): bool => (bool) $get('mcq_applicable'))
                                     ->columnSpanFull(),
 
                                 TextInput::make('mcq_total')
@@ -69,15 +91,16 @@ class SubjectConfigsRelationManager extends RelationManager
                                     ->numeric()
                                     ->minValue(0)
                                     ->live(onBlur: true)
-                                    ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateTotalMarks($get, $set))
-                                    ->required(),
+                                    ->visible(fn (Get $get): bool => (bool) $get('mcq_applicable'))
+                                    ->required(fn (Get $get): bool => (bool) $get('mcq_applicable'))
+                                    ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateTotalMarks($get, $set)),
 
                                 TextInput::make('mcq_pass_mark')
                                     ->label('MCQ Pass Mark')
                                     ->numeric()
                                     ->minValue(0)
-                                    ->visible(fn (Get $get): bool => (bool) $get('check_mcq_pass'))
-                                    ->required(fn (Get $get): bool => (bool) $get('check_mcq_pass')),
+                                    ->visible(fn (Get $get): bool => (bool) $get('mcq_applicable') && (bool) $get('check_mcq_pass'))
+                                    ->required(fn (Get $get): bool => (bool) $get('mcq_applicable') && (bool) $get('check_mcq_pass')),
                             ]),
                     ])
                     ->visible(fn (Get $get): bool => self::subjectHas($get, 'has_mcq')),
@@ -86,10 +109,27 @@ class SubjectConfigsRelationManager extends RelationManager
                     ->schema([
                         Grid::make(2)
                             ->schema([
+                                Toggle::make('written_applicable')
+                                    ->label('এই পরীক্ষায় Written Exam নেয়া হবে?')
+                                    ->live()
+                                    ->dehydrated(false)
+                                    ->default(fn (Get $get): bool => self::subjectHas($get, 'has_written'))
+                                    ->afterStateUpdated(function (Set $set, Get $get, bool $state): void {
+                                        if (! $state) {
+                                            $set('written_total', null);
+                                            $set('written_pass_mark', null);
+                                            $set('check_written_pass', false);
+                                        }
+
+                                        self::recalculateTotalMarks($get, $set);
+                                    })
+                                    ->columnSpanFull(),
+
                                 Toggle::make('check_written_pass')
                                     ->label('Written আলাদা pass করতে হবে?')
                                     ->default(false)
                                     ->live()
+                                    ->visible(fn (Get $get): bool => (bool) $get('written_applicable'))
                                     ->columnSpanFull(),
 
                                 TextInput::make('written_total')
@@ -97,15 +137,16 @@ class SubjectConfigsRelationManager extends RelationManager
                                     ->numeric()
                                     ->minValue(0)
                                     ->live(onBlur: true)
-                                    ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateTotalMarks($get, $set))
-                                    ->required(),
+                                    ->visible(fn (Get $get): bool => (bool) $get('written_applicable'))
+                                    ->required(fn (Get $get): bool => (bool) $get('written_applicable'))
+                                    ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateTotalMarks($get, $set)),
 
                                 TextInput::make('written_pass_mark')
                                     ->label('Written Pass Mark')
                                     ->numeric()
                                     ->minValue(0)
-                                    ->visible(fn (Get $get): bool => (bool) $get('check_written_pass'))
-                                    ->required(fn (Get $get): bool => (bool) $get('check_written_pass')),
+                                    ->visible(fn (Get $get): bool => (bool) $get('written_applicable') && (bool) $get('check_written_pass'))
+                                    ->required(fn (Get $get): bool => (bool) $get('written_applicable') && (bool) $get('check_written_pass')),
                             ]),
                     ])
                     ->visible(fn (Get $get): bool => self::subjectHas($get, 'has_written')),
@@ -114,10 +155,27 @@ class SubjectConfigsRelationManager extends RelationManager
                     ->schema([
                         Grid::make(2)
                             ->schema([
+                                Toggle::make('practical_applicable')
+                                    ->label('এই পরীক্ষায় Practical Exam নেয়া হবে?')
+                                    ->live()
+                                    ->dehydrated(false)
+                                    ->default(fn (Get $get): bool => self::subjectHas($get, 'has_practical'))
+                                    ->afterStateUpdated(function (Set $set, Get $get, bool $state): void {
+                                        if (! $state) {
+                                            $set('practical_total', null);
+                                            $set('practical_pass_mark', null);
+                                            $set('check_practical_pass', false);
+                                        }
+
+                                        self::recalculateTotalMarks($get, $set);
+                                    })
+                                    ->columnSpanFull(),
+
                                 Toggle::make('check_practical_pass')
                                     ->label('Practical আলাদা pass করতে হবে?')
                                     ->default(false)
                                     ->live()
+                                    ->visible(fn (Get $get): bool => (bool) $get('practical_applicable'))
                                     ->columnSpanFull(),
 
                                 TextInput::make('practical_total')
@@ -125,15 +183,16 @@ class SubjectConfigsRelationManager extends RelationManager
                                     ->numeric()
                                     ->minValue(0)
                                     ->live(onBlur: true)
-                                    ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateTotalMarks($get, $set))
-                                    ->required(),
+                                    ->visible(fn (Get $get): bool => (bool) $get('practical_applicable'))
+                                    ->required(fn (Get $get): bool => (bool) $get('practical_applicable'))
+                                    ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateTotalMarks($get, $set)),
 
                                 TextInput::make('practical_pass_mark')
                                     ->label('Practical Pass Mark')
                                     ->numeric()
                                     ->minValue(0)
-                                    ->visible(fn (Get $get): bool => (bool) $get('check_practical_pass'))
-                                    ->required(fn (Get $get): bool => (bool) $get('check_practical_pass')),
+                                    ->visible(fn (Get $get): bool => (bool) $get('practical_applicable') && (bool) $get('check_practical_pass'))
+                                    ->required(fn (Get $get): bool => (bool) $get('practical_applicable') && (bool) $get('check_practical_pass')),
                             ]),
                     ])
                     ->visible(fn (Get $get): bool => self::subjectHas($get, 'has_practical')),
@@ -223,7 +282,14 @@ class SubjectConfigsRelationManager extends RelationManager
 
                 EditAction::make()
                     ->modalWidth(Width::Large)
-                    ->iconButton(),
+                    ->iconButton()
+                    ->mutateRecordDataUsing(function (array $data): array {
+                        $data['mcq_applicable'] = filled($data['mcq_total'] ?? null);
+                        $data['written_applicable'] = filled($data['written_total'] ?? null);
+                        $data['practical_applicable'] = filled($data['practical_total'] ?? null);
+
+                        return $data;
+                    }),
 
                 DeleteAction::make()
                     ->iconButton(),
