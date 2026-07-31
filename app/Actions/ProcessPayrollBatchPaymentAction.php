@@ -22,11 +22,11 @@ class ProcessPayrollBatchPaymentAction
      */
     public function handle(array $data): array
     {
-        $invoices = SalaryInvoice::with('payments')
+        $invoices = SalaryInvoice::with(['payments', 'profileable.user'])
             ->whereIn('id', (array) $data['invoice_ids'])
             ->get();
 
-        return DB::transaction(function () use ($invoices, $data) {
+        $payments = DB::transaction(function () use ($invoices, $data) {
             $payments = [];
 
             foreach ($invoices as $invoice) {
@@ -36,7 +36,7 @@ class ProcessPayrollBatchPaymentAction
                     continue;
                 }
 
-                $payments[] = SalaryPayment::create([
+                $payment = SalaryPayment::create([
                     'salary_invoice_id' => $invoice->id,
                     'amount_paid' => $due,
                     'payment_method' => $data['payment_method'],
@@ -46,12 +46,19 @@ class ProcessPayrollBatchPaymentAction
                     'paid_by' => $data['paid_by'] ?? null,
                     'remarks' => $data['remarks'] ?? null,
                 ]);
+
+                $payment->setRelation('invoice', $invoice);
+                $payments[] = $payment;
             }
 
             $this->wrapInBulkIfNeeded($payments, $data);
 
             return $payments;
         });
+
+        $this->notifyPayments($payments);
+
+        return $payments;
     }
 
     /**

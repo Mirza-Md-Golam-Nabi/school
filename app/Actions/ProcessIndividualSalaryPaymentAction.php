@@ -24,14 +24,14 @@ class ProcessIndividualSalaryPaymentAction
     {
         $remaining = (float) $data['amount_paid'];
 
-        $invoices = SalaryInvoice::with('payments')
+        $invoices = SalaryInvoice::with(['payments', 'profileable.user'])
             ->whereIn('id', (array) $data['invoice_ids'])
             ->orderBy('year')
             ->orderBy('month')
             ->orderBy('id')
             ->get();
 
-        return DB::transaction(function () use ($invoices, $data, &$remaining) {
+        $payments = DB::transaction(function () use ($invoices, $data, &$remaining) {
             $payments = [];
 
             foreach ($invoices as $invoice) {
@@ -48,7 +48,7 @@ class ProcessIndividualSalaryPaymentAction
                 $payAmount = min($remaining, $due);
                 $remaining -= $payAmount;
 
-                $payments[] = SalaryPayment::create([
+                $payment = SalaryPayment::create([
                     'salary_invoice_id' => $invoice->id,
                     'amount_paid' => $payAmount,
                     'payment_method' => $data['payment_method'],
@@ -58,11 +58,18 @@ class ProcessIndividualSalaryPaymentAction
                     'paid_by' => $data['paid_by'] ?? null,
                     'remarks' => $data['remarks'] ?? null,
                 ]);
+
+                $payment->setRelation('invoice', $invoice);
+                $payments[] = $payment;
             }
 
             $this->wrapInBulkIfNeeded($payments, $data);
 
             return $payments;
         });
+
+        $this->notifyPayments($payments);
+
+        return $payments;
     }
 }

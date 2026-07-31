@@ -8,8 +8,14 @@ use App\Models\SalaryInvoice;
 use App\Models\SchoolAccount;
 use App\Models\TeacherProfile;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Spatie\Permission\Models\Role;
 
 uses(RefreshDatabase::class);
+
+beforeEach(function () {
+    Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+    Role::firstOrCreate(['name' => 'super-admin', 'guard_name' => 'web']);
+});
 
 function createBatchPaymentTestInvoice(float $netAmount): SalaryInvoice
 {

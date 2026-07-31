@@ -4,6 +4,9 @@ namespace App\Actions\Concerns;
 
 use App\Models\SalaryBulkPayment;
 use App\Models\SalaryPayment;
+use App\Models\User;
+use App\Notifications\SalaryPaymentReceivedNotification;
+use Illuminate\Support\Facades\Notification;
 
 trait WrapsSalaryPaymentsInBulk
 {
@@ -33,6 +36,29 @@ trait WrapsSalaryPaymentsInBulk
 
         foreach ($payments as $payment) {
             $payment->update(['bulk_payment_id' => $bulkPayment->id]);
+        }
+    }
+
+    /**
+     * Notify admins/super-admins and the person paid about each salary payment made.
+     * Call this after the DB transaction that created the payments has committed.
+     *
+     * @param  array<int, SalaryPayment>  $payments
+     */
+    private function notifyPayments(array $payments): void
+    {
+        if (! $payments) {
+            return;
+        }
+
+        $admins = User::role(['admin', 'super-admin'])->get();
+
+        foreach ($payments as $payment) {
+            $recipient = $payment->invoice?->profileable?->user;
+
+            $notifiables = $recipient ? $admins->concat([$recipient]) : $admins;
+
+            Notification::send($notifiables, new SalaryPaymentReceivedNotification($payment));
         }
     }
 }

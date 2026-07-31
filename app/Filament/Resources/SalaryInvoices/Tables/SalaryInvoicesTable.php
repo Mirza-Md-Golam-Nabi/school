@@ -100,6 +100,8 @@ class SalaryInvoicesTable
                                 TextEntry::make('deduction_amount')->label('Deduction')->money('BDT')->extraAttributes(['class' => ResponsiveText::CLASSES]),
                                 TextEntry::make('net_amount')->label('Net Payable')->money('BDT')->weight('bold')->extraAttributes(['class' => ResponsiveText::CLASSES]),
                                 TextEntry::make('status')->badge(),
+                                TextEntry::make('total_paid')->label('Total Paid')->money('BDT')->color('success')->extraAttributes(['class' => ResponsiveText::CLASSES]),
+                                TextEntry::make('due_amount')->label('Due Amount')->money('BDT')->color('danger')->visible(fn (SalaryInvoice $record) => $record->due_amount > 0)->extraAttributes(['class' => ResponsiveText::CLASSES]),
                             ])
                             ->columns(['default' => 2, 'sm' => 3]),
 
