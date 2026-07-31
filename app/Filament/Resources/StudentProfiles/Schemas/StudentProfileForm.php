@@ -7,7 +7,6 @@ use App\Enums\Gender;
 use App\Enums\Religion;
 use App\Enums\StudentStatus;
 use App\Models\Classes;
-use App\Models\Group;
 use App\Models\Section as SectionModel;
 use App\Models\User;
 use Filament\Forms\Components\DatePicker;
@@ -36,6 +35,7 @@ class StudentProfileForm
                     ->schema([
                         Hidden::make('user_found')->default(false)->saved(false),
                         Hidden::make('has_profile')->default(false)->saved(false),
+                        Hidden::make('email_is_manual')->default(false)->saved(false),
 
                         Grid::make(3)->schema([
                             TextInput::make('email')
@@ -44,6 +44,8 @@ class StudentProfileForm
                                 ->required()
                                 ->live(onBlur: true)
                                 ->afterStateUpdated(function (Set $set, Get $get, ?string $state) {
+                                    $set('email_is_manual', true);
+
                                     if (blank($state)) {
                                         $set('user_found', false);
                                         $set('has_profile', false);
@@ -106,8 +108,8 @@ class StudentProfileForm
                                 ->minValue(1)
                                 ->live(onBlur: true)
                                 ->required()
-                                ->afterStateUpdated(function (Set $set, Get $get) {
-                                    self::fillGeneratedEmail($set, $get);
+                                ->afterStateUpdated(function (Set $set, Get $get, string $operation) {
+                                    self::fillGeneratedEmail($set, $get, $operation);
                                 }),
 
                             TextInput::make('registration_no')
@@ -127,10 +129,10 @@ class StudentProfileForm
                                 ->searchable()
                                 ->live()
                                 ->required()
-                                ->afterStateUpdated(function (Set $set, Get $get) {
+                                ->afterStateUpdated(function (Set $set, Get $get, string $operation) {
                                     $set('current_section_id', null);
                                     $set('current_group_id', null);
-                                    self::fillGeneratedEmail($set, $get);
+                                    self::fillGeneratedEmail($set, $get, $operation);
                                 }),
 
                             Select::make('current_section_id')
@@ -274,9 +276,13 @@ class StudentProfileForm
             ]);
     }
 
-    private static function fillGeneratedEmail(Set $set, Get $get): void
+    private static function fillGeneratedEmail(Set $set, Get $get, string $operation): void
     {
-        if (filled($get('email'))) {
+        if ($operation !== 'create') {
+            return;
+        }
+
+        if ((bool) $get('email_is_manual')) {
             return;
         }
 
