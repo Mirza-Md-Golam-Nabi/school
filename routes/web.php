@@ -3,6 +3,7 @@
 use App\Http\Controllers\AdmitCardPdfController;
 use App\Http\Controllers\EmailVerificationController;
 use App\Http\Controllers\FundTransactionAttachmentController;
+use App\Http\Controllers\MarksheetPdfController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -16,6 +17,10 @@ Route::get('/email/verify/{id}/{hash}', [EmailVerificationController::class, 've
 Route::get('/admit-cards/{admitCard}/view', AdmitCardPdfController::class)
     ->middleware('auth')
     ->name('admit-cards.view');
+
+Route::get('/marksheets/{marksheet}/view', MarksheetPdfController::class)
+    ->middleware('auth')
+    ->name('marksheets.view');
 
 // No 'auth' middleware here — this app has no generic named 'login' route (Filament panels
 // each have their own), so the default guest-redirect would throw RouteNotFoundException.

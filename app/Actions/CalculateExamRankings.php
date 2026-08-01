@@ -101,7 +101,6 @@ class CalculateExamRankings
                 : null;
 
             $totalMarks = $studentResults->sum(fn (StudentResult $r) => $r->effective_marks);
-            $hasAnyAbsent = $studentResults->contains(fn (StudentResult $r) => $r->is_absent);
 
             $isOverallFail = false;
             $includedGpas = [];
@@ -154,7 +153,7 @@ class CalculateExamRankings
                 'section_id' => $profile?->current_section_id,
                 'total_marks' => (float) $totalMarks,
                 'gpa' => $gpa,
-                'has_any_absent' => $hasAnyAbsent,
+                'is_overall_fail' => $isOverallFail,
             ];
         }
 
@@ -186,17 +185,18 @@ class CalculateExamRankings
 
     /**
      * Two-tier ranking:
-     *  - Tier 1: students present in ALL subjects → ranked by total_marks
-     *  - Tier 2: students absent in ANY subject → ranked by total_marks, after tier 1
+     *  - Tier 1: students who passed overall → ranked by total_marks
+     *  - Tier 2: students who failed overall (or were absent in a compulsory/main
+     *    optional subject) → ranked by total_marks among themselves, after tier 1
      *
      * @param  Collection<int, array<string, mixed>>  $studentData
      */
     private function calculateTieredRanks(Collection $studentData): array
     {
-        $present = $studentData->where('has_any_absent', false)->sortByDesc('total_marks')->values();
-        $absent = $studentData->where('has_any_absent', true)->sortByDesc('total_marks')->values();
+        $passed = $studentData->where('is_overall_fail', false)->sortByDesc('total_marks')->values();
+        $failed = $studentData->where('is_overall_fail', true)->sortByDesc('total_marks')->values();
 
-        return $this->calculateRanks($present, 0) + $this->calculateRanks($absent, $present->count());
+        return $this->calculateRanks($passed, 0) + $this->calculateRanks($failed, $passed->count());
     }
 
     /**
@@ -230,10 +230,10 @@ class CalculateExamRankings
         $sectionRankMap = [];
 
         foreach (collect($studentData)->groupBy('section_id') as $sectionStudents) {
-            $present = $sectionStudents->where('has_any_absent', false)->sortByDesc('total_marks')->values();
-            $absent = $sectionStudents->where('has_any_absent', true)->sortByDesc('total_marks')->values();
+            $passed = $sectionStudents->where('is_overall_fail', false)->sortByDesc('total_marks')->values();
+            $failed = $sectionStudents->where('is_overall_fail', true)->sortByDesc('total_marks')->values();
 
-            $sectionRankMap += $this->calculateRanks($present, 0) + $this->calculateRanks($absent, $present->count());
+            $sectionRankMap += $this->calculateRanks($passed, 0) + $this->calculateRanks($failed, $passed->count());
         }
 
         return $sectionRankMap;
