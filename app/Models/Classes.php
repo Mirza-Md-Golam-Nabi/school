@@ -52,6 +52,11 @@ class Classes extends Model
         return $this->hasMany(StudentProfile::class, 'current_class_id');
     }
 
+    public function exams(): HasMany
+    {
+        return $this->hasMany(Exam::class, 'class_id');
+    }
+
     public function classGroupSubjects(): HasMany
     {
         return $this->hasMany(ClassGroupSubject::class, 'class_id');

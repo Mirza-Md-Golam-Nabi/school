@@ -24,6 +24,8 @@ class StudentFeeDiscountResource extends Resource
 
     protected static string|UnitEnum|null $navigationGroup = 'Fee & Finance';
 
+    protected static ?int $navigationSort = 3;
+
     protected static ?string $navigationLabel = 'Student Discounts';
 
     public static function form(Schema $schema): Schema

@@ -28,7 +28,7 @@
                                         {{ $index + 1 }}
                                     </span>
                                 </td>
-                                <td class="max-w-0 truncate px-2 py-2 font-medium text-gray-900 sm:px-4 sm:py-2.5 dark:text-white">
+                                <td class="max-w-[8rem] break-words px-2 py-2 font-medium text-gray-900 sm:max-w-none sm:px-4 sm:py-2.5 dark:text-white">
                                     {{ $student['name'] }}
                                     @if ($student['id'] === $myStudentId)
                                         <span class="font-normal text-primary-600 dark:text-primary-400">(You)</span>

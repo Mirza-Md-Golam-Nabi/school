@@ -18,6 +18,7 @@ class ExamsTable
     public static function configure(Table $table): Table
     {
         return $table
+            ->defaultSort('start_date', 'desc')
             ->columns([
                 TextColumn::make('examType.name')
                     ->label('Exam Type')

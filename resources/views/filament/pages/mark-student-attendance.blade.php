@@ -69,37 +69,44 @@
                 <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                     @foreach ($students as $student)
                         @php $yesterdayStatus = $yesterdayAttendance->get($student->id); @endphp
-                        <label class="flex cursor-pointer items-center gap-x-2 border-b border-gray-100 px-3 py-2.5 transition-colors hover:bg-gray-50 last:border-0 dark:border-gray-800 dark:hover:bg-gray-800/50">
-                            <input
-                                type="checkbox"
-                                wire:model.live="presentIds"
-                                value="{{ $student->id }}"
-                                class="h-4 w-4 shrink-0 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-gray-600"
-                            >
-                            <div class="min-w-0 flex-1">
-                                <p class="truncate text-sm font-medium text-gray-900 dark:text-white">
+                        <label class="flex cursor-pointer flex-col gap-y-1.5 border-b border-gray-100 px-3 py-2.5 transition-colors hover:bg-gray-50 last:border-0 dark:border-gray-800 dark:hover:bg-gray-800/50">
+                            <div class="flex items-center gap-x-2">
+                                <input
+                                    type="checkbox"
+                                    wire:model.live="presentIds"
+                                    value="{{ $student->id }}"
+                                    class="h-4 w-4 shrink-0 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-gray-600"
+                                >
+                                <p class="min-w-0 flex-1 break-words text-xs sm:text-sm font-medium text-gray-900 dark:text-white" title="{{ $student->user?->name }}">
                                     {{ $student->user?->name ?? '—' }}
                                 </p>
-                                @if ($student->roll_no)
-                                    <p class="text-xs text-gray-500 dark:text-gray-400">Roll: {{ $student->roll_no }}</p>
-                                @endif
                             </div>
 
-                            {{-- Yesterday's attendance icon --}}
-                            @if ($yesterdayStatus?->value === 'present')
-                                <x-heroicon-o-check-circle class="h-4 w-4 shrink-0 text-success-500" title="Present yesterday" />
-                            @elseif ($yesterdayStatus?->value === 'absent')
-                                <x-heroicon-o-x-circle class="h-4 w-4 shrink-0 text-danger-500" title="Absent yesterday" />
-                            @endif
+                            <div class="flex items-center justify-between pl-6">
+                                <span class="text-xs text-gray-500 dark:text-gray-400">
+                                    @if ($student->roll_no)
+                                        Roll: {{ $student->roll_no }}
+                                    @endif
+                                </span>
 
-                            <a
-                                href="{{ route('filament.admin.pages.student-attendance-detail') }}?studentId={{ $student->id }}"
-                                @click.stop
-                                class="shrink-0 text-gray-300 transition-colors hover:text-primary-500 dark:text-gray-600 dark:hover:text-primary-400"
-                                title="View Attendance History"
-                            >
-                                <x-heroicon-o-eye class="h-4 w-4 text-gray-900" />
-                            </a>
+                                <div class="flex items-center gap-x-2">
+                                    {{-- Yesterday's attendance icon --}}
+                                    @if ($yesterdayStatus?->value === 'present')
+                                        <x-heroicon-o-check-circle class="h-4 w-4 shrink-0 text-success-500" title="Present yesterday" />
+                                    @elseif ($yesterdayStatus?->value === 'absent')
+                                        <x-heroicon-o-x-circle class="h-4 w-4 shrink-0 text-danger-500" title="Absent yesterday" />
+                                    @endif
+
+                                    <a
+                                        href="{{ route('filament.admin.pages.student-attendance-detail') }}?studentId={{ $student->id }}"
+                                        @click.stop
+                                        class="shrink-0 text-gray-900 transition-colors hover:text-primary-500 dark:text-gray-600 dark:hover:text-primary-400"
+                                        title="View Attendance History"
+                                    >
+                                        <x-heroicon-o-eye class="h-4 w-4" />
+                                    </a>
+                                </div>
+                            </div>
                         </label>
                     @endforeach
                 </div>

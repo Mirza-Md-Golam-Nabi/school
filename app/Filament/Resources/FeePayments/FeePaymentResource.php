@@ -24,6 +24,8 @@ class FeePaymentResource extends Resource
 
     protected static string|UnitEnum|null $navigationGroup = 'Fee & Finance';
 
+    protected static ?int $navigationSort = 7;
+
     protected static ?string $navigationLabel = 'Fee Payments';
 
     public static function form(Schema $schema): Schema

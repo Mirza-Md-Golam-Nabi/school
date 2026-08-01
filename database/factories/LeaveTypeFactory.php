@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\LeaveApplicability;
 use App\Models\LeaveType;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -20,6 +21,7 @@ class LeaveTypeFactory extends Factory
         return [
             'name' => $this->faker->randomElement(['Casual Leave', 'Sick Leave', 'Maternity Leave', 'Annual Leave']),
             'allowed_days_per_year' => $this->faker->numberBetween(5, 30),
+            'applicable_gender' => LeaveApplicability::All,
             'is_active' => true,
         ];
     }

@@ -35,6 +35,7 @@ class TeacherPanelProvider extends PanelProvider
             ->emailVerification()
             ->emailChangeVerification()
             ->profile(EditProfile::class, isSimple: false)
+            ->databaseNotifications()
             ->userMenuItems([
                 'profile' => fn (Action $action) => $action
                     ->label(auth()->user()->name),

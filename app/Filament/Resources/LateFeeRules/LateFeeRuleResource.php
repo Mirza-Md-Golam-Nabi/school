@@ -23,6 +23,8 @@ class LateFeeRuleResource extends Resource
 
     protected static string|UnitEnum|null $navigationGroup = 'Fee & Finance';
 
+    protected static ?int $navigationSort = 8;
+
     public static function form(Schema $schema): Schema
     {
         return LateFeeRuleForm::configure($schema);

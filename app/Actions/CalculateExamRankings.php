@@ -14,6 +14,10 @@ use Illuminate\Support\Collection;
 
 class CalculateExamRankings
 {
+    public function __construct(
+        private readonly ApplyExamSubjectContributions $applyExamSubjectContributions,
+    ) {}
+
     public function execute(Exam $exam): int
     {
         $subjectConfigs = ExamSubjectConfig::where('exam_id', $exam->id)
@@ -23,6 +27,8 @@ class CalculateExamRankings
         if ($subjectConfigs->isEmpty()) {
             return 0;
         }
+
+        $this->applyExamSubjectContributions->execute($exam);
 
         $results = StudentResult::where('exam_id', $exam->id)
             ->get()
@@ -94,8 +100,7 @@ class CalculateExamRankings
                 ? (int) $profile->current_group_id
                 : null;
 
-            $totalMarks = $studentResults->sum('total_marks');
-            $hasAnyAbsent = $studentResults->contains(fn (StudentResult $r) => $r->is_absent);
+            $totalMarks = $studentResults->sum(fn (StudentResult $r) => $r->effective_marks);
 
             $isOverallFail = false;
             $includedGpas = [];
@@ -117,9 +122,9 @@ class CalculateExamRankings
                 }
 
                 $config = $subjectConfigs->get($result->subject_id);
-                $fullMarks = $config?->total_marks ?? 100;
+                $fullMarks = $result->resolveFullMarks($config?->total_marks ?? 100);
                 $percentage = $fullMarks > 0
-                    ? ($result->total_marks / $fullMarks) * 100
+                    ? ($result->effective_marks / $fullMarks) * 100
                     : 0.0;
 
                 $grade = Grade::fromMarks($percentage);
@@ -148,7 +153,7 @@ class CalculateExamRankings
                 'section_id' => $profile?->current_section_id,
                 'total_marks' => (float) $totalMarks,
                 'gpa' => $gpa,
-                'has_any_absent' => $hasAnyAbsent,
+                'is_overall_fail' => $isOverallFail,
             ];
         }
 
@@ -180,17 +185,18 @@ class CalculateExamRankings
 
     /**
      * Two-tier ranking:
-     *  - Tier 1: students present in ALL subjects → ranked by total_marks
-     *  - Tier 2: students absent in ANY subject → ranked by total_marks, after tier 1
+     *  - Tier 1: students who passed overall → ranked by total_marks
+     *  - Tier 2: students who failed overall (or were absent in a compulsory/main
+     *    optional subject) → ranked by total_marks among themselves, after tier 1
      *
      * @param  Collection<int, array<string, mixed>>  $studentData
      */
     private function calculateTieredRanks(Collection $studentData): array
     {
-        $present = $studentData->where('has_any_absent', false)->sortByDesc('total_marks')->values();
-        $absent = $studentData->where('has_any_absent', true)->sortByDesc('total_marks')->values();
+        $passed = $studentData->where('is_overall_fail', false)->sortByDesc('total_marks')->values();
+        $failed = $studentData->where('is_overall_fail', true)->sortByDesc('total_marks')->values();
 
-        return $this->calculateRanks($present, 0) + $this->calculateRanks($absent, $present->count());
+        return $this->calculateRanks($passed, 0) + $this->calculateRanks($failed, $passed->count());
     }
 
     /**
@@ -224,10 +230,10 @@ class CalculateExamRankings
         $sectionRankMap = [];
 
         foreach (collect($studentData)->groupBy('section_id') as $sectionStudents) {
-            $present = $sectionStudents->where('has_any_absent', false)->sortByDesc('total_marks')->values();
-            $absent = $sectionStudents->where('has_any_absent', true)->sortByDesc('total_marks')->values();
+            $passed = $sectionStudents->where('is_overall_fail', false)->sortByDesc('total_marks')->values();
+            $failed = $sectionStudents->where('is_overall_fail', true)->sortByDesc('total_marks')->values();
 
-            $sectionRankMap += $this->calculateRanks($present, 0) + $this->calculateRanks($absent, $present->count());
+            $sectionRankMap += $this->calculateRanks($passed, 0) + $this->calculateRanks($failed, $passed->count());
         }
 
         return $sectionRankMap;

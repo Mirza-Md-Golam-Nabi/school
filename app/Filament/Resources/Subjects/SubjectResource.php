@@ -25,6 +25,8 @@ class SubjectResource extends Resource
 
     protected static string|UnitEnum|null $navigationGroup = 'Academic Structure';
 
+    protected static ?int $navigationSort = 1;
+
     protected static ?string $recordTitleAttribute = 'name';
 
     public static function form(Schema $schema): Schema

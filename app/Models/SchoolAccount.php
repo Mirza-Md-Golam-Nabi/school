@@ -25,4 +25,19 @@ class SchoolAccount extends Model
     {
         return $this->hasMany(FeeType::class);
     }
+
+    public function salaryPayments(): HasMany
+    {
+        return $this->hasMany(SalaryPayment::class);
+    }
+
+    public function salaryBulkPayments(): HasMany
+    {
+        return $this->hasMany(SalaryBulkPayment::class);
+    }
+
+    public function fundTransactions(): HasMany
+    {
+        return $this->hasMany(FundTransaction::class);
+    }
 }

@@ -50,6 +50,17 @@ class AdminPanelProvider extends PanelProvider
                 PanelsRenderHook::HEAD_END,
                 fn (): string => '<link rel="manifest" href="/manifest/admin.json">',
             )
+            ->navigationGroups([
+                'Academic Structure',
+                'Attendance',
+                'User Profile',
+                'Fee & Finance',
+                'Communication',
+                'Document Management',
+                'HR & Staff Management',
+                'User Management',
+                'School Settings',
+            ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([
@@ -57,7 +68,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
-                // 
+                //
             ])
             ->middleware([
                 EncryptCookies::class,

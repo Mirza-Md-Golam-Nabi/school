@@ -21,14 +21,19 @@
 
                             {{-- Subject --}}
                             <td class="px-2 py-1.5 text-left font-medium text-gray-800 dark:text-gray-200 sm:px-3 sm:py-2">
-                                <span
-                                    x-data="{ expanded: false }"
-                                    @click="expanded = ! expanded"
-                                    class="block cursor-pointer select-none"
-                                    :class="expanded ? 'whitespace-normal break-words' : 'max-w-[80px] truncate sm:max-w-[140px] md:max-w-none'"
-                                >
+                                <span class="block whitespace-normal break-words">
                                     {{ $row['subject_name'] }}
                                 </span>
+                                @if ($row['contribution'])
+                                    @php $c = $row['contribution']; @endphp
+                                    <span class="mt-0.5 block text-[9px] font-normal text-gray-500 dark:text-gray-400 sm:text-[11px]">
+                                        নিজের: {{ $c['own_marks'] }}/{{ $c['own_total'] }}
+                                        + {{ $c['source_name'] }} ({{ $c['source_percent'] }}%): {{ $c['contributed_marks'] }}
+                                        @if ($c['breakdown'])
+                                            <span class="italic">(সেরা: {{ $c['breakdown'] }})</span>
+                                        @endif
+                                    </span>
+                                @endif
                             </td>
 
                             {{-- Marks --}}

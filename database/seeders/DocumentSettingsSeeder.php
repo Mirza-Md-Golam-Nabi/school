@@ -51,6 +51,24 @@ class DocumentSettingsSeeder extends Seeder
             'value' => '',
             'description' => 'Footer text printed at the bottom of admit cards.',
         ],
+
+        // Marksheet specific toggles.
+        'marksheet_use_watermark' => [
+            'value' => '0',
+            'description' => 'Whether marksheets render a background watermark ("1" or "0").',
+        ],
+        'marksheet_watermark_text' => [
+            'value' => '',
+            'description' => 'Watermark text printed on marksheets when marksheet_use_watermark is enabled.',
+        ],
+        'marksheet_use_logo' => [
+            'value' => '1',
+            'description' => 'Whether the school logo is printed on marksheets ("1" or "0").',
+        ],
+        'marksheet_footer_text' => [
+            'value' => '',
+            'description' => 'Footer text printed at the bottom of marksheets.',
+        ],
     ];
 
     /**

@@ -1,9 +1,13 @@
 <?php
 
+use App\Enums\Gender;
+use App\Enums\StudentStatus;
 use App\Enums\UserType;
 use App\Filament\Resources\StudentProfiles\Pages\CreateStudentProfile;
+use App\Filament\Resources\StudentProfiles\Pages\EditStudentProfile;
 use App\Models\Address;
 use App\Models\Classes;
+use App\Models\StudentProfile;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -51,6 +55,69 @@ it('sets the email field value only after class and roll no are both filled', fu
         ->assertFormSet(['email' => null])
         ->fillForm(['roll_no' => 7])
         ->assertFormSet(['email' => 'class_05_07@example.com']);
+});
+
+it('regenerates the auto-filled email when roll no is changed afterwards', function () {
+    $admin = User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]);
+    $this->actingAs($admin);
+
+    $class = Classes::create(['name' => 'Class 5', 'order' => 5]);
+
+    Livewire::test(CreateStudentProfile::class)
+        ->fillForm(['current_class_id' => $class->id, 'roll_no' => 7])
+        ->assertFormSet(['email' => 'class_05_07@example.com'])
+        ->fillForm(['roll_no' => 15])
+        ->assertFormSet(['email' => 'class_05_15@example.com']);
+});
+
+it('pads a 1-digit roll no with a leading zero but leaves 2-3 digit roll numbers untouched', function () {
+    $admin = User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]);
+    $this->actingAs($admin);
+
+    $class = Classes::create(['name' => 'Class 5', 'order' => 5]);
+
+    Livewire::test(CreateStudentProfile::class)
+        ->fillForm(['current_class_id' => $class->id, 'roll_no' => 5])
+        ->assertFormSet(['email' => 'class_05_05@example.com'])
+        ->fillForm(['roll_no' => 57])
+        ->assertFormSet(['email' => 'class_05_57@example.com'])
+        ->fillForm(['roll_no' => 123])
+        ->assertFormSet(['email' => 'class_05_123@example.com']);
+});
+
+it('stops regenerating the email once the user edits it manually, even after roll no changes again', function () {
+    $admin = User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]);
+    $this->actingAs($admin);
+
+    $class = Classes::create(['name' => 'Class 5', 'order' => 5]);
+
+    Livewire::test(CreateStudentProfile::class)
+        ->fillForm(['current_class_id' => $class->id, 'roll_no' => 7])
+        ->assertFormSet(['email' => 'class_05_07@example.com'])
+        ->fillForm(['email' => 'custom@example.com'])
+        ->fillForm(['roll_no' => 15])
+        ->assertFormSet(['email' => 'custom@example.com']);
+});
+
+it('never touches the email when editing an existing student profile and changing roll no', function () {
+    $admin = User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]);
+    $this->actingAs($admin);
+
+    $class = Classes::create(['name' => 'Class 5', 'order' => 5]);
+    $user = User::factory()->create(['email' => 'existing.student@example.com']);
+    $profile = StudentProfile::create([
+        'user_id' => $user->id,
+        'roll_no' => 7,
+        'current_class_id' => $class->id,
+        'session_year' => now()->year,
+        'gender' => Gender::Male,
+        'status' => StudentStatus::Active,
+    ]);
+
+    Livewire::test(EditStudentProfile::class, ['record' => $profile->id])
+        ->assertFormSet(['email' => 'existing.student@example.com'])
+        ->fillForm(['roll_no' => 15])
+        ->assertFormSet(['email' => 'existing.student@example.com']);
 });
 
 it('does not overwrite an email the user already typed', function () {

@@ -112,6 +112,14 @@ class TeacherProfileForm
                                 ->options(EmploymentStatus::class)
                                 ->default(EmploymentStatus::Active->value)
                                 ->required(),
+
+                            Select::make('default_school_account_id')
+                                ->label('Default Salary Account')
+                                ->relationship('defaultSchoolAccount', 'name')
+                                ->searchable()
+                                ->preload()
+                                ->native(false)
+                                ->helperText('Salary payment form-এ ডিফল্ট account হিসেবে বসবে'),
                         ]),
                     ]),
 

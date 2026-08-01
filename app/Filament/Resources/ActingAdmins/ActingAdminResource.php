@@ -23,6 +23,8 @@ class ActingAdminResource extends Resource
 
     protected static string|UnitEnum|null $navigationGroup = 'HR & Staff Management';
 
+    protected static ?int $navigationSort = 3;
+
     public static function form(Schema $schema): Schema
     {
         return ActingAdminForm::configure($schema);
