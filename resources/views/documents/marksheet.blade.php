@@ -31,6 +31,8 @@
     $logoDataUri = $useLogo ? $toDataUri(SchoolSetting::get('school_logo')) : null;
     $sealDataUri = $toDataUri(SchoolSetting::get('school_seal'));
     $signatureDataUri = $toDataUri(SchoolSetting::get('principal_signature'));
+
+    $contributionSourceName = $rows->first(fn (array $row) => $row['contribution'] !== null)['contribution']['source_name'] ?? null;
 @endphp
 <!DOCTYPE html>
 <html>
@@ -119,13 +121,6 @@
 
         table.subjects th {
             background: #f2f2f2;
-        }
-
-        .subject-contribution {
-            display: block;
-            font-size: 9px;
-            color: #555;
-            margin-top: 2px;
         }
 
         table.summary {
@@ -227,6 +222,9 @@
                     <th>MCQ</th>
                     <th>Written</th>
                     <th>Practical</th>
+                    @if ($contributionSourceName)
+                        <th>{{ $contributionSourceName }}</th>
+                    @endif
                     <th>Marks</th>
                     <th>Best</th>
                     <th>Grade</th>
@@ -235,23 +233,13 @@
             <tbody>
                 @foreach ($rows as $row)
                     <tr>
-                        <td>
-                            {{ $row['subject_name'] }}
-                            @if ($row['contribution'])
-                                @php $c = $row['contribution']; @endphp
-                                <span class="subject-contribution">
-                                    নিজের: {{ $c['own_marks'] }}/{{ $c['own_total'] }}
-                                    + {{ $c['source_name'] }} ({{ $c['source_percent'] }}%):
-                                    {{ $c['contributed_marks'] }}
-                                    @if ($c['breakdown'])
-                                        (সেরা: {{ $c['breakdown'] }})
-                                    @endif
-                                </span>
-                            @endif
-                        </td>
+                        <td>{{ $row['subject_name'] }}</td>
                         <td style="text-align: center;">{{ $row['mcq_marks'] ?? '-' }}</td>
                         <td style="text-align: center;">{{ $row['written_marks'] ?? '-' }}</td>
                         <td style="text-align: center;">{{ $row['practical_marks'] ?? '-' }}</td>
+                        @if ($contributionSourceName)
+                            <td style="text-align: center;">{{ $row['contribution']['contributed_marks'] ?? '-' }}</td>
+                        @endif
                         <td style="text-align: center;">
                             @if ($row['is_absent'])
                                 Absent

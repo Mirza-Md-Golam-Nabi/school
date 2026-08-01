@@ -71,7 +71,7 @@ it('creates a marksheet for every active, ranked student and dispatches a genera
 
     $result = app(GenerateMarksheetsForExamAction::class)->handle($exam, $admin->id);
 
-    expect($result)->toBe(['created' => 2, 'skipped_already_exists' => 0, 'skipped_no_ranking' => 0]);
+    expect($result)->toBe(['created' => 2, 'regenerated' => 0, 'skipped_no_ranking' => 0]);
 
     $marksheet1 = Marksheet::where('student_id', $student1->id)->where('exam_id', $exam->id)->first();
 
@@ -94,7 +94,7 @@ it('skips students who have not had rankings calculated for the exam', function 
 
     $result = app(GenerateMarksheetsForExamAction::class)->handle($exam);
 
-    expect($result)->toBe(['created' => 1, 'skipped_already_exists' => 0, 'skipped_no_ranking' => 1]);
+    expect($result)->toBe(['created' => 1, 'regenerated' => 0, 'skipped_no_ranking' => 1]);
 
     expect(Marksheet::where('student_id', $unranked->id)->where('exam_id', $exam->id)->exists())->toBeFalse();
 
@@ -118,12 +118,12 @@ it('skips students outside the exam class and inactive students', function () {
 
     $result = app(GenerateMarksheetsForExamAction::class)->handle($exam);
 
-    expect($result)->toBe(['created' => 1, 'skipped_already_exists' => 0, 'skipped_no_ranking' => 0]);
+    expect($result)->toBe(['created' => 1, 'regenerated' => 0, 'skipped_no_ranking' => 0]);
 
     Queue::assertPushed(GenerateMarksheetPdfJob::class, 1);
 });
 
-it('skips students who already have a marksheet for the exam and does not redispatch', function () {
+it('regenerates students who already have a marksheet for the exam instead of skipping', function () {
     Queue::fake();
 
     $class = Classes::create(['name' => 'Class Five', 'order' => 5]);
@@ -131,12 +131,22 @@ it('skips students who already have a marksheet for the exam and does not redisp
     $student = createMarksheetActionTestStudent($class->id);
     createMarksheetActionTestRanking($exam, $class->id, $student);
 
-    Marksheet::create(['student_id' => $student->id, 'exam_id' => $exam->id]);
+    $existing = Marksheet::create([
+        'student_id' => $student->id,
+        'exam_id' => $exam->id,
+        'is_generated' => true,
+        'file_path' => 'documents/marksheets/stale.pdf',
+    ]);
 
-    $result = app(GenerateMarksheetsForExamAction::class)->handle($exam);
+    $admin = User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]);
 
-    expect($result)->toBe(['created' => 0, 'skipped_already_exists' => 1, 'skipped_no_ranking' => 0])
+    $result = app(GenerateMarksheetsForExamAction::class)->handle($exam, $admin->id);
+
+    expect($result)->toBe(['created' => 0, 'regenerated' => 1, 'skipped_no_ranking' => 0])
         ->and(Marksheet::where('student_id', $student->id)->where('exam_id', $exam->id)->count())->toBe(1);
 
-    Queue::assertNotPushed(GenerateMarksheetPdfJob::class);
+    expect($existing->fresh()->is_generated)->toBeFalse()
+        ->and($existing->fresh()->generated_by)->toBe($admin->id);
+
+    Queue::assertPushed(GenerateMarksheetPdfJob::class, 1);
 });

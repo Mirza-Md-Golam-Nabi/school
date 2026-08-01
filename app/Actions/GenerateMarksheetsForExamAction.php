@@ -13,16 +13,16 @@ class GenerateMarksheetsForExamAction
     /**
      * Create a marksheet record for every active student in the exam's class who
      * already has a calculated ranking (skipping students without one, since a
-     * marksheet needs rank/GPA to print), skip students who already have one
-     * (unique student_id/exam_id), and dispatch a PDF generation job for each
-     * newly created record.
+     * marksheet needs rank/GPA to print). Students who already have a marksheet
+     * are regenerated — the PDF job deletes the old file and writes a fresh one —
+     * rather than skipped, so re-running this always produces up-to-date PDFs.
      *
-     * @return array{created: int, skipped_already_exists: int, skipped_no_ranking: int}
+     * @return array{created: int, regenerated: int, skipped_no_ranking: int}
      */
     public function handle(Exam $exam, ?int $generatedBy = null): array
     {
         $created = 0;
-        $skippedAlreadyExists = 0;
+        $regenerated = 0;
         $skippedNoRanking = 0;
 
         $students = StudentProfile::active()
@@ -45,20 +45,23 @@ class GenerateMarksheetsForExamAction
                 ['generated_by' => $generatedBy, 'generated_at' => now()],
             );
 
-            if (! $marksheet->wasRecentlyCreated) {
-                $skippedAlreadyExists++;
-
-                continue;
+            if ($marksheet->wasRecentlyCreated) {
+                $created++;
+            } else {
+                $marksheet->update([
+                    'generated_by' => $generatedBy,
+                    'generated_at' => now(),
+                    'is_generated' => false,
+                ]);
+                $regenerated++;
             }
-
-            $created++;
 
             GenerateMarksheetPdfJob::dispatch($marksheet->id);
         }
 
         return [
             'created' => $created,
-            'skipped_already_exists' => $skippedAlreadyExists,
+            'regenerated' => $regenerated,
             'skipped_no_ranking' => $skippedNoRanking,
         ];
     }

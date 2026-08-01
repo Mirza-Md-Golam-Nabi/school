@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Marksheets;
 
 use App\Filament\Resources\Marksheets\Pages\ListMarksheets;
+use App\Filament\Resources\Marksheets\Pages\ManageClassMarksheets;
 use App\Filament\Resources\Marksheets\Pages\ViewMarksheet;
 use App\Filament\Resources\Marksheets\Schemas\MarksheetInfolist;
 use App\Filament\Resources\Marksheets\Tables\MarksheetsTable;
@@ -43,6 +44,7 @@ class MarksheetResource extends Resource
     {
         return [
             'index' => ListMarksheets::route('/'),
+            'class-marksheets' => ManageClassMarksheets::route('/class-marksheets'),
             'view' => ViewMarksheet::route('/{record}'),
         ];
     }
