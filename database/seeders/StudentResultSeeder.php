@@ -9,6 +9,7 @@ use App\Models\StudentProfile;
 use App\Models\StudentResult;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 class StudentResultSeeder extends Seeder
 {
@@ -19,9 +20,11 @@ class StudentResultSeeder extends Seeder
     {
         $exams = Exam::with(['examType.examTypeConfig', 'subjectConfigs'])->get();
 
-        foreach ($exams as $exam) {
-            $this->seedExamResults($exam);
-        }
+        DB::transaction(function () use ($exams) {
+            foreach ($exams as $exam) {
+                $this->seedExamResults($exam);
+            }
+        });
     }
 
     private function seedExamResults(Exam $exam): void

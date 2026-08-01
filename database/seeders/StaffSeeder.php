@@ -10,11 +10,14 @@ use App\Enums\UserType;
 use App\Models\User;
 use Database\Seeders\Helpers\LocationData;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 class StaffSeeder extends Seeder
 {
+    private string $hashedPassword;
+
     /** @var array<int, string> */
     private array $maleNames = [
         'Md. Jasim Uddin', 'Md. Nurul Haque', 'Md. Iqbal Hossain',
@@ -36,20 +39,24 @@ class StaffSeeder extends Seeder
      */
     public function run(): void
     {
-        $email = UserType::Staff->value.'@example.com';
-        $user = User::where('email', $email)->first();
-        $user->staffProfile()->firstOrCreate([], [
-            'gender' => Gender::Male,
-        ]);
+        $this->hashedPassword = Hash::make('password');
 
-        $staffMembers = collect($this->maleNames)->map(fn (string $name) => ['name' => $name, 'is_male' => true])
-            ->merge(collect($this->femaleNames)->map(fn (string $name) => ['name' => $name, 'is_male' => false]))
-            ->shuffle()
-            ->values();
+        DB::transaction(function () {
+            $email = UserType::Staff->value.'@example.com';
+            $user = User::where('email', $email)->first();
+            $user->staffProfile()->firstOrCreate([], [
+                'gender' => Gender::Male,
+            ]);
 
-        foreach ($staffMembers as $staff) {
-            $this->createStaff($staff['name'], $staff['is_male']);
-        }
+            $staffMembers = collect($this->maleNames)->map(fn (string $name) => ['name' => $name, 'is_male' => true])
+                ->merge(collect($this->femaleNames)->map(fn (string $name) => ['name' => $name, 'is_male' => false]))
+                ->shuffle()
+                ->values();
+
+            foreach ($staffMembers as $staff) {
+                $this->createStaff($staff['name'], $staff['is_male']);
+            }
+        });
     }
 
     private function createStaff(string $name, bool $isMale): void
@@ -60,7 +67,7 @@ class StaffSeeder extends Seeder
             ['email' => $email],
             [
                 'name' => $name,
-                'password' => Hash::make('password'),
+                'password' => $this->hashedPassword,
                 'user_type' => UserType::Staff,
                 'is_active' => true,
             ]

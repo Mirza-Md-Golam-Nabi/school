@@ -10,10 +10,13 @@ use App\Models\Classes;
 use App\Models\User;
 use Database\Seeders\Helpers\LocationData;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 class StudentSeeder extends Seeder
 {
+    private string $hashedPassword;
+
     /** @var array<int, string> */
     private array $maleNames = [
         'Md. Rakibul Islam', 'Md. Shakil Ahmed', 'Md. Tanvir Hasan', 'Md. Imran Hossain',
@@ -43,27 +46,31 @@ class StudentSeeder extends Seeder
      */
     public function run(): void
     {
-        $sessionYear = (int) now()->format('Y');
+        $this->hashedPassword = Hash::make('password');
 
-        $classes = Classes::with(['sections', 'groups'])
-            ->active()
-            ->orderBy('order')
-            ->get();
+        DB::transaction(function () {
+            $sessionYear = (int) now()->format('Y');
 
-        $email = UserType::Student->value.'@example.com';
-        $user = User::where('email', $email)->first();
+            $classes = Classes::with(['sections', 'groups'])
+                ->active()
+                ->orderBy('order')
+                ->get();
 
-        if ($user) {
-            $this->createStudentProfile($user);
-        }
+            $email = UserType::Student->value.'@example.com';
+            $user = User::where('email', $email)->first();
 
-        foreach ($classes as $class) {
-            $studentCount = fake()->numberBetween(5, 10);
-
-            for ($rollNo = 1; $rollNo <= $studentCount; $rollNo++) {
-                $this->createStudent($class, $rollNo, $sessionYear);
+            if ($user) {
+                $this->createStudentProfile($user);
             }
-        }
+
+            foreach ($classes as $class) {
+                $studentCount = fake()->numberBetween(5, 10);
+
+                for ($rollNo = 1; $rollNo <= $studentCount; $rollNo++) {
+                    $this->createStudent($class, $rollNo, $sessionYear);
+                }
+            }
+        });
     }
 
     private function createStudentProfile(User $user): void
@@ -96,7 +103,7 @@ class StudentSeeder extends Seeder
             [
                 'name' => $name,
                 'email_verified_at' => now(),
-                'password' => Hash::make('password'),
+                'password' => $this->hashedPassword,
                 'user_type' => UserType::Student,
                 'is_active' => true,
             ]

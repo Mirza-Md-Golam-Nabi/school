@@ -9,6 +9,7 @@ use App\Models\ExamSubjectConfig;
 use App\Models\ExamType;
 use App\Models\Subject;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 class ExamSeeder extends Seeder
 {
@@ -37,45 +38,61 @@ class ExamSeeder extends Seeder
 
     public function run(): void
     {
-        $sessionYear = (int) now()->year;
-        $schedule = $this->examSchedule($sessionYear);
-        $examTypes = ExamType::pluck('id', 'name');
-        $classes = Classes::whereNull('deleted_at')->get();
+        DB::transaction(function () {
+            $sessionYear = (int) now()->year;
+            $schedule = $this->examSchedule($sessionYear);
+            $examTypes = ExamType::pluck('id', 'name');
+            $classes = Classes::whereNull('deleted_at')->get();
 
-        foreach ($classes as $class) {
-            $subjectIds = ClassGroupSubject::where('class_id', $class->id)
-                ->whereNull('group_id')
-                ->pluck('subject_id');
+            foreach ($classes as $class) {
+                $subjectIds = ClassGroupSubject::where('class_id', $class->id)
+                    ->whereNull('group_id')
+                    ->pluck('subject_id');
 
-            $subjects = Subject::whereIn('id', $subjectIds)->get();
+                $subjects = Subject::whereIn('id', $subjectIds)->get();
 
-            foreach ($schedule as $examTypeName => $dateRanges) {
-                $examTypeId = $examTypes->get($examTypeName);
+                foreach ($schedule as $examTypeName => $dateRanges) {
+                    $examTypeId = $examTypes->get($examTypeName);
 
-                if (! $examTypeId) {
-                    continue;
-                }
+                    if (! $examTypeId) {
+                        continue;
+                    }
 
-                foreach ($dateRanges as $dateRange) {
-                    $exam = Exam::firstOrCreate(
-                        [
-                            'exam_type_id' => $examTypeId,
-                            'class_id' => $class->id,
-                            'session_year' => $sessionYear,
-                            'start_date' => $dateRange['start'],
-                        ],
-                        [
-                            'end_date' => $dateRange['end'],
-                            'is_published' => false,
-                        ]
-                    );
+                    foreach ($dateRanges as $dateRange) {
+                        $exam = $this->findOrCreateExam($examTypeId, $class->id, $sessionYear, $dateRange);
 
-                    foreach ($subjects as $subject) {
-                        $this->seedSubjectConfig($exam, $subject, $examTypeName);
+                        foreach ($subjects as $subject) {
+                            $this->seedSubjectConfig($exam, $subject, $examTypeName);
+                        }
                     }
                 }
             }
-        }
+        });
+    }
+
+    /**
+     * @param  array{start: string, end: string}  $dateRange
+     */
+    private function findOrCreateExam(int $examTypeId, int $classId, int $sessionYear, array $dateRange): Exam
+    {
+        // Exam stores `start_date` via the model's default datetime format ("Y-m-d
+        // H:i:s"), so a plain "Y-m-d" string never matches on a plain firstOrCreate()
+        // WHERE lookup (it would silently create a duplicate exam on every re-run).
+        // whereDate() compares only the date portion, so it's immune to that mismatch.
+        $exam = Exam::where('exam_type_id', $examTypeId)
+            ->where('class_id', $classId)
+            ->where('session_year', $sessionYear)
+            ->whereDate('start_date', $dateRange['start'])
+            ->first();
+
+        return $exam ?? Exam::create([
+            'exam_type_id' => $examTypeId,
+            'class_id' => $classId,
+            'session_year' => $sessionYear,
+            'start_date' => $dateRange['start'],
+            'end_date' => $dateRange['end'],
+            'is_published' => false,
+        ]);
     }
 
     private function seedSubjectConfig(Exam $exam, Subject $subject, string $examTypeName): void

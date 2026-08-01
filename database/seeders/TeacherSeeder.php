@@ -10,11 +10,14 @@ use App\Enums\UserType;
 use App\Models\User;
 use Database\Seeders\Helpers\LocationData;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 class TeacherSeeder extends Seeder
 {
+    private string $hashedPassword;
+
     /** @var array<int, string> */
     private array $maleNames = [
         'Md. Aminul Haque', 'Md. Kamruzzaman', 'Md. Shahidul Islam', 'Md. Nurul Amin',
@@ -48,22 +51,26 @@ class TeacherSeeder extends Seeder
      */
     public function run(): void
     {
-        $email = UserType::Teacher->value.'@example.com';
-        $user = User::where('email', $email)->first();
-        $user->teacherProfile()->firstOrCreate([], [
-            'gender' => Gender::Male,
-        ]);
+        $this->hashedPassword = Hash::make('password');
 
-        $teachers = collect($this->maleNames)->map(fn (string $name) => ['name' => $name, 'is_male' => true])
-            ->merge(collect($this->femaleNames)->map(fn (string $name) => ['name' => $name, 'is_male' => false]))
-            ->shuffle()
-            ->values();
+        DB::transaction(function () {
+            $email = UserType::Teacher->value.'@example.com';
+            $user = User::where('email', $email)->first();
+            $user->teacherProfile()->firstOrCreate([], [
+                'gender' => Gender::Male,
+            ]);
 
-        foreach ($teachers as $index => $teacher) {
-            $designation = $this->uniqueDesignations[$index] ?? fake()->randomElement($this->designations);
+            $teachers = collect($this->maleNames)->map(fn (string $name) => ['name' => $name, 'is_male' => true])
+                ->merge(collect($this->femaleNames)->map(fn (string $name) => ['name' => $name, 'is_male' => false]))
+                ->shuffle()
+                ->values();
 
-            $this->createTeacher($teacher['name'], $teacher['is_male'], $designation);
-        }
+            foreach ($teachers as $index => $teacher) {
+                $designation = $this->uniqueDesignations[$index] ?? fake()->randomElement($this->designations);
+
+                $this->createTeacher($teacher['name'], $teacher['is_male'], $designation);
+            }
+        });
     }
 
     private function createTeacher(string $name, bool $isMale, string $designation): void
@@ -75,7 +82,7 @@ class TeacherSeeder extends Seeder
             [
                 'name' => $name,
                 'email_verified_at' => now(),
-                'password' => Hash::make('password'),
+                'password' => $this->hashedPassword,
                 'user_type' => UserType::Teacher,
                 'is_active' => true,
             ]
