@@ -2,31 +2,17 @@
 
 namespace App\Filament\Teacher\Pages;
 
-use App\Enums\AttendanceSource;
-use App\Enums\AttendanceStatus;
-use App\Enums\StudentStatus;
-use App\Filament\Pages\AttendanceModificationDetails;
-use App\Models\Attendance;
-use App\Models\AttendanceStatusChange;
-use App\Models\Classes;
-use App\Models\StudentProfile;
-use App\Models\User;
-use App\Services\WorkingDaysCalculator;
+use App\Filament\Concerns\ManagesClassAttendance;
 use BackedEnum;
-use Carbon\Carbon;
-use Filament\Actions\Action;
-use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Contracts\Support\Htmlable;
-use Illuminate\Support\Carbon as SupportCarbon;
-use Illuminate\Support\Collection;
-use Illuminate\Support\Str;
-use Livewire\Attributes\Url;
 use UnitEnum;
 
 class MarkStudentAttendance extends Page
 {
+    use ManagesClassAttendance;
+
     protected string $view = 'filament.teacher.pages.mark-student-attendance';
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedClipboardDocumentCheck;
@@ -34,29 +20,6 @@ class MarkStudentAttendance extends Page
     protected static string|UnitEnum|null $navigationGroup = 'Attendance';
 
     protected static bool $shouldRegisterNavigation = false;
-
-    #[Url(as: 'classId')]
-    public int $classId = 0;
-
-    #[Url(as: 'date')]
-    public string $date = '';
-
-    /** @var array<string> */
-    public array $presentIds = [];
-
-    public function mount(): void
-    {
-        if (blank($this->date)) {
-            $this->date = now()->toDateString();
-        }
-
-        $this->loadExistingAttendance();
-    }
-
-    public function updatedDate(): void
-    {
-        $this->loadExistingAttendance();
-    }
 
     public function getTitle(): string|Htmlable
     {
@@ -69,159 +32,5 @@ class MarkStudentAttendance extends Page
             route('filament.teacher.pages.student-attendance') => 'Student Attendance',
             '' => $this->resolveClass()?->name ?? 'Class',
         ];
-    }
-
-    private function loadExistingAttendance(): void
-    {
-        $studentIds = $this->getStudents()->pluck('id')->toArray();
-
-        $this->presentIds = Attendance::query()
-            ->where('attendable_type', StudentProfile::class)
-            ->whereIn('attendable_id', $studentIds)
-            ->where('date', $this->date)
-            ->where('class_id', $this->classId)
-            ->where('status', AttendanceStatus::Present)
-            ->pluck('attendable_id')
-            ->map(fn ($id) => (string) $id)
-            ->toArray();
-    }
-
-    public function selectAll(): void
-    {
-        $this->presentIds = $this->getStudents()
-            ->pluck('id')
-            ->map(fn ($id) => (string) $id)
-            ->toArray();
-    }
-
-    public function deselectAll(): void
-    {
-        $this->presentIds = [];
-    }
-
-    public function save(): void
-    {
-        $markedBy = auth()->id();
-        $students = $this->getStudents();
-        $isPastDate = $this->date < now()->toDateString();
-        $isNonWorkingDay = ! app(WorkingDaysCalculator::class)->isWorkingDay(SupportCarbon::parse($this->date));
-        $batchId = (string) Str::uuid();
-        $changes = collect();
-
-        foreach ($students as $student) {
-            $isPresent = in_array((string) $student->id, $this->presentIds);
-            $newStatus = $isPresent ? AttendanceStatus::Present : AttendanceStatus::Absent;
-
-            $keys = [
-                'attendable_type' => StudentProfile::class,
-                'attendable_id' => $student->id,
-                'date' => $this->date,
-                'class_id' => $this->classId,
-                'subject_id' => null,
-            ];
-
-            $existing = Attendance::where($keys)->first();
-
-            $attendance = Attendance::updateOrCreate($keys, [
-                'status' => $newStatus,
-                'source' => AttendanceSource::Manual,
-                'marked_by' => $markedBy,
-                'entry_time' => $isPresent ? now()->format('H:i:s') : null,
-            ]);
-
-            $statusChanged = $existing && $existing->status !== $newStatus;
-
-            // A past working day only warrants a flag when an already-recorded
-            // status is actually changed. A weekend/holiday warrants a flag for
-            // any attendance activity at all, since none is normally taken then.
-            $shouldFlag = ($isPastDate && $statusChanged)
-                || ($isNonWorkingDay && (! $existing || $statusChanged));
-
-            if ($shouldFlag) {
-                $changes->push(AttendanceStatusChange::create([
-                    'attendance_id' => $attendance->id,
-                    'class_id' => $this->classId,
-                    'student_profile_id' => $student->id,
-                    'date' => $this->date,
-                    'old_status' => $existing?->status,
-                    'new_status' => $newStatus,
-                    'changed_by' => $markedBy,
-                    'batch_id' => $batchId,
-                ]));
-            }
-        }
-
-        if ($changes->isNotEmpty()) {
-            $this->notifyAdminsOfChanges($changes, $batchId);
-        }
-
-        Notification::make()
-            ->success()
-            ->title('Attendance saved')
-            ->body('Saved for '.$students->count().' students — '.$this->date)
-            ->send();
-    }
-
-    private function notifyAdminsOfChanges(Collection $changes, string $batchId): void
-    {
-        $class = $this->resolveClass();
-        $marker = auth()->user()?->name ?? 'Unknown';
-        $count = $changes->count();
-
-        $body = "{$marker} recorded/changed {$count} ".Str::plural('student', $count)."' attendance in {$class?->name} on {$this->date}.";
-
-        Notification::make()
-            ->warning()
-            ->title('Attendance Flagged for Review')
-            ->body($body)
-            ->actions([
-                // Explicit panel: this notification is created from the teacher panel,
-                // but the target page only exists in the admin panel.
-                Action::make('view')
-                    ->label('View Details')
-                    ->button()
-                    ->url(AttendanceModificationDetails::getUrl(['batch' => $batchId], panel: 'admin'))
-                    ->markAsRead(),
-            ])
-            ->sendToDatabase(
-                User::role(['admin', 'super-admin'])->get()
-            );
-    }
-
-    public function getStudents(): Collection
-    {
-        $idsWithAttendance = Attendance::where('attendable_type', StudentProfile::class)
-            ->where('date', $this->date)
-            ->where('class_id', $this->classId)
-            ->pluck('attendable_id');
-
-        return StudentProfile::with('user')
-            ->withTrashed()
-            ->where('current_class_id', $this->classId)
-            ->where(function ($q) use ($idsWithAttendance) {
-                $q->where(fn ($q2) => $q2->where('status', StudentStatus::Active)->whereNull('deleted_at'))
-                    ->orWhereIn('id', $idsWithAttendance);
-            })
-            ->orderBy('roll_no')
-            ->get();
-    }
-
-    public function getYesterdayAttendance(): Collection
-    {
-        $yesterday = Carbon::parse($this->date)->subDay()->toDateString();
-        $studentIds = $this->getStudents()->pluck('id');
-
-        return Attendance::query()
-            ->where('attendable_type', StudentProfile::class)
-            ->whereIn('attendable_id', $studentIds)
-            ->where('date', $yesterday)
-            ->where('class_id', $this->classId)
-            ->whereNull('subject_id')
-            ->pluck('status', 'attendable_id');
-    }
-
-    private function resolveClass(): ?Classes
-    {
-        return $this->classId ? Classes::find($this->classId) : null;
     }
 }
