@@ -7,6 +7,11 @@
 
     $schoolName = SchoolSetting::get('school_name', '');
     $schoolAddress = SchoolSetting::get('school_address', '');
+    $schoolEstablishedYear = SchoolSetting::get('school_established_year', '');
+    $schoolAddressLine = collect([
+        $schoolAddress,
+        $schoolEstablishedYear ? "Established: {$schoolEstablishedYear}" : null,
+    ])->filter()->implode(' | ');
     $useLogo = (bool) SchoolSetting::get('marksheet_use_logo', '1');
     $useWatermark = (bool) SchoolSetting::get('marksheet_use_watermark', '0');
     $watermarkText = SchoolSetting::get('marksheet_watermark_text', '');
@@ -189,8 +194,8 @@
                 <img class="logo" src="{{ $logoDataUri }}" alt="Logo">
             @endif
             <div class="school-name">{{ $schoolName }}</div>
-            @if ($schoolAddress)
-                <div class="school-address">{{ $schoolAddress }}</div>
+            @if ($schoolAddressLine)
+                <div class="school-address">{{ $schoolAddressLine }}</div>
             @endif
         </div>
 

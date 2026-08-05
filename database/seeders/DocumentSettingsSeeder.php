@@ -25,6 +25,10 @@ class DocumentSettingsSeeder extends Seeder
             'value' => '',
             'description' => 'School address printed on generated documents.',
         ],
+        'school_established_year' => [
+            'value' => '',
+            'description' => 'Year the school was established.',
+        ],
         'school_seal' => [
             'value' => '',
             'description' => 'Storage path (public disk) of the school seal/stamp image, used on generated documents.',

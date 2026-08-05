@@ -98,6 +98,40 @@ it('renders the class-scoped marksheets page, scoped to that class only, with it
         ->assertCanNotSeeTableRecords(Marksheet::where('student_id', $studentB->id)->get());
 });
 
+it('sorts marksheets by student roll number by default', function () {
+    $admin = actingAsMarksheetAdmin();
+
+    $class = Classes::create(['name' => 'Class One', 'order' => 1, 'is_active' => true]);
+    $examType = ExamType::create(['name' => 'Half Yearly', 'is_active' => true]);
+    $exam = Exam::create([
+        'exam_type_id' => $examType->id,
+        'class_id' => $class->id,
+        'session_year' => now()->year,
+        'start_date' => now()->toDateString(),
+        'end_date' => now()->addDays(5)->toDateString(),
+        'is_published' => true,
+    ]);
+
+    $makeStudent = fn (int $rollNo) => StudentProfile::create([
+        'user_id' => User::factory()->create(['user_type' => UserType::Student, 'is_active' => true])->id,
+        'roll_no' => $rollNo,
+        'current_class_id' => $class->id,
+        'session_year' => now()->year,
+        'gender' => Gender::Male,
+        'status' => StudentStatus::Active,
+    ]);
+
+    // Created out of roll order, to prove the default sort isn't just insertion order.
+    $marksheetRoll3 = Marksheet::create(['student_id' => $makeStudent(3)->id, 'exam_id' => $exam->id]);
+    $marksheetRoll1 = Marksheet::create(['student_id' => $makeStudent(1)->id, 'exam_id' => $exam->id]);
+    $marksheetRoll2 = Marksheet::create(['student_id' => $makeStudent(2)->id, 'exam_id' => $exam->id]);
+
+    $this->actingAs($admin);
+
+    Livewire::test(ManageClassMarksheets::class, ['classId' => $class->id])
+        ->assertCanSeeTableRecords([$marksheetRoll1, $marksheetRoll2, $marksheetRoll3], inOrder: true);
+});
+
 it('renders the view marksheet page', function () {
     $admin = actingAsMarksheetAdmin();
 
