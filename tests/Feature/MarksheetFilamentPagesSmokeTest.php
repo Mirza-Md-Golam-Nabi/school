@@ -20,7 +20,7 @@ uses(RefreshDatabase::class);
 
 function actingAsMarksheetAdmin(): User
 {
-    return User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]);
+    return grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]));
 }
 
 it('renders the marksheets list page as class cards with its generate header action', function () {

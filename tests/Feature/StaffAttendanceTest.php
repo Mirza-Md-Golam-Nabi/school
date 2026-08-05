@@ -44,7 +44,7 @@ function createTestAttendance(StaffProfile $staff, string $date, AttendanceStatu
 }
 
 it('marks selected staff present and the rest absent', function () {
-    $admin = User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]);
+    $admin = grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]));
     $this->actingAs($admin);
 
     $staff1 = createAttendanceTestStaff();
@@ -64,7 +64,7 @@ it('marks selected staff present and the rest absent', function () {
 });
 
 it('loads existing attendance for the selected date', function () {
-    $admin = User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]);
+    $admin = grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]));
     $this->actingAs($admin);
 
     $staff = createAttendanceTestStaff();
@@ -76,7 +76,7 @@ it('loads existing attendance for the selected date', function () {
 });
 
 it('selects and deselects all staff', function () {
-    $admin = User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]);
+    $admin = grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]));
     $this->actingAs($admin);
 
     $staff1 = createAttendanceTestStaff();
@@ -90,7 +90,7 @@ it('selects and deselects all staff', function () {
 });
 
 it('renders the mark-attendance page with a link to history', function () {
-    $admin = User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]);
+    $admin = grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]));
 
     $response = $this->actingAs($admin)->get('/admin/staff-attendance');
 
@@ -100,7 +100,7 @@ it('renders the mark-attendance page with a link to history', function () {
 });
 
 it('aggregates present and absent counts per day in the history page', function () {
-    $admin = User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]);
+    $admin = grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]));
     $this->actingAs($admin);
 
     $staff1 = createAttendanceTestStaff();
@@ -118,7 +118,7 @@ it('aggregates present and absent counts per day in the history page', function 
 });
 
 it('renders the history page with a link back to the mark-attendance page', function () {
-    $admin = User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]);
+    $admin = grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]));
 
     $response = $this->actingAs($admin)->get('/admin/staff-attendance-history');
 

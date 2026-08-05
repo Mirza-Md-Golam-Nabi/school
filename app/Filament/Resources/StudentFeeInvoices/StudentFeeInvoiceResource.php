@@ -9,6 +9,7 @@ use App\Filament\Resources\StudentFeeInvoices\Pages\ManageClassStudentFeeInvoice
 use App\Filament\Resources\StudentFeeInvoices\Schemas\StudentFeeInvoiceForm;
 use App\Filament\Resources\StudentFeeInvoices\Tables\StudentFeeInvoicesTable;
 use App\Models\StudentFeeInvoice;
+use App\Traits\Permissions\HasEntityPermissions;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -18,6 +19,8 @@ use UnitEnum;
 
 class StudentFeeInvoiceResource extends Resource
 {
+    use HasEntityPermissions;
+
     protected static ?string $model = StudentFeeInvoice::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedDocumentText;

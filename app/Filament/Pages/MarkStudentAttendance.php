@@ -2,6 +2,8 @@
 
 namespace App\Filament\Pages;
 
+use App\Enums\Permissions\AttendancePermission;
+use App\Filament\Concerns\HasAttendancePagePermission;
 use App\Filament\Concerns\ManagesClassAttendance;
 use BackedEnum;
 use Filament\Pages\Page;
@@ -11,7 +13,7 @@ use UnitEnum;
 
 class MarkStudentAttendance extends Page
 {
-    use ManagesClassAttendance;
+    use HasAttendancePagePermission, ManagesClassAttendance;
 
     protected string $view = 'filament.pages.mark-student-attendance';
 
@@ -20,6 +22,11 @@ class MarkStudentAttendance extends Page
     protected static string|UnitEnum|null $navigationGroup = 'Attendance';
 
     protected static bool $shouldRegisterNavigation = false;
+
+    protected static function attendancePermission(): AttendancePermission
+    {
+        return AttendancePermission::MARK_ATTENDANCE;
+    }
 
     public function getTitle(): string|Htmlable
     {

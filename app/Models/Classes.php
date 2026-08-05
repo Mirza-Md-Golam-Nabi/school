@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
@@ -21,7 +22,7 @@ class Classes extends Model
 
     protected $table = 'classes';
 
-    protected $fillable = ['name', 'level', 'order', 'has_section', 'has_group', 'is_active'];
+    protected $fillable = ['name', 'level', 'order', 'class_teacher_id', 'has_section', 'has_group', 'is_active'];
 
     protected $casts = [
         'level' => ClassLevel::class,
@@ -73,6 +74,11 @@ class Classes extends Model
     public function teacherSubjects(): HasMany
     {
         return $this->hasMany(TeacherSubject::class, 'class_id');
+    }
+
+    public function classTeacher(): BelongsTo
+    {
+        return $this->belongsTo(TeacherProfile::class, 'class_teacher_id');
     }
 
     public function feeStructures(): HasMany

@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\StudentFeeInvoices\Pages;
 
 use App\Filament\Resources\StudentFeeInvoices\StudentFeeInvoiceResource;
+use App\Filament\Resources\StudentFeeInvoices\Tables\ClassInvoicesByStudentTable;
 use App\Filament\Resources\StudentFeeInvoices\Widgets\ClassInvoiceDuesSummaryWidget;
 use App\Models\Classes;
 use Filament\Actions\Action;
@@ -10,7 +11,6 @@ use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Tables\Table;
 use Illuminate\Contracts\Support\Htmlable;
-use Illuminate\Database\Eloquent\Builder;
 use Livewire\Attributes\Url;
 
 class ManageClassStudentFeeInvoices extends ListRecords
@@ -31,10 +31,7 @@ class ManageClassStudentFeeInvoices extends ListRecords
 
     public function table(Table $table): Table
     {
-        return parent::table($table)
-            ->modifyQueryUsing(fn (Builder $query) => $query->whereHas(
-                'student', fn ($q) => $q->where('current_class_id', $this->classId)
-            ));
+        return ClassInvoicesByStudentTable::configure($table, $this->classId);
     }
 
     public function getHeaderWidgetsColumns(): int|array

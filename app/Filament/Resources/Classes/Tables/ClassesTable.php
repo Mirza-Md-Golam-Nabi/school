@@ -27,6 +27,9 @@ class ClassesTable
                     ->numeric()
                     ->sortable()
                     ->alignCenter(),
+                TextColumn::make('classTeacher.user.name')
+                    ->label('Class Teacher')
+                    ->placeholder('Unassigned'),
                 IconColumn::make('has_section')
                     ->boolean(),
                 IconColumn::make('has_group')

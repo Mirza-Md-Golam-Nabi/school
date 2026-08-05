@@ -82,7 +82,7 @@ it('hides the overview widget once a single type is selected', function () {
 });
 
 it('shows only the selected type\'s records in the table, never both', function () {
-    $admin = User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]);
+    $admin = grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]));
     $this->actingAs($admin);
 
     $account = SchoolAccount::create(['name' => 'Main Fund', 'current_balance' => 0]);
@@ -100,7 +100,7 @@ it('shows only the selected type\'s records in the table, never both', function 
 });
 
 it('filters the account ledger table using the date range filter directly', function () {
-    $admin = User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]);
+    $admin = grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]));
     $this->actingAs($admin);
 
     $account = SchoolAccount::create(['name' => 'Main Fund', 'current_balance' => 0]);

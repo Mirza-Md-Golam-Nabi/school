@@ -8,6 +8,7 @@ use App\Filament\Resources\Marksheets\Pages\ViewMarksheet;
 use App\Filament\Resources\Marksheets\Schemas\MarksheetInfolist;
 use App\Filament\Resources\Marksheets\Tables\MarksheetsTable;
 use App\Models\Marksheet;
+use App\Traits\Permissions\HasEntityPermissions;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -17,6 +18,8 @@ use UnitEnum;
 
 class MarksheetResource extends Resource
 {
+    use HasEntityPermissions;
+
     protected static ?string $model = Marksheet::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedDocumentText;

@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Actions\SyncActingAdminRolePermissionsAction;
 use App\Enums\Permissions\HrPermission;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
@@ -26,5 +27,8 @@ class ActingAdminRoleSeeder extends Seeder
             ->pluck('name');
 
         $role->syncPermissions($permissions);
+
+        // 'acting_admin' always mirrors whatever the real 'admin' role currently has.
+        app(SyncActingAdminRolePermissionsAction::class)->handle();
     }
 }

@@ -62,7 +62,7 @@ function seedAttendanceModificationTestRecord(StudentProfile $student, Classes $
 function actingAsAttendanceModificationMarker(string $componentClass): User
 {
     $userType = $componentClass === AdminMarkStudentAttendance::class ? UserType::Admin : UserType::Teacher;
-    $marker = User::factory()->create(['user_type' => $userType, 'is_active' => true]);
+    $marker = grantSuperAdmin(User::factory()->create(['user_type' => $userType, 'is_active' => true]));
     test()->actingAs($marker);
 
     return $marker;
@@ -262,7 +262,7 @@ it('renders the changed students for a given batch on the details page', functio
         'batch_id' => $batchId,
     ]);
 
-    $admin = User::factory()->create(['user_type' => UserType::Admin]);
+    $admin = grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin]));
 
     Livewire::actingAs($admin)
         ->test(AttendanceModificationDetails::class, ['batchId' => $batchId])

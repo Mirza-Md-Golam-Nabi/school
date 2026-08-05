@@ -8,6 +8,7 @@ use App\Filament\Resources\TransactionCategories\Pages\ListTransactionCategories
 use App\Filament\Resources\TransactionCategories\Schemas\TransactionCategoryForm;
 use App\Filament\Resources\TransactionCategories\Tables\TransactionCategoriesTable;
 use App\Models\TransactionCategory;
+use App\Traits\Permissions\HasEntityPermissions;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -17,6 +18,8 @@ use UnitEnum;
 
 class TransactionCategoryResource extends Resource
 {
+    use HasEntityPermissions;
+
     protected static ?string $model = TransactionCategory::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedTag;

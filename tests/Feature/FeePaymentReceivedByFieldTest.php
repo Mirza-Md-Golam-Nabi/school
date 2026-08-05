@@ -8,7 +8,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 uses(RefreshDatabase::class);
 
 it('renders the received_by field as disabled and pre-filled with the authenticated user on the create page', function () {
-    $admin = User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true, 'name' => 'Karim Admin']);
+    $admin = grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true, 'name' => 'Karim Admin']));
 
     $response = $this->actingAs($admin)->get(CreateFeePayment::getUrl());
 

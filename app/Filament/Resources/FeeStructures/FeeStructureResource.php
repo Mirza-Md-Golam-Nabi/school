@@ -9,6 +9,7 @@ use App\Filament\Resources\FeeStructures\Pages\ManageClassFeeStructures;
 use App\Filament\Resources\FeeStructures\Schemas\FeeStructureForm;
 use App\Filament\Resources\FeeStructures\Tables\FeeStructuresTable;
 use App\Models\FeeStructure;
+use App\Traits\Permissions\HasEntityPermissions;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -18,6 +19,8 @@ use UnitEnum;
 
 class FeeStructureResource extends Resource
 {
+    use HasEntityPermissions;
+
     protected static ?string $model = FeeStructure::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedTableCells;

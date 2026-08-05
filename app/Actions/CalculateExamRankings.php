@@ -185,37 +185,51 @@ class CalculateExamRankings
 
     /**
      * Two-tier ranking:
-     *  - Tier 1: students who passed overall → ranked by total_marks
+     *  - Tier 1: students who passed overall → ranked by total_marks, then GPA
      *  - Tier 2: students who failed overall (or were absent in a compulsory/main
-     *    optional subject) → ranked by total_marks among themselves, after tier 1
+     *    optional subject) → ranked among themselves the same way, after tier 1
      *
      * @param  Collection<int, array<string, mixed>>  $studentData
      */
     private function calculateTieredRanks(Collection $studentData): array
     {
-        $passed = $studentData->where('is_overall_fail', false)->sortByDesc('total_marks')->values();
-        $failed = $studentData->where('is_overall_fail', true)->sortByDesc('total_marks')->values();
+        $passed = $this->sortForRanking($studentData->where('is_overall_fail', false));
+        $failed = $this->sortForRanking($studentData->where('is_overall_fail', true));
 
         return $this->calculateRanks($passed, 0) + $this->calculateRanks($failed, $passed->count());
     }
 
     /**
-     * RANK() style: ties share the same rank, next rank skips (1,2,2,4).
+     * Ranks by total_marks first; when marks tie, GPA breaks the tie.
+     *
+     * @param  Collection<int, array<string, mixed>>  $students
+     */
+    private function sortForRanking(Collection $students): Collection
+    {
+        return $students
+            ->sort(fn (array $a, array $b): int => $b['total_marks'] <=> $a['total_marks']
+                ?: $b['gpa'] <=> $a['gpa'])
+            ->values();
+    }
+
+    /**
+     * RANK() style: students tied on both total_marks and GPA share the same
+     * rank, and the next rank skips accordingly (1,2,2,4).
      *
      * @param  Collection<int, array<string, mixed>>  $sorted
      */
     private function calculateRanks(Collection $sorted, int $offset = 0): array
     {
         $rankMap = [];
-        $prevTotal = null;
+        $prevKey = null;
         $rank = 0;
 
         foreach ($sorted as $index => $data) {
-            $marks = (float) $data['total_marks'];
+            $key = [(float) $data['total_marks'], (float) $data['gpa']];
 
-            if ($marks !== $prevTotal) {
+            if ($key !== $prevKey) {
                 $rank = $index + 1 + $offset;
-                $prevTotal = $marks;
+                $prevKey = $key;
             }
 
             $rankMap[$data['student_id']] = $rank;
@@ -230,8 +244,8 @@ class CalculateExamRankings
         $sectionRankMap = [];
 
         foreach (collect($studentData)->groupBy('section_id') as $sectionStudents) {
-            $passed = $sectionStudents->where('is_overall_fail', false)->sortByDesc('total_marks')->values();
-            $failed = $sectionStudents->where('is_overall_fail', true)->sortByDesc('total_marks')->values();
+            $passed = $this->sortForRanking($sectionStudents->where('is_overall_fail', false));
+            $failed = $this->sortForRanking($sectionStudents->where('is_overall_fail', true));
 
             $sectionRankMap += $this->calculateRanks($passed, 0) + $this->calculateRanks($failed, $passed->count());
         }

@@ -8,6 +8,7 @@ use App\Filament\Resources\FundTransactions\Pages\ListFundTransactions;
 use App\Filament\Resources\FundTransactions\Schemas\FundTransactionForm;
 use App\Filament\Resources\FundTransactions\Tables\FundTransactionsTable;
 use App\Models\FundTransaction;
+use App\Traits\Permissions\HasEntityPermissions;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -17,6 +18,8 @@ use UnitEnum;
 
 class FundTransactionResource extends Resource
 {
+    use HasEntityPermissions;
+
     protected static ?string $model = FundTransaction::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBanknotes;

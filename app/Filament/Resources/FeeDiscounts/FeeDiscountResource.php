@@ -8,6 +8,7 @@ use App\Filament\Resources\FeeDiscounts\Pages\ListFeeDiscounts;
 use App\Filament\Resources\FeeDiscounts\Schemas\FeeDiscountForm;
 use App\Filament\Resources\FeeDiscounts\Tables\FeeDiscountsTable;
 use App\Models\FeeDiscount;
+use App\Traits\Permissions\HasEntityPermissions;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -17,6 +18,8 @@ use UnitEnum;
 
 class FeeDiscountResource extends Resource
 {
+    use HasEntityPermissions;
+
     protected static ?string $model = FeeDiscount::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedReceiptPercent;

@@ -5,6 +5,7 @@ namespace App\Filament\Resources\SalaryInvoices;
 use App\Filament\Resources\SalaryInvoices\Pages\ListSalaryInvoices;
 use App\Filament\Resources\SalaryInvoices\Tables\SalaryInvoicesTable;
 use App\Models\SalaryInvoice;
+use App\Traits\Permissions\HasEntityPermissions;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Support\Icons\Heroicon;
@@ -13,6 +14,8 @@ use UnitEnum;
 
 class SalaryInvoiceResource extends Resource
 {
+    use HasEntityPermissions;
+
     protected static ?string $model = SalaryInvoice::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedDocumentText;

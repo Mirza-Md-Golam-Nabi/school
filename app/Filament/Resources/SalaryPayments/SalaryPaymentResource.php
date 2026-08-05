@@ -8,6 +8,7 @@ use App\Filament\Resources\SalaryPayments\Pages\ListSalaryPayments;
 use App\Filament\Resources\SalaryPayments\Schemas\SalaryPaymentForm;
 use App\Filament\Resources\SalaryPayments\Tables\SalaryPaymentsTable;
 use App\Models\SalaryPayment;
+use App\Traits\Permissions\HasEntityPermissions;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -17,6 +18,8 @@ use UnitEnum;
 
 class SalaryPaymentResource extends Resource
 {
+    use HasEntityPermissions;
+
     protected static ?string $model = SalaryPayment::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBanknotes;

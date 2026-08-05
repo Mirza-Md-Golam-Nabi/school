@@ -4,7 +4,9 @@ namespace App\Filament\Teacher\Resources\Exams;
 
 use App\Filament\Resources\Exams\RelationManagers\MeritRankingsRelationManager;
 use App\Filament\Resources\Exams\RelationManagers\SubjectConfigsRelationManager;
+use App\Filament\Teacher\Concerns\ScopesToTaughtClasses;
 use App\Filament\Teacher\Resources\Exams\Pages\ListExams;
+use App\Filament\Teacher\Resources\Exams\Pages\ManageClassExams;
 use App\Filament\Teacher\Resources\Exams\Pages\ViewExam;
 use App\Models\Exam;
 use BackedEnum;
@@ -17,15 +19,24 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use UnitEnum;
 
 class ExamResource extends Resource
 {
+    use ScopesToTaughtClasses;
+
     protected static ?string $model = Exam::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedClipboardDocumentCheck;
 
     protected static string|UnitEnum|null $navigationGroup = 'Academics';
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->whereIn('class_id', static::currentTeacherTaughtClassIds());
+    }
 
     public static function infolist(Schema $schema): Schema
     {
@@ -110,6 +121,7 @@ class ExamResource extends Resource
     {
         return [
             'index' => ListExams::route('/'),
+            'class-exams' => ManageClassExams::route('/class-exams'),
             'view' => ViewExam::route('/{record}'),
         ];
     }

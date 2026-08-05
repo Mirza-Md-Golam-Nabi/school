@@ -8,6 +8,7 @@ use App\Filament\Resources\TeacherProfiles\Pages\ListTeacherProfiles;
 use App\Filament\Resources\TeacherProfiles\Schemas\TeacherProfileForm;
 use App\Filament\Resources\TeacherProfiles\Tables\TeacherProfilesTable;
 use App\Models\TeacherProfile;
+use App\Traits\Permissions\HasEntityPermissions;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -19,6 +20,8 @@ use UnitEnum;
 
 class TeacherProfileResource extends Resource
 {
+    use HasEntityPermissions;
+
     protected static ?string $model = TeacherProfile::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUsers;

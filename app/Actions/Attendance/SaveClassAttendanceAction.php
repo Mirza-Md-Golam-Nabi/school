@@ -9,6 +9,7 @@ use App\Models\Attendance;
 use App\Models\AttendanceStatusChange;
 use App\Models\Classes;
 use App\Models\StudentProfile;
+use App\Models\TeacherProfile;
 use App\Models\User;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
@@ -77,7 +78,41 @@ class SaveClassAttendanceAction
             $this->notifyAdminsOfChanges($class, $date, $markedByName, $changes, $batchId);
         }
 
+        $this->notifyIfWrongTeacherMarkedAttendance($class, $date, $markedBy, $markedByName);
+
         return $students->count();
+    }
+
+    /**
+     * A class can have one authorized "class teacher" for attendance. If a
+     * different teacher marks it, admins and the assigned class teacher are
+     * notified — this doesn't block the save, only flags it for visibility.
+     */
+    private function notifyIfWrongTeacherMarkedAttendance(?Classes $class, string $date, int $markedBy, string $markedByName): void
+    {
+        if (! $class || ! $class->class_teacher_id) {
+            return;
+        }
+
+        $markingTeacher = TeacherProfile::where('user_id', $markedBy)->first();
+
+        if (! $markingTeacher || $markingTeacher->id === $class->class_teacher_id) {
+            return;
+        }
+
+        $assignedTeacherUser = $class->classTeacher?->user;
+
+        $recipients = User::role(['admin', 'super-admin'])->get();
+
+        if ($assignedTeacherUser) {
+            $recipients->push($assignedTeacherUser);
+        }
+
+        Notification::make()
+            ->warning()
+            ->title('Attendance Marked by Another Teacher')
+            ->body("{$markedByName} marked attendance for {$class->name} on {$date}, but this class is assigned to {$assignedTeacherUser?->name}.")
+            ->sendToDatabase($recipients->unique('id'));
     }
 
     private function notifyAdminsOfChanges(?Classes $class, string $date, string $markedByName, Collection $changes, string $batchId): void

@@ -304,6 +304,7 @@ class SubjectConfigsRelationManager extends RelationManager
                     ->icon(Heroicon::OutlinedPencilSquare)
                     ->color('info')
                     ->iconButton()
+                    ->visible(fn (ExamSubjectConfig $record): bool => self::canEnterMarks($record))
                     ->url(fn (ExamSubjectConfig $record): string => self::resolveEnterMarksUrl($record)),
 
                 EditAction::make()
@@ -340,6 +341,25 @@ class SubjectConfigsRelationManager extends RelationManager
     private static function isAdminPanel(): bool
     {
         return Filament::getCurrentPanel()?->getId() === 'admin';
+    }
+
+    /**
+     * Admins can always enter marks; a teacher only for a subject they're
+     * actually assigned to teach in that class (via TeacherSubject).
+     */
+    private static function canEnterMarks(ExamSubjectConfig $record): bool
+    {
+        if (self::isAdminPanel()) {
+            return true;
+        }
+
+        $teacherProfile = auth()->user()?->teacherProfile;
+
+        return (bool) $teacherProfile?->isAssignedToTeach(
+            $record->exam->class_id,
+            $record->subject_id,
+            $record->exam->session_year,
+        );
     }
 
     private static function resolveEnterMarksUrl(ExamSubjectConfig $record): string

@@ -3,6 +3,7 @@
 namespace App\Filament\Teacher\Pages;
 
 use App\Filament\Teacher\Resources\Exams\ExamResource;
+use App\Models\Exam;
 use App\Models\ExamSubjectConfig;
 use App\Models\StudentProfile;
 use App\Models\StudentResult;
@@ -42,7 +43,22 @@ class EnterStudentMarks extends Page
     {
         abort_unless($this->examId && $this->subjectId && $this->classId, 404);
 
+        abort_unless($this->teacherCanEnterMarks(), 403);
+
         $this->loadExistingResults();
+    }
+
+    /**
+     * Only the teacher assigned (via TeacherSubject) to this class+subject for
+     * the exam's session year may enter marks — re-checked in save() too, since
+     * the URL-bound properties could otherwise be tampered with after mount.
+     */
+    private function teacherCanEnterMarks(): bool
+    {
+        $exam = Exam::find($this->examId);
+        $teacherProfile = auth()->user()?->teacherProfile;
+
+        return $exam && $teacherProfile?->isAssignedToTeach($this->classId, $this->subjectId, $exam->session_year);
     }
 
     private function loadExistingResults(): void
@@ -101,6 +117,8 @@ class EnterStudentMarks extends Page
 
     public function save(): void
     {
+        abort_unless($this->teacherCanEnterMarks(), 403);
+
         foreach ($this->marks as $studentId => $mark) {
             $isAbsent = (bool) ($mark['is_absent'] ?? false);
 

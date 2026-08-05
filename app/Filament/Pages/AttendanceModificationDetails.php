@@ -2,6 +2,8 @@
 
 namespace App\Filament\Pages;
 
+use App\Enums\Permissions\AttendancePermission;
+use App\Filament\Concerns\HasAttendancePagePermission;
 use App\Models\AttendanceStatusChange;
 use BackedEnum;
 use Filament\Pages\Page;
@@ -13,7 +15,14 @@ use UnitEnum;
 
 class AttendanceModificationDetails extends Page
 {
+    use HasAttendancePagePermission;
+
     protected string $view = 'filament.pages.attendance-modification-details';
+
+    protected static function attendancePermission(): AttendancePermission
+    {
+        return AttendancePermission::VIEW_ATTENDANCE;
+    }
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedClipboardDocumentCheck;
 

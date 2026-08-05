@@ -8,6 +8,7 @@ use App\Filament\Resources\LateFeeRules\Pages\ListLateFeeRules;
 use App\Filament\Resources\LateFeeRules\Schemas\LateFeeRuleForm;
 use App\Filament\Resources\LateFeeRules\Tables\LateFeeRulesTable;
 use App\Models\LateFeeRule;
+use App\Traits\Permissions\HasEntityPermissions;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -17,6 +18,8 @@ use UnitEnum;
 
 class LateFeeRuleResource extends Resource
 {
+    use HasEntityPermissions;
+
     protected static ?string $model = LateFeeRule::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedExclamationCircle;

@@ -1,5 +1,7 @@
 <?php
 
+use App\Models\User;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 /*
@@ -42,7 +44,15 @@ expect()->extend('toBeOne', function () {
 |
 */
 
-function something()
+/**
+ * Bypasses all fine-grained permission checks via the app's Gate::before
+ * super-admin bypass, for tests that exercise feature behavior rather than
+ * authorization itself.
+ */
+function grantSuperAdmin(User $user): User
 {
-    // ..
+    Role::firstOrCreate(['name' => 'super-admin', 'guard_name' => 'web']);
+    $user->assignRole('super-admin');
+
+    return $user;
 }

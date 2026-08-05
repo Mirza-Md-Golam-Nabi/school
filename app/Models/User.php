@@ -45,7 +45,8 @@ class User extends Authenticatable implements FilamentUser, HasAvatar, MustVerif
     public function canAccessPanel(Panel $panel): bool
     {
         return match ($panel->getId()) {
-            'admin' => $this->isAdmin() || $this->isSuperAdmin() || $this->isStaff(),
+            'admin' => $this->isAdmin() || $this->isSuperAdmin() || $this->isStaff()
+                || $this->hasRole('super_admin_acting') || $this->hasRole('acting_admin'),
             'teacher' => $this->isTeacher(),
             'student' => $this->isStudent(),
             default => false,

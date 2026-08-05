@@ -16,7 +16,7 @@ use Spatie\Permission\Models\Role;
 uses(RefreshDatabase::class);
 
 it('prefills the class field when classId is passed as a query parameter', function () {
-    $admin = User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]);
+    $admin = grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]));
     $class = Classes::create(['name' => 'Class 5', 'order' => 5]);
 
     $response = $this->actingAs($admin)->get("/admin/student-profiles/create?classId={$class->id}");
@@ -26,7 +26,7 @@ it('prefills the class field when classId is passed as a query parameter', funct
 });
 
 it('leaves the class field empty when no classId is passed', function () {
-    $admin = User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]);
+    $admin = grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]));
     $class = Classes::create(['name' => 'Class 5', 'order' => 5]);
 
     $response = $this->actingAs($admin)->get('/admin/student-profiles/create');
@@ -36,7 +36,7 @@ it('leaves the class field empty when no classId is passed', function () {
 });
 
 it('defaults the password field to "password" on create', function () {
-    $admin = User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]);
+    $admin = grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]));
     $this->actingAs($admin);
 
     Livewire::test(CreateStudentProfile::class)
@@ -44,7 +44,7 @@ it('defaults the password field to "password" on create', function () {
 });
 
 it('sets the email field value only after class and roll no are both filled', function () {
-    $admin = User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]);
+    $admin = grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]));
     $this->actingAs($admin);
 
     $class = Classes::create(['name' => 'Class 5', 'order' => 5]);
@@ -58,7 +58,7 @@ it('sets the email field value only after class and roll no are both filled', fu
 });
 
 it('regenerates the auto-filled email when roll no is changed afterwards', function () {
-    $admin = User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]);
+    $admin = grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]));
     $this->actingAs($admin);
 
     $class = Classes::create(['name' => 'Class 5', 'order' => 5]);
@@ -71,7 +71,7 @@ it('regenerates the auto-filled email when roll no is changed afterwards', funct
 });
 
 it('pads a 1-digit roll no with a leading zero but leaves 2-3 digit roll numbers untouched', function () {
-    $admin = User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]);
+    $admin = grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]));
     $this->actingAs($admin);
 
     $class = Classes::create(['name' => 'Class 5', 'order' => 5]);
@@ -86,7 +86,7 @@ it('pads a 1-digit roll no with a leading zero but leaves 2-3 digit roll numbers
 });
 
 it('stops regenerating the email once the user edits it manually, even after roll no changes again', function () {
-    $admin = User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]);
+    $admin = grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]));
     $this->actingAs($admin);
 
     $class = Classes::create(['name' => 'Class 5', 'order' => 5]);
@@ -100,7 +100,7 @@ it('stops regenerating the email once the user edits it manually, even after rol
 });
 
 it('never touches the email when editing an existing student profile and changing roll no', function () {
-    $admin = User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]);
+    $admin = grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]));
     $this->actingAs($admin);
 
     $class = Classes::create(['name' => 'Class 5', 'order' => 5]);
@@ -121,7 +121,7 @@ it('never touches the email when editing an existing student profile and changin
 });
 
 it('does not overwrite an email the user already typed', function () {
-    $admin = User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]);
+    $admin = grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]));
     $this->actingAs($admin);
 
     $class = Classes::create(['name' => 'Class 5', 'order' => 5]);
@@ -133,7 +133,7 @@ it('does not overwrite an email the user already typed', function () {
 });
 
 it('appends the next user id when the generated email already exists', function () {
-    $admin = User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]);
+    $admin = grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]));
     $this->actingAs($admin);
 
     $class = Classes::create(['name' => 'Class 5', 'order' => 5]);
@@ -149,7 +149,7 @@ it('appends the next user id when the generated email already exists', function 
 it('creates a student profile without any address rows when both address fields are left blank', function () {
     Role::firstOrCreate(['name' => 'student', 'guard_name' => 'web']);
 
-    $admin = User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]);
+    $admin = grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]));
     $this->actingAs($admin);
 
     $class = Classes::create(['name' => 'Class 5', 'order' => 5]);

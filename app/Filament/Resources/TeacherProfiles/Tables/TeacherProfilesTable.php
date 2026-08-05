@@ -21,6 +21,7 @@ class TeacherProfilesTable
     public static function configure(Table $table): Table
     {
         return $table
+            ->defaultSort('user.name')
             ->columns([
                 TextColumn::make('user.name')
                     ->label('Name')

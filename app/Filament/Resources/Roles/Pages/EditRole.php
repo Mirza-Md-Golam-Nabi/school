@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Roles\Pages;
 
+use App\Actions\SyncActingAdminRolePermissionsAction;
 use App\Enums\PermissionRegistry;
 use App\Filament\Resources\Roles\RoleResource;
 use Filament\Actions\DeleteAction;
@@ -63,6 +64,11 @@ class EditRole extends EditRecord
             ->toArray();
 
         $this->record->syncPermissions($permissions);
+
+        // Keep Acting Admin's permissions mirroring the real 'admin' role.
+        if ($this->record->name === 'admin') {
+            app(SyncActingAdminRolePermissionsAction::class)->handle();
+        }
     }
 
     protected function getRedirectUrl(): string

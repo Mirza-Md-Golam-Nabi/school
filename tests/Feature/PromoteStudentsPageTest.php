@@ -18,7 +18,7 @@ uses(RefreshDatabase::class);
 
 function createAdminUser(): User
 {
-    return User::factory()->create(['user_type' => UserType::Admin]);
+    return grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin]));
 }
 
 function createEnrolledStudent(Classes $class, int $rollNo, int $sessionYear): StudentProfile

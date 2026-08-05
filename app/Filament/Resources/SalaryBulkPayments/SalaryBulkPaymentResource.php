@@ -5,6 +5,7 @@ namespace App\Filament\Resources\SalaryBulkPayments;
 use App\Filament\Resources\SalaryBulkPayments\Pages\ListSalaryBulkPayments;
 use App\Filament\Resources\SalaryBulkPayments\Tables\SalaryBulkPaymentsTable;
 use App\Models\SalaryBulkPayment;
+use App\Traits\Permissions\HasEntityPermissions;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Support\Icons\Heroicon;
@@ -13,6 +14,8 @@ use UnitEnum;
 
 class SalaryBulkPaymentResource extends Resource
 {
+    use HasEntityPermissions;
+
     protected static ?string $model = SalaryBulkPayment::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;

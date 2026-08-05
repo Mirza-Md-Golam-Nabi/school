@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ActingAdminLevel;
 use App\Enums\EmploymentStatus;
 use Database\Factories\ActingAdminFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -19,6 +20,7 @@ class ActingAdmin extends Model
         'assigned_by',
         'from_date',
         'to_date',
+        'level',
         'is_active',
         'remarks',
     ];
@@ -26,6 +28,7 @@ class ActingAdmin extends Model
     protected $casts = [
         'from_date' => 'date',
         'to_date' => 'date',
+        'level' => ActingAdminLevel::class,
         'is_active' => 'boolean',
     ];
 
@@ -39,11 +42,14 @@ class ActingAdmin extends Model
         return $this->belongsTo(User::class, 'assigned_by');
     }
 
+    /**
+     * A null to_date means no end date — active permanently until manually removed.
+     */
     public function isCurrentlyActive(): bool
     {
         return $this->is_active
         && $this->from_date->lte(Carbon::today())
-        && $this->to_date->gte(Carbon::today());
+        && ($this->to_date === null || $this->to_date->gte(Carbon::today()));
     }
 
     public static function activeUser()

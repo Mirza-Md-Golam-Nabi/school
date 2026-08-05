@@ -10,6 +10,7 @@ use App\Filament\Resources\Notices\Schemas\NoticeForm;
 use App\Filament\Resources\Notices\Schemas\NoticeInfolist;
 use App\Filament\Resources\Notices\Tables\NoticesTable;
 use App\Models\Notice;
+use App\Traits\Permissions\HasEntityPermissions;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -18,6 +19,8 @@ use Filament\Tables\Table;
 
 class NoticeResource extends Resource
 {
+    use HasEntityPermissions;
+
     protected static ?string $model = Notice::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedMegaphone;
