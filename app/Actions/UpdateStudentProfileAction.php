@@ -9,9 +9,9 @@ class UpdateStudentProfileAction
 {
     public function handle(StudentProfile $profile, array $data): StudentProfile
     {
+        // Email is system-generated and read-only — never accept updates to it here.
         $userData = [
             'name' => $data['name'],
-            'email' => $data['email'],
         ];
 
         if (filled($data['password'] ?? null)) {
@@ -23,6 +23,7 @@ class UpdateStudentProfileAction
         $profile->update([
             'roll_no' => $data['roll_no'] ?? null,
             'registration_no' => $data['registration_no'] ?? null,
+            'birth_certificate_no' => $data['birth_certificate_no'] ?? null,
             'current_class_id' => $data['current_class_id'] ?? null,
             'current_section_id' => $data['current_section_id'] ?? null,
             'current_group_id' => $data['current_group_id'] ?? null,

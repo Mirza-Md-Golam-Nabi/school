@@ -5,7 +5,9 @@ namespace App\Providers\Filament;
 use App\Filament\Student\Pages\Auth\EditProfile;
 use App\Filament\Student\Pages\Auth\Login;
 use App\Filament\Student\Pages\Auth\Register;
+use App\Filament\Student\Pages\Auth\RequestPinPasswordReset;
 use App\Filament\Student\Pages\Dashboard;
+use App\Http\Middleware\EnsurePasswordIsChanged;
 use Filament\Actions\Action;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -31,7 +33,7 @@ class StudentPanelProvider extends PanelProvider
             ->path('student')
             ->viteTheme('resources/css/filament/theme.css')
             ->login(Login::class)
-            ->passwordReset()
+            ->passwordReset(requestAction: RequestPinPasswordReset::class)
             ->emailVerification()
             ->emailChangeVerification()
             ->profile(EditProfile::class, isSimple: false)
@@ -69,6 +71,7 @@ class StudentPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
+                EnsurePasswordIsChanged::class,
             ]);
     }
 }

@@ -37,7 +37,7 @@ test('counts working days with friday-saturday weekend', function () {
 
 test('excludes public holidays from working days', function () {
     PublicHoliday::factory()->create([
-        'date' => '2026-06-03',
+        'start_date' => '2026-06-03',
         'is_recurring' => false,
     ]);
 

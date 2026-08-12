@@ -21,8 +21,8 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable(['name', 'phone', 'email', 'user_type', 'avatar', 'is_super_admin', 'is_active', 'password', 'email_verified_at'])]
-#[Hidden(['password', 'remember_token'])]
+#[Fillable(['name', 'phone', 'email', 'user_type', 'avatar', 'is_super_admin', 'is_active', 'password', 'email_verified_at', 'must_change_password', 'pin'])]
+#[Hidden(['password', 'remember_token', 'pin'])]
 class User extends Authenticatable implements FilamentUser, HasAvatar, MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
@@ -38,7 +38,9 @@ class User extends Authenticatable implements FilamentUser, HasAvatar, MustVerif
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'pin' => 'hashed',
             'user_type' => UserType::class,
+            'must_change_password' => 'boolean',
         ];
     }
 
