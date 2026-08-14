@@ -14,7 +14,7 @@ class TeacherMarksPendingWidget extends Widget
 {
     protected string $view = 'filament.teacher.widgets.marks-pending';
 
-    protected static ?int $sort = 6;
+    protected static ?int $sort = 8;
 
     protected int|string|array $columnSpan = [
         'default' => 1,

@@ -11,7 +11,7 @@
                 <span>তোমার সব বিষয়ের মার্কস এন্ট্রি সম্পন্ন।</span>
             </div>
         @else
-            <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            <div class="grid grid-cols-1 gap-1">
                 @foreach ($pending as $item)
                     <a
                         href="{{ $item['url'] }}"
