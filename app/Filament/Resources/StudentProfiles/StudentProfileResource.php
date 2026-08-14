@@ -10,6 +10,7 @@ use App\Filament\Resources\StudentProfiles\Pages\StudentsByClass;
 use App\Filament\Resources\StudentProfiles\Schemas\StudentProfileForm;
 use App\Filament\Resources\StudentProfiles\Tables\StudentProfilesTable;
 use App\Models\StudentProfile;
+use App\Traits\Permissions\HasEntityPermissions;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -21,6 +22,8 @@ use UnitEnum;
 
 class StudentProfileResource extends Resource
 {
+    use HasEntityPermissions;
+
     protected static ?string $model = StudentProfile::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUserGroup;

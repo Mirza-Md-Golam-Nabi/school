@@ -116,7 +116,7 @@ it('ranks the top 3 students per class independently', function () {
 });
 
 it('renders the ranking widget on the dashboard with a link to the detail page', function () {
-    $admin = User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]);
+    $admin = grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]));
 
     $response = $this->actingAs($admin)->get('/admin');
 
@@ -126,7 +126,7 @@ it('renders the ranking widget on the dashboard with a link to the detail page',
 });
 
 it('renders the ranking detail page', function () {
-    $admin = User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]);
+    $admin = grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]));
 
     $response = $this->actingAs($admin)->get('/admin/student-attendance-ranking');
 

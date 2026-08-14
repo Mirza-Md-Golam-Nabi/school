@@ -79,6 +79,20 @@ class TeacherProfile extends Model
         return $this->hasMany(TeacherSubject::class, 'teacher_id');
     }
 
+    public function classesAsClassTeacher(): HasMany
+    {
+        return $this->hasMany(Classes::class, 'class_teacher_id');
+    }
+
+    public function isAssignedToTeach(int $classId, int $subjectId, int $sessionYear): bool
+    {
+        return $this->teacherSubjects()
+            ->where('class_id', $classId)
+            ->where('subject_id', $subjectId)
+            ->where('session_year', $sessionYear)
+            ->exists();
+    }
+
     public function defaultSchoolAccount(): BelongsTo
     {
         return $this->belongsTo(SchoolAccount::class, 'default_school_account_id');
@@ -107,6 +121,7 @@ class TeacherProfile extends Model
             ->with('user')
             ->get()
             ->pluck('user.name', 'id')
+            ->sort()
             ->toArray();
     }
 }

@@ -1,7 +1,11 @@
 <x-filament-widgets::widget>
     <a
         href="{{ $url }}"
-        class="block rounded-xl bg-white p-3 shadow-sm ring-1 ring-gray-950/5 transition-shadow duration-150 hover:shadow-md dark:bg-gray-900 dark:ring-white/10 sm:p-4"
+        @class([
+            'block rounded-xl p-3 shadow-sm transition-shadow duration-150 hover:shadow-md sm:p-4',
+            'border border-danger-400 bg-danger-50 dark:border-danger-700 dark:bg-danger-950' => $totalDue > 0,
+            'bg-white ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10' => $totalDue <= 0,
+        ])
     >
         <div class="flex items-center gap-x-2 sm:gap-x-4">
             <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary-50 dark:bg-primary-950 sm:h-14 sm:w-14">

@@ -9,7 +9,10 @@
                 <x-heroicon-o-book-open class="h-5 w-5 text-primary-600 dark:text-primary-400 sm:h-7 sm:w-7" />
             </div>
             <div class="min-w-0">
-                <p class="text-xs font-bold tracking-tight text-gray-900 dark:text-white sm:text-2xl md:text-3xl">{{ $classCount }} Classes</p>
+                <p class="text-sm font-bold tracking-tight text-gray-900 dark:text-white sm:text-2xl md:text-3xl">
+                    {{ $classCount }}
+                    <span class="text-xs font-normal text-gray-500 dark:text-gray-400 sm:text-lg">{{ Str::plural('Class', $classCount) }}</span>
+                </p>
                 <p class="text-xs text-gray-500 dark:text-gray-400 sm:text-sm">My Teaching Load</p>
             </div>
         </div>

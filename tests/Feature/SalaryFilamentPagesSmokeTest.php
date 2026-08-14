@@ -18,7 +18,7 @@ uses(RefreshDatabase::class);
 
 function actingAsSalaryAdmin(): User
 {
-    return User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]);
+    return grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]));
 }
 
 it('renders the salary components list and create pages', function () {

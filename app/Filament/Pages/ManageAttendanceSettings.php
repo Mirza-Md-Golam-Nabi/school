@@ -3,6 +3,8 @@
 namespace App\Filament\Pages;
 
 use App\Enums\AttendanceMode;
+use App\Enums\Permissions\AttendancePermission;
+use App\Filament\Concerns\HasAttendancePagePermission;
 use App\Models\AttendanceSetting;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -24,6 +26,8 @@ use UnitEnum;
  */
 class ManageAttendanceSettings extends Page
 {
+    use HasAttendancePagePermission;
+
     protected string $view = 'filament.pages.manage-attendance-settings';
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCog6Tooth;
@@ -33,6 +37,11 @@ class ManageAttendanceSettings extends Page
     protected static ?string $navigationLabel = 'Settings';
 
     protected static ?int $navigationSort = 99;
+
+    protected static function attendancePermission(): AttendancePermission
+    {
+        return AttendancePermission::MANAGE_ATTENDANCE_SETTINGS;
+    }
 
     /** @var array<string, mixed>|null */
     public ?array $data = [];

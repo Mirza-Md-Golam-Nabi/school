@@ -9,7 +9,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 uses(RefreshDatabase::class);
 
 it('renders the create page with a selectable class list when no class_id is given in the URL', function () {
-    $admin = User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]);
+    $admin = grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]));
     $class = Classes::create(['name' => 'Class Eleven', 'order' => 11]);
 
     $response = $this->actingAs($admin)->get(CreateFeePayment::getUrl());
@@ -20,7 +20,7 @@ it('renders the create page with a selectable class list when no class_id is giv
 });
 
 it('still pre-fills the class from the class_id query parameter', function () {
-    $admin = User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]);
+    $admin = grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]));
     $class = Classes::create(['name' => 'Class Twelve', 'order' => 12]);
 
     $response = $this->actingAs($admin)->get(CreateFeePayment::getUrl(['class_id' => $class->id]));

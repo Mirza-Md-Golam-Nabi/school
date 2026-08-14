@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\ActingAdminLevel;
 use App\Models\ActingAdmin;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -21,6 +22,7 @@ class ActingAdminFactory extends Factory
             'assigned_by' => User::factory(),
             'from_date' => $fromDate,
             'to_date' => $toDate,
+            'level' => ActingAdminLevel::SuperAdmin,
             'is_active' => true,
             'remarks' => $this->faker->optional()->sentence(),
         ];

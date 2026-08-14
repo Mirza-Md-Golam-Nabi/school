@@ -8,10 +8,8 @@ use App\Enums\Religion;
 use App\Enums\StudentStatus;
 use App\Models\Classes;
 use App\Models\Section as SectionModel;
-use App\Models\User;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
-use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -33,67 +31,17 @@ class StudentProfileForm
                     ->icon('heroicon-o-user-circle')
                     ->columnSpanFull()
                     ->schema([
-                        Hidden::make('user_found')->default(false)->saved(false),
-                        Hidden::make('has_profile')->default(false)->saved(false),
-                        Hidden::make('email_is_manual')->default(false)->saved(false),
-
                         Grid::make(3)->schema([
                             TextInput::make('email')
                                 ->label('Email')
-                                ->email()
-                                ->required()
-                                ->live(onBlur: true)
-                                ->afterStateUpdated(function (Set $set, Get $get, ?string $state) {
-                                    $set('email_is_manual', true);
-
-                                    if (blank($state)) {
-                                        $set('user_found', false);
-                                        $set('has_profile', false);
-
-                                        return;
-                                    }
-
-                                    $user = User::where('email', $state)->first();
-
-                                    if ($user) {
-                                        $set('user_found', true);
-                                        $set('has_profile', $user->studentProfile !== null);
-
-                                        if (blank($get('name'))) {
-                                            $set('name', $user->name);
-                                        }
-                                    } else {
-                                        $set('user_found', false);
-                                        $set('has_profile', false);
-                                    }
-                                })
-                                ->rules(fn (string $operation, $record): array => $operation === 'edit'
-                                        ? [Rule::unique('users', 'email')->ignore($record?->user?->id)]
-                                        : []
-                                )
-                                ->helperText(fn (string $operation, Get $get): ?string => match (true) {
-                                    $operation !== 'create' => null,
-                                    (bool) $get('has_profile') => '⚠️ এই ইমেইলে ইতিমধ্যে student profile আছে — সেটি আপডেট হবে',
-                                    (bool) $get('user_found') => 'ℹ️ এই ইমেইলে account আছে — profile তৈরি হবে',
-                                    default => null,
-                                }),
+                                ->disabled()
+                                ->dehydrated(false)
+                                ->hidden(fn (string $operation): bool => $operation === 'create')
+                                ->helperText('এই ইমেইল সিস্টেম কর্তৃক স্বয়ংক্রিয়ভাবে তৈরি — পরিবর্তনযোগ্য নয়'),
 
                             TextInput::make('name')
                                 ->label('Full Name')
                                 ->required(),
-
-                            TextInput::make('password')
-                                ->label('Password')
-                                ->password()
-                                ->revealable()
-                                ->default(fn (string $operation): ?string => $operation === 'create' ? 'password' : null)
-                                ->required(fn (string $operation, Get $get): bool => $operation === 'create' && ! (bool) $get('user_found')
-                                )
-                                ->helperText(fn (string $operation, Get $get): ?string => match (true) {
-                                    $operation === 'edit' => 'খালি রাখলে password পরিবর্তন হবে না',
-                                    (bool) $get('user_found') => 'ব্যবহারকারী পাওয়া গেছে — password পরিবর্তন হবে না',
-                                    default => null,
-                                }),
                         ]),
                     ]),
 
@@ -106,11 +54,7 @@ class StudentProfileForm
                                 ->label('Roll No')
                                 ->integer()
                                 ->minValue(1)
-                                ->live(onBlur: true)
-                                ->required()
-                                ->afterStateUpdated(function (Set $set, Get $get, string $operation) {
-                                    self::fillGeneratedEmail($set, $get, $operation);
-                                }),
+                                ->required(),
 
                             TextInput::make('registration_no')
                                 ->label('Registration No')
@@ -129,10 +73,9 @@ class StudentProfileForm
                                 ->searchable()
                                 ->live()
                                 ->required()
-                                ->afterStateUpdated(function (Set $set, Get $get, string $operation) {
+                                ->afterStateUpdated(function (Set $set) {
                                     $set('current_section_id', null);
                                     $set('current_group_id', null);
-                                    self::fillGeneratedEmail($set, $get, $operation);
                                 }),
 
                             Select::make('current_section_id')
@@ -183,6 +126,18 @@ class StudentProfileForm
 
                             DatePicker::make('date_of_birth')
                                 ->label('Date of Birth'),
+
+                            TextInput::make('birth_certificate_no')
+                                ->label('Birth Certificate No')
+                                ->extraInputAttributes([
+                                    'inputmode' => 'numeric',
+                                    'pattern' => '[0-9]*',
+                                ])
+                                ->required()
+                                ->rules(fn (string $operation, $record): array => [
+                                    Rule::unique('student_profiles', 'birth_certificate_no')
+                                        ->ignore($operation === 'edit' ? $record?->id : null),
+                                ]),
 
                             Select::make('blood_group')
                                 ->label('Blood Group')
@@ -274,38 +229,5 @@ class StudentProfileForm
                             ->columnSpanFull(),
                     ]),
             ]);
-    }
-
-    private static function fillGeneratedEmail(Set $set, Get $get, string $operation): void
-    {
-        if ($operation !== 'create') {
-            return;
-        }
-
-        if ((bool) $get('email_is_manual')) {
-            return;
-        }
-
-        $rollNo = $get('roll_no');
-        $classId = $get('current_class_id');
-
-        if (blank($rollNo) || blank($classId)) {
-            return;
-        }
-
-        $classNumber = Classes::find($classId)?->order;
-
-        if ($classNumber === null) {
-            return;
-        }
-
-        $email = sprintf('class_%02d_%02d@example.com', $classNumber, $rollNo);
-
-        if (User::where('email', $email)->exists()) {
-            $nextId = (User::max('id') ?? 0) + 1;
-            $email = sprintf('class_%02d_%02d_%d@example.com', $classNumber, $rollNo, $nextId);
-        }
-
-        $set('email', $email);
     }
 }

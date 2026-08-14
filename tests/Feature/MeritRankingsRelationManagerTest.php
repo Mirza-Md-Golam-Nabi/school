@@ -175,3 +175,47 @@ it('opens the marks detail modal without error when a contribution rule applies'
         ->mountAction(TestAction::make('viewMarks')->table($ranking))
         ->assertOk();
 });
+
+it('hides the section rank and section columns/filter when the class has no sections', function () {
+    $admin = User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]);
+    $this->actingAs($admin);
+
+    $class = Classes::create(['name' => 'Sectionless Class', 'order' => 1]);
+    $examType = ExamType::create(['name' => 'Half Yearly', 'is_active' => true]);
+    $exam = Exam::create([
+        'exam_type_id' => $examType->id,
+        'class_id' => $class->id,
+        'session_year' => now()->year,
+        'start_date' => now()->toDateString(),
+        'end_date' => now()->addDays(5)->toDateString(),
+        'is_published' => true,
+    ]);
+
+    Livewire::test(MeritRankingsRelationManager::class, ['ownerRecord' => $exam, 'pageClass' => EditExam::class])
+        ->assertTableColumnHidden('section_rank')
+        ->assertTableColumnHidden('section.name')
+        ->assertTableFilterHidden('section_id');
+});
+
+it('shows the section rank and section columns/filter when the class has sections', function () {
+    $admin = User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]);
+    $this->actingAs($admin);
+
+    $class = Classes::create(['name' => 'Sectioned Class', 'order' => 1]);
+    $class->sections()->create(['name' => 'A']);
+
+    $examType = ExamType::create(['name' => 'Half Yearly', 'is_active' => true]);
+    $exam = Exam::create([
+        'exam_type_id' => $examType->id,
+        'class_id' => $class->id,
+        'session_year' => now()->year,
+        'start_date' => now()->toDateString(),
+        'end_date' => now()->addDays(5)->toDateString(),
+        'is_published' => true,
+    ]);
+
+    Livewire::test(MeritRankingsRelationManager::class, ['ownerRecord' => $exam, 'pageClass' => EditExam::class])
+        ->assertTableColumnVisible('section_rank')
+        ->assertTableColumnVisible('section.name')
+        ->assertTableFilterVisible('section_id');
+});

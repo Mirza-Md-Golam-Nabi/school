@@ -406,7 +406,7 @@ The system manages Students, Teachers, Staff, and Admins with role-based access 
 
 - **Framework:** Laravel 13
 - **PHP:** 8.2+
-- **Admin Panel:** Filament 3.x
+- **Admin Panel:** Filament 5.x
 - **Roles & Permissions:** Spatie Laravel Permission
 - **Testing:** Pest PHP
 - **Code Style:** Laravel Pint

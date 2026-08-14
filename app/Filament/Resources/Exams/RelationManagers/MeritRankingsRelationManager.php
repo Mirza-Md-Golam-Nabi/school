@@ -22,6 +22,8 @@ class MeritRankingsRelationManager extends RelationManager
 
     public function table(Table $table): Table
     {
+        $hasSections = $this->getOwnerRecord()->class?->sections()->exists() ?? false;
+
         return $table
             ->columns([
                 TextColumn::make('class_rank')
@@ -48,7 +50,8 @@ class MeritRankingsRelationManager extends RelationManager
                     ->sortable()
                     ->badge()
                     ->color('info')
-                    ->placeholder('—'),
+                    ->placeholder('—')
+                    ->visible($hasSections),
 
                 TextColumn::make('student.roll_no')
                     ->label('Roll')
@@ -63,7 +66,8 @@ class MeritRankingsRelationManager extends RelationManager
                 TextColumn::make('section.name')
                     ->label('Section')
                     ->alignCenter()
-                    ->placeholder('—'),
+                    ->placeholder('—')
+                    ->visible($hasSections),
 
                 TextColumn::make('total_marks')
                     ->label('Total Marks')
@@ -89,7 +93,8 @@ class MeritRankingsRelationManager extends RelationManager
                 SelectFilter::make('section_id')
                     ->label('Section')
                     ->relationship('section', 'name')
-                    ->placeholder('All Sections'),
+                    ->placeholder('All Sections')
+                    ->visible($hasSections),
             ])
             ->recordActions([
                 Action::make('viewMarks')

@@ -24,7 +24,7 @@ function createSortTestStructure(TeacherProfile|StaffProfile $profile): SalarySt
 }
 
 it('renders the list page and sorts by name across teachers and staff without error', function () {
-    $admin = User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]);
+    $admin = grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]));
     $this->actingAs($admin);
 
     $zaman = TeacherProfile::factory()->create(['status' => EmploymentStatus::Active, 'user_id' => User::factory()->create(['name' => 'Zaman Khan'])]);
@@ -46,7 +46,7 @@ it('renders the list page and sorts by name across teachers and staff without er
 });
 
 it('re-sorts by name descending when the Name column header is clicked', function () {
-    $admin = User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]);
+    $admin = grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]));
     $this->actingAs($admin);
 
     $zaman = TeacherProfile::factory()->create(['status' => EmploymentStatus::Active, 'user_id' => User::factory()->create(['name' => 'Zaman Khan'])]);

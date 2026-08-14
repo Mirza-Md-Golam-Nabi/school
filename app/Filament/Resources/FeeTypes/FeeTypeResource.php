@@ -8,6 +8,7 @@ use App\Filament\Resources\FeeTypes\Pages\ListFeeTypes;
 use App\Filament\Resources\FeeTypes\Schemas\FeeTypeForm;
 use App\Filament\Resources\FeeTypes\Tables\FeeTypesTable;
 use App\Models\FeeType;
+use App\Traits\Permissions\HasEntityPermissions;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -17,6 +18,8 @@ use UnitEnum;
 
 class FeeTypeResource extends Resource
 {
+    use HasEntityPermissions;
+
     protected static ?string $model = FeeType::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBanknotes;

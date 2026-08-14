@@ -8,6 +8,7 @@ use App\Filament\Resources\AdmitCards\Pages\ViewAdmitCard;
 use App\Filament\Resources\AdmitCards\Schemas\AdmitCardInfolist;
 use App\Filament\Resources\AdmitCards\Tables\AdmitCardsTable;
 use App\Models\AdmitCard;
+use App\Traits\Permissions\HasEntityPermissions;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -17,6 +18,8 @@ use UnitEnum;
 
 class AdmitCardResource extends Resource
 {
+    use HasEntityPermissions;
+
     protected static ?string $model = AdmitCard::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedIdentification;

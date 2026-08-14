@@ -3,6 +3,8 @@
 namespace App\Filament\Pages;
 
 use App\Enums\AttendanceStatus;
+use App\Enums\Permissions\AttendancePermission;
+use App\Filament\Concerns\HasAttendancePagePermission;
 use App\Models\Attendance;
 use App\Models\TeacherProfile;
 use BackedEnum;
@@ -15,7 +17,14 @@ use UnitEnum;
 
 class TeacherAttendanceHistory extends Page
 {
+    use HasAttendancePagePermission;
+
     protected string $view = 'filament.pages.teacher-attendance-history';
+
+    protected static function attendancePermission(): AttendancePermission
+    {
+        return AttendancePermission::VIEW_ATTENDANCE;
+    }
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedClipboardDocumentList;
 

@@ -3,6 +3,8 @@
 namespace App\Filament\Pages;
 
 use App\Enums\AttendanceStatus;
+use App\Enums\Permissions\AttendancePermission;
+use App\Filament\Concerns\HasAttendancePagePermission;
 use App\Models\Attendance;
 use App\Models\Classes;
 use App\Models\StudentProfile;
@@ -14,7 +16,14 @@ use UnitEnum;
 
 class StudentAttendanceRanking extends Page
 {
+    use HasAttendancePagePermission;
+
     protected string $view = 'filament.pages.student-attendance-ranking';
+
+    protected static function attendancePermission(): AttendancePermission
+    {
+        return AttendancePermission::VIEW_ATTENDANCE;
+    }
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedTrophy;
 

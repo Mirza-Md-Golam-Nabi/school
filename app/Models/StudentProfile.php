@@ -21,6 +21,7 @@ class StudentProfile extends Model
         'user_id',
         'roll_no',
         'registration_no',
+        'birth_certificate_no',
         'current_class_id',
         'current_section_id',
         'current_group_id',

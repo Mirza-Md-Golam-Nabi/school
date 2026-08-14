@@ -5,21 +5,24 @@ use App\Enums\Gender;
 use App\Enums\StudentStatus;
 use App\Enums\UserType;
 use App\Filament\Pages\AttendanceModificationDetails;
-use App\Filament\Teacher\Pages\MarkStudentAttendance;
+use App\Filament\Pages\MarkStudentAttendance as AdminMarkStudentAttendance;
+use App\Filament\Teacher\Pages\MarkStudentAttendance as TeacherMarkStudentAttendance;
 use App\Models\Attendance;
 use App\Models\AttendanceStatusChange;
 use App\Models\Classes;
-use App\Models\PublicHoliday;
-use App\Models\SchoolSetting;
 use App\Models\StudentProfile;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
 
 uses(RefreshDatabase::class);
+
+dataset('attendanceModificationPanels', [
+    'admin panel' => [AdminMarkStudentAttendance::class],
+    'teacher panel' => [TeacherMarkStudentAttendance::class],
+]);
 
 function createAttendanceModificationTestClass(): Classes
 {
@@ -56,12 +59,13 @@ function seedAttendanceModificationTestRecord(StudentProfile $student, Classes $
     ]);
 }
 
-function actingAsAttendanceModificationTeacher(): User
+function actingAsAttendanceModificationMarker(string $componentClass): User
 {
-    $teacher = User::factory()->create(['user_type' => UserType::Teacher, 'is_active' => true]);
-    test()->actingAs($teacher);
+    $userType = $componentClass === AdminMarkStudentAttendance::class ? UserType::Admin : UserType::Teacher;
+    $marker = grantSuperAdmin(User::factory()->create(['user_type' => $userType, 'is_active' => true]));
+    test()->actingAs($marker);
 
-    return $teacher;
+    return $marker;
 }
 
 function createAttendanceModificationAdmin(): User
@@ -74,36 +78,39 @@ function createAttendanceModificationAdmin(): User
     return $admin;
 }
 
-it('does not notify admins when a past working day is marked for the first time', function () {
-    SchoolSetting::set('weekend_days', json_encode([]));
-
+it('notifies admins when attendance is created for the first time on a past date', function (string $componentClass) {
     $admin = createAttendanceModificationAdmin();
     $class = createAttendanceModificationTestClass();
     $student = createAttendanceModificationTestStudent($class, 1);
-    actingAsAttendanceModificationTeacher();
+    actingAsAttendanceModificationMarker($componentClass);
 
     $pastDate = today()->subDays(3)->toDateString();
 
-    Livewire::test(MarkStudentAttendance::class)
+    Livewire::test($componentClass)
         ->set('classId', $class->id)
         ->set('date', $pastDate)
         ->set('presentIds', [(string) $student->id])
         ->call('save');
 
-    expect(AttendanceStatusChange::count())->toBe(0)
-        ->and($admin->notifications()->count())->toBe(0);
-});
+    expect(AttendanceStatusChange::count())->toBe(1);
 
-it('does not notify admins when re-saving a past date with unchanged statuses', function () {
+    $change = AttendanceStatusChange::first();
+
+    expect($change->old_status)->toBeNull()
+        ->and($change->new_status)->toBe(AttendanceStatus::Present)
+        ->and($admin->notifications()->count())->toBe(1);
+})->with('attendanceModificationPanels');
+
+it('does not notify admins when re-saving a past date with unchanged statuses', function (string $componentClass) {
     $admin = createAttendanceModificationAdmin();
     $class = createAttendanceModificationTestClass();
     $student = createAttendanceModificationTestStudent($class, 1);
-    actingAsAttendanceModificationTeacher();
+    actingAsAttendanceModificationMarker($componentClass);
 
     $pastDate = today()->subDays(3)->toDateString();
     seedAttendanceModificationTestRecord($student, $class, $pastDate, AttendanceStatus::Present);
 
-    Livewire::test(MarkStudentAttendance::class)
+    Livewire::test($componentClass)
         ->set('classId', $class->id)
         ->set('date', $pastDate)
         ->set('presentIds', [(string) $student->id])
@@ -111,21 +118,21 @@ it('does not notify admins when re-saving a past date with unchanged statuses', 
 
     expect(AttendanceStatusChange::count())->toBe(0)
         ->and($admin->notifications()->count())->toBe(0);
-});
+})->with('attendanceModificationPanels');
 
-it('notifies admins with the correct details when a past date attendance status is changed', function () {
+it('notifies admins with the correct details when a past date attendance status is changed', function (string $componentClass) {
     $admin = createAttendanceModificationAdmin();
     $class = createAttendanceModificationTestClass();
     $student = createAttendanceModificationTestStudent($class, 1);
     $otherStudent = createAttendanceModificationTestStudent($class, 2);
-    $teacher = actingAsAttendanceModificationTeacher();
+    $marker = actingAsAttendanceModificationMarker($componentClass);
 
     $pastDate = today()->subDays(3)->toDateString();
     seedAttendanceModificationTestRecord($student, $class, $pastDate, AttendanceStatus::Present);
     seedAttendanceModificationTestRecord($otherStudent, $class, $pastDate, AttendanceStatus::Absent);
 
     // Flip $student from present to absent, keep $otherStudent as absent (unchanged).
-    Livewire::test(MarkStudentAttendance::class)
+    Livewire::test($componentClass)
         ->set('classId', $class->id)
         ->set('date', $pastDate)
         ->set('presentIds', [])
@@ -139,7 +146,7 @@ it('notifies admins with the correct details when a past date attendance status 
         ->and($change->class_id)->toBe($class->id)
         ->and($change->old_status)->toBe(AttendanceStatus::Present)
         ->and($change->new_status)->toBe(AttendanceStatus::Absent)
-        ->and($change->changed_by)->toBe($teacher->id);
+        ->and($change->changed_by)->toBe($marker->id);
 
     expect($admin->notifications()->count())->toBe(1);
 
@@ -148,22 +155,18 @@ it('notifies admins with the correct details when a past date attendance status 
     expect($notification->data['title'])->toBe('Attendance Flagged for Review')
         ->and($notification->data['body'])->toContain('1 student')
         ->and($notification->data['body'])->toContain($class->name);
-});
+})->with('attendanceModificationPanels');
 
-it("does not notify admins when modifying today's attendance on a working day", function () {
-    // Explicitly clear weekend days so this test is deterministic regardless of which
-    // real-world weekday it happens to run on.
-    SchoolSetting::set('weekend_days', json_encode([]));
-
+it("does not notify admins when modifying today's attendance", function (string $componentClass) {
     $admin = createAttendanceModificationAdmin();
     $class = createAttendanceModificationTestClass();
     $student = createAttendanceModificationTestStudent($class, 1);
-    actingAsAttendanceModificationTeacher();
+    actingAsAttendanceModificationMarker($componentClass);
 
     $today = today()->toDateString();
     seedAttendanceModificationTestRecord($student, $class, $today, AttendanceStatus::Present);
 
-    Livewire::test(MarkStudentAttendance::class)
+    Livewire::test($componentClass)
         ->set('classId', $class->id)
         ->set('date', $today)
         ->set('presentIds', [])
@@ -171,126 +174,17 @@ it("does not notify admins when modifying today's attendance on a working day", 
 
     expect(AttendanceStatusChange::count())->toBe(0)
         ->and($admin->notifications()->count())->toBe(0);
-});
+})->with('attendanceModificationPanels');
 
-it('notifies admins when a non-past attendance status is changed on a weekend day', function () {
-    SchoolSetting::set('weekend_days', json_encode(['friday']));
-
+it('does not notify admins when attendance is created for the first time on today', function (string $componentClass) {
     $admin = createAttendanceModificationAdmin();
     $class = createAttendanceModificationTestClass();
     $student = createAttendanceModificationTestStudent($class, 1);
-    actingAsAttendanceModificationTeacher();
-
-    $friday = Carbon::today()->next(Carbon::FRIDAY)->toDateString();
-    seedAttendanceModificationTestRecord($student, $class, $friday, AttendanceStatus::Present);
-
-    Livewire::test(MarkStudentAttendance::class)
-        ->set('classId', $class->id)
-        ->set('date', $friday)
-        ->set('presentIds', [])
-        ->call('save');
-
-    expect(AttendanceStatusChange::count())->toBe(1)
-        ->and($admin->notifications()->count())->toBe(1);
-});
-
-it('notifies admins when a non-past attendance status is changed on a public holiday', function () {
-    SchoolSetting::set('weekend_days', json_encode([]));
-
-    $admin = createAttendanceModificationAdmin();
-    $class = createAttendanceModificationTestClass();
-    $student = createAttendanceModificationTestStudent($class, 1);
-    actingAsAttendanceModificationTeacher();
-
-    $holidayDate = today()->addDays(10);
-
-    PublicHoliday::create([
-        'name' => 'Test Holiday',
-        'start_date' => $holidayDate,
-        'is_recurring' => false,
-    ]);
-
-    seedAttendanceModificationTestRecord($student, $class, $holidayDate->toDateString(), AttendanceStatus::Present);
-
-    Livewire::test(MarkStudentAttendance::class)
-        ->set('classId', $class->id)
-        ->set('date', $holidayDate->toDateString())
-        ->set('presentIds', [])
-        ->call('save');
-
-    expect(AttendanceStatusChange::count())->toBe(1)
-        ->and($admin->notifications()->count())->toBe(1);
-});
-
-it('notifies admins when attendance is created for the first time on a weekend day', function () {
-    // Attendance is never normally taken on a weekend, so there's no pre-existing
-    // record to "change" — the mere act of recording it at all must be flagged.
-    SchoolSetting::set('weekend_days', json_encode(['friday']));
-
-    $admin = createAttendanceModificationAdmin();
-    $class = createAttendanceModificationTestClass();
-    $student = createAttendanceModificationTestStudent($class, 1);
-    actingAsAttendanceModificationTeacher();
-
-    $friday = Carbon::today()->next(Carbon::FRIDAY)->toDateString();
-
-    Livewire::test(MarkStudentAttendance::class)
-        ->set('classId', $class->id)
-        ->set('date', $friday)
-        ->set('presentIds', [(string) $student->id])
-        ->call('save');
-
-    expect(AttendanceStatusChange::count())->toBe(1);
-
-    $change = AttendanceStatusChange::first();
-
-    expect($change->old_status)->toBeNull()
-        ->and($change->new_status)->toBe(AttendanceStatus::Present)
-        ->and($admin->notifications()->count())->toBe(1);
-});
-
-it('notifies admins when attendance is created for the first time on a public holiday', function () {
-    SchoolSetting::set('weekend_days', json_encode([]));
-
-    $admin = createAttendanceModificationAdmin();
-    $class = createAttendanceModificationTestClass();
-    $student = createAttendanceModificationTestStudent($class, 1);
-    actingAsAttendanceModificationTeacher();
-
-    $holidayDate = today()->addDays(10);
-
-    PublicHoliday::create([
-        'name' => 'Test Holiday',
-        'start_date' => $holidayDate,
-        'is_recurring' => false,
-    ]);
-
-    Livewire::test(MarkStudentAttendance::class)
-        ->set('classId', $class->id)
-        ->set('date', $holidayDate->toDateString())
-        ->set('presentIds', [(string) $student->id])
-        ->call('save');
-
-    expect(AttendanceStatusChange::count())->toBe(1);
-
-    $change = AttendanceStatusChange::first();
-
-    expect($change->old_status)->toBeNull()
-        ->and($change->new_status)->toBe(AttendanceStatus::Present)
-        ->and($admin->notifications()->count())->toBe(1);
-});
-
-it('does not notify admins when attendance is created for the first time on an ordinary working day', function () {
-    SchoolSetting::set('weekend_days', json_encode([]));
-
-    $admin = createAttendanceModificationAdmin();
-    $class = createAttendanceModificationTestClass();
-    $student = createAttendanceModificationTestStudent($class, 1);
-    actingAsAttendanceModificationTeacher();
+    actingAsAttendanceModificationMarker($componentClass);
 
     $today = today()->toDateString();
 
-    Livewire::test(MarkStudentAttendance::class)
+    Livewire::test($componentClass)
         ->set('classId', $class->id)
         ->set('date', $today)
         ->set('presentIds', [(string) $student->id])
@@ -298,28 +192,49 @@ it('does not notify admins when attendance is created for the first time on an o
 
     expect(AttendanceStatusChange::count())->toBe(0)
         ->and($admin->notifications()->count())->toBe(0);
-});
+})->with('attendanceModificationPanels');
 
-it('does not notify admins when a non-past, non-weekend, non-holiday attendance status is changed', function () {
-    SchoolSetting::set('weekend_days', json_encode([]));
-
+it('notifies admins when attendance is created for the first time on a future date', function (string $componentClass) {
     $admin = createAttendanceModificationAdmin();
     $class = createAttendanceModificationTestClass();
     $student = createAttendanceModificationTestStudent($class, 1);
-    actingAsAttendanceModificationTeacher();
+    actingAsAttendanceModificationMarker($componentClass);
+
+    $futureDate = today()->addDays(5)->toDateString();
+
+    Livewire::test($componentClass)
+        ->set('classId', $class->id)
+        ->set('date', $futureDate)
+        ->set('presentIds', [(string) $student->id])
+        ->call('save');
+
+    expect(AttendanceStatusChange::count())->toBe(1);
+
+    $change = AttendanceStatusChange::first();
+
+    expect($change->old_status)->toBeNull()
+        ->and($change->new_status)->toBe(AttendanceStatus::Present)
+        ->and($admin->notifications()->count())->toBe(1);
+})->with('attendanceModificationPanels');
+
+it('notifies admins when a future date attendance status is changed', function (string $componentClass) {
+    $admin = createAttendanceModificationAdmin();
+    $class = createAttendanceModificationTestClass();
+    $student = createAttendanceModificationTestStudent($class, 1);
+    actingAsAttendanceModificationMarker($componentClass);
 
     $futureDate = today()->addDays(5)->toDateString();
     seedAttendanceModificationTestRecord($student, $class, $futureDate, AttendanceStatus::Present);
 
-    Livewire::test(MarkStudentAttendance::class)
+    Livewire::test($componentClass)
         ->set('classId', $class->id)
         ->set('date', $futureDate)
         ->set('presentIds', [])
         ->call('save');
 
-    expect(AttendanceStatusChange::count())->toBe(0)
-        ->and($admin->notifications()->count())->toBe(0);
-});
+    expect(AttendanceStatusChange::count())->toBe(1)
+        ->and($admin->notifications()->count())->toBe(1);
+})->with('attendanceModificationPanels');
 
 it('renders the changed students for a given batch on the details page', function () {
     $class = createAttendanceModificationTestClass();
@@ -347,7 +262,7 @@ it('renders the changed students for a given batch on the details page', functio
         'batch_id' => $batchId,
     ]);
 
-    $admin = User::factory()->create(['user_type' => UserType::Admin]);
+    $admin = grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin]));
 
     Livewire::actingAs($admin)
         ->test(AttendanceModificationDetails::class, ['batchId' => $batchId])

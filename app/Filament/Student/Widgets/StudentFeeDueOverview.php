@@ -15,8 +15,7 @@ class StudentFeeDueOverview extends Widget
     protected static ?int $sort = 4;
 
     protected int|string|array $columnSpan = [
-        'default' => 'full',
-        'md' => 1,
+        'default' => 1,
     ];
 
     protected static bool $isLazy = false;
@@ -24,7 +23,7 @@ class StudentFeeDueOverview extends Widget
     public function getViewData(): array
     {
         $profile = Auth::user()->studentProfile;
-        $url = FeeInvoiceResource::getUrl('index');
+        $url = FeeInvoiceResource::getUrl('index', panel: 'student');
 
         if (! $profile) {
             return [

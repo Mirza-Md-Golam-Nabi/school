@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\StudentProfiles\Pages;
 
+use App\Filament\Resources\StudentProfiles\Concerns\HasStudentCredentialsModal;
 use App\Filament\Resources\StudentProfiles\StudentProfileResource;
 use App\Filament\Resources\StudentProfiles\Tables\StudentProfilesTable;
 use App\Models\Classes;
@@ -14,10 +15,28 @@ use Livewire\Attributes\Url;
 
 class StudentsByClass extends ListRecords
 {
+    use HasStudentCredentialsModal;
+
     protected static string $resource = StudentProfileResource::class;
 
     #[Url(as: 'classId')]
     public int $classId = 0;
+
+    public function mount(): void
+    {
+        parent::mount();
+
+        $credentials = session()->pull('generated_student_credentials');
+
+        if ($credentials) {
+            // Actions aren't cached yet during mount(), so mountAction() here would
+            // silently no-op. defaultAction/defaultActionArguments are read by
+            // Filament's page view and mounted client-side via wire:init, once the
+            // component has fully booted.
+            $this->defaultAction = 'studentCredentials';
+            $this->defaultActionArguments = $credentials;
+        }
+    }
 
     public function getTitle(): string|Htmlable
     {

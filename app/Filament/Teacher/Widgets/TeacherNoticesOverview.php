@@ -15,7 +15,7 @@ class TeacherNoticesOverview extends Widget
 
     protected string $view = 'filament.teacher.widgets.teacher-notices-overview';
 
-    protected static ?int $sort = 5;
+    protected static ?int $sort = 9;
 
     protected int|string|array $columnSpan = [
         'default' => 'full',

@@ -79,7 +79,7 @@ it('only counts attendance recorded for that specific class', function () {
 });
 
 it('renders the class ranking page for a given classId', function () {
-    $admin = User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]);
+    $admin = grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]));
     $class = Classes::create(['name' => 'Class 8', 'order' => 8]);
     $student = createClassRankingTestStudent($class, 1);
 
@@ -93,7 +93,7 @@ it('renders the class ranking page for a given classId', function () {
 });
 
 it('links each class card on the ranking page to its class attendance ranking page', function () {
-    $admin = User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]);
+    $admin = grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]));
     $class = Classes::create(['name' => 'Class 9', 'order' => 9]);
 
     $response = $this->actingAs($admin)->get(StudentAttendanceRanking::getUrl());

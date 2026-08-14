@@ -8,6 +8,7 @@ use App\Filament\Resources\StaffProfiles\Pages\ListStaffProfiles;
 use App\Filament\Resources\StaffProfiles\Schemas\StaffProfileForm;
 use App\Filament\Resources\StaffProfiles\Tables\StaffProfilesTable;
 use App\Models\StaffProfile;
+use App\Traits\Permissions\HasEntityPermissions;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -19,6 +20,8 @@ use UnitEnum;
 
 class StaffProfileResource extends Resource
 {
+    use HasEntityPermissions;
+
     protected static ?string $model = StaffProfile::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBriefcase;

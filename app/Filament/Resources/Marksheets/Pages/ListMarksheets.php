@@ -2,18 +2,44 @@
 
 namespace App\Filament\Resources\Marksheets\Pages;
 
-use App\Actions\GenerateMarksheetsForExamAction;
+use App\Actions\GenerateMarksheetsForExamTypeAction;
 use App\Filament\Resources\Marksheets\MarksheetResource;
-use App\Models\Exam;
+use App\Models\Classes;
+use App\Models\ExamType;
+use App\Models\Marksheet;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
-use Filament\Resources\Pages\ListRecords;
+use Filament\Resources\Pages\Page;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Support\Collection;
 
-class ListMarksheets extends ListRecords
+class ListMarksheets extends Page
 {
     protected static string $resource = MarksheetResource::class;
+
+    protected string $view = 'filament.resources.marksheets.pages.list-marksheets';
+
+    public Collection $classes;
+
+    public function mount(): void
+    {
+        $this->classes = Classes::active()
+            ->orderBy('order', 'asc')
+            ->get()
+            ->each(function ($class) {
+                $stats = Marksheet::whereHas(
+                    'student', fn ($q) => $q->where('current_class_id', $class->id)
+                )
+                    ->get(['is_generated'])
+                    ->groupBy(fn (Marksheet $marksheet) => $marksheet->is_generated ? 'generated' : 'pending')
+                    ->map->count();
+
+                $class->marksheetStats = $stats;
+                $class->total_marksheets = $stats->sum();
+                $class->pending_count = $stats->get('pending', 0);
+            });
+    }
 
     protected function getHeaderActions(): array
     {
@@ -23,36 +49,32 @@ class ListMarksheets extends ListRecords
                 ->icon(Heroicon::OutlinedDocumentPlus)
                 ->color('success')
                 ->schema([
-                    Select::make('exam_id')
+                    Select::make('exam_type_id')
                         ->label('Exam')
-                        ->options(fn () => Exam::query()
-                            ->with(['examType', 'class'])
-                            ->orderByDesc('start_date')
-                            ->get()
-                            ->mapWithKeys(fn (Exam $exam) => [
-                                $exam->id => "{$exam->class?->name} — {$exam->examType?->name} — {$exam->session_year}",
-                            ]))
+                        ->options(fn () => ExamType::query()->orderBy('name')->pluck('name', 'id'))
                         ->searchable()
                         ->native(false)
                         ->required(),
                 ])
                 ->modalHeading('Generate Marksheets')
-                ->modalDescription('Marksheets will be generated for every active student in the exam\'s class who already has a calculated ranking. Run "Calculate Rankings" on the exam first if needed.')
+                ->modalDescription('Marksheets will be generated for every class that has this exam, for students who already have a calculated ranking. Run "Calculate Rankings" on the exam first if needed.')
                 ->modalSubmitActionLabel('Generate')
                 ->action(function (array $data) {
-                    $exam = Exam::findOrFail($data['exam_id']);
+                    $examType = ExamType::findOrFail($data['exam_type_id']);
 
-                    $result = app(GenerateMarksheetsForExamAction::class)
-                        ->handle($exam, auth()->id());
+                    $result = app(GenerateMarksheetsForExamTypeAction::class)
+                        ->handle($examType, auth()->id());
 
                     Notification::make()
                         ->title('Marksheet generation queued')
                         ->body(
-                            "Created: {$result['created']} | Already existed: {$result['skipped_already_exists']} | ".
+                            "Created: {$result['created']} | Regenerated: {$result['regenerated']} | ".
                             "Skipped (no ranking yet): {$result['skipped_no_ranking']}"
                         )
                         ->success()
                         ->send();
+
+                    $this->redirect(MarksheetResource::getUrl('index'));
                 }),
         ];
     }

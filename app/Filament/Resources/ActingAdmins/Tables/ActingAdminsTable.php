@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\ActingAdmins\Tables;
 
+use App\Enums\ActingAdminLevel;
 use App\Models\ActingAdmin;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -28,11 +29,16 @@ class ActingAdminsTable
                 TextColumn::make('assignedBy.name')
                     ->label('Assigned By')
                     ->searchable(),
+                TextColumn::make('level')
+                    ->badge()
+                    ->formatStateUsing(fn (ActingAdminLevel $state) => $state->getLabel())
+                    ->color(fn (ActingAdminLevel $state) => $state->getColor()),
                 TextColumn::make('from_date')
                     ->date()
                     ->sortable(),
                 TextColumn::make('to_date')
                     ->date()
+                    ->placeholder('No end date')
                     ->sortable(),
                 IconColumn::make('is_active')
                     ->boolean(),
@@ -62,12 +68,18 @@ class ActingAdminsTable
                                         ->label('Acting User'),
                                     TextEntry::make('assignedBy.name')
                                         ->label('Assigned By'),
+                                    TextEntry::make('level')
+                                        ->label('Acting As')
+                                        ->badge()
+                                        ->formatStateUsing(fn (ActingAdminLevel $state) => $state->getLabel())
+                                        ->color(fn (ActingAdminLevel $state) => $state->getColor()),
                                     TextEntry::make('from_date')
                                         ->label('From Date')
                                         ->date(),
                                     TextEntry::make('to_date')
                                         ->label('To Date')
-                                        ->date(),
+                                        ->date()
+                                        ->placeholder('No end date'),
                                     IconEntry::make('is_active')
                                         ->label('Active')
                                         ->boolean(),

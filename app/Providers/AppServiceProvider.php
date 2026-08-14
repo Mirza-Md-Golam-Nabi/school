@@ -15,19 +15,13 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Acting admins are intentionally NOT bypassed here — they get panel
+        // access via the super_admin_acting role (see User::canAccessPanel())
+        // and their actual permissions come from that role's synced
+        // permissions (see ActingAdminRoleSeeder), so the boundary can be
+        // tightened or loosened just by editing the seeder.
         Gate::before(function ($user, $_ability) {
             if ($user->hasRole('super-admin')) {
-                return true;
-            }
-
-            // Acting admin gets super-admin level access during active period
-            $isActing = ActingAdmin::where('user_id', $user->id)
-                ->where('is_active', true)
-                ->where('from_date', '<=', today())
-                ->where('to_date', '>=', today())
-                ->exists();
-
-            if ($isActing) {
                 return true;
             }
         });

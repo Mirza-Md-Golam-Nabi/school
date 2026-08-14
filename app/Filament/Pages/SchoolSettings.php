@@ -46,12 +46,17 @@ class SchoolSettings extends Page
             'weekend_days' => json_decode($weekendRaw, true) ?? ['friday'],
             'school_logo' => SchoolSetting::get('school_logo') ?: null,
             'school_address' => SchoolSetting::get('school_address', ''),
+            'school_established_year' => SchoolSetting::get('school_established_year') ?: null,
             'school_seal' => SchoolSetting::get('school_seal') ?: null,
             'principal_signature' => SchoolSetting::get('principal_signature') ?: null,
             'admit_card_use_watermark' => (bool) SchoolSetting::get('admit_card_use_watermark', '0'),
             'admit_card_watermark_text' => SchoolSetting::get('admit_card_watermark_text', ''),
             'admit_card_use_logo' => (bool) SchoolSetting::get('admit_card_use_logo', '1'),
             'admit_card_footer_text' => SchoolSetting::get('admit_card_footer_text', ''),
+            'marksheet_use_watermark' => (bool) SchoolSetting::get('marksheet_use_watermark', '0'),
+            'marksheet_watermark_text' => SchoolSetting::get('marksheet_watermark_text', ''),
+            'marksheet_use_logo' => (bool) SchoolSetting::get('marksheet_use_logo', '1'),
+            'marksheet_footer_text' => SchoolSetting::get('marksheet_footer_text', ''),
         ]);
     }
 
@@ -109,6 +114,12 @@ class SchoolSettings extends Page
                             ->label('School Address')
                             ->rows(2)
                             ->columnSpanFull(),
+                        TextInput::make('school_established_year')
+                            ->label('Established Year')
+                            ->numeric()
+                            ->minValue(1800)
+                            ->maxValue((int) now()->format('Y'))
+                            ->placeholder(now()->year),
                     ]),
 
                 Section::make('Admit Card')
@@ -124,6 +135,23 @@ class SchoolSettings extends Page
                             ->visible(fn (Get $get) => $get('admit_card_use_watermark'))
                             ->columnSpanFull(),
                         TextInput::make('admit_card_footer_text')
+                            ->label('Footer Text')
+                            ->columnSpanFull(),
+                    ]),
+
+                Section::make('Marksheet')
+                    ->columns(2)
+                    ->schema([
+                        Toggle::make('marksheet_use_logo')
+                            ->label('Show School Logo'),
+                        Toggle::make('marksheet_use_watermark')
+                            ->label('Show Watermark')
+                            ->live(),
+                        TextInput::make('marksheet_watermark_text')
+                            ->label('Watermark Text')
+                            ->visible(fn (Get $get) => $get('marksheet_use_watermark'))
+                            ->columnSpanFull(),
+                        TextInput::make('marksheet_footer_text')
                             ->label('Footer Text')
                             ->columnSpanFull(),
                     ]),
@@ -149,12 +177,17 @@ class SchoolSettings extends Page
         SchoolSetting::set('weekend_days', json_encode($data['weekend_days'] ?? []));
         SchoolSetting::set('school_logo', $data['school_logo'] ?? '');
         SchoolSetting::set('school_address', $data['school_address'] ?? '');
+        SchoolSetting::set('school_established_year', $data['school_established_year'] ?? '');
         SchoolSetting::set('school_seal', $data['school_seal'] ?? '');
         SchoolSetting::set('principal_signature', $data['principal_signature'] ?? '');
         SchoolSetting::set('admit_card_use_watermark', $data['admit_card_use_watermark'] ? '1' : '0');
         SchoolSetting::set('admit_card_watermark_text', $data['admit_card_watermark_text'] ?? '');
         SchoolSetting::set('admit_card_use_logo', $data['admit_card_use_logo'] ? '1' : '0');
         SchoolSetting::set('admit_card_footer_text', $data['admit_card_footer_text'] ?? '');
+        SchoolSetting::set('marksheet_use_watermark', $data['marksheet_use_watermark'] ? '1' : '0');
+        SchoolSetting::set('marksheet_watermark_text', $data['marksheet_watermark_text'] ?? '');
+        SchoolSetting::set('marksheet_use_logo', $data['marksheet_use_logo'] ? '1' : '0');
+        SchoolSetting::set('marksheet_footer_text', $data['marksheet_footer_text'] ?? '');
 
         Notification::make()
             ->title('Settings saved.')

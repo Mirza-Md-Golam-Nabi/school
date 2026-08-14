@@ -9,6 +9,7 @@ use App\Filament\Resources\FeePayments\Pages\ManageClassFeePayments;
 use App\Filament\Resources\FeePayments\Schemas\FeePaymentForm;
 use App\Filament\Resources\FeePayments\Tables\FeePaymentsTable;
 use App\Models\FeePayment;
+use App\Traits\Permissions\HasEntityPermissions;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -18,6 +19,8 @@ use UnitEnum;
 
 class FeePaymentResource extends Resource
 {
+    use HasEntityPermissions;
+
     protected static ?string $model = FeePayment::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCreditCard;

@@ -8,6 +8,7 @@ use App\Filament\Resources\SchoolAccounts\Pages\ListSchoolAccounts;
 use App\Filament\Resources\SchoolAccounts\Schemas\SchoolAccountForm;
 use App\Filament\Resources\SchoolAccounts\Tables\SchoolAccountsTable;
 use App\Models\SchoolAccount;
+use App\Traits\Permissions\HasEntityPermissions;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -17,6 +18,8 @@ use UnitEnum;
 
 class SchoolAccountResource extends Resource
 {
+    use HasEntityPermissions;
+
     protected static ?string $model = SchoolAccount::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBuildingLibrary;

@@ -1,5 +1,8 @@
 <?php
 
+use App\Enums\UserType;
+use App\Models\User;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 /*
@@ -42,7 +45,36 @@ expect()->extend('toBeOne', function () {
 |
 */
 
-function something()
+/**
+ * Bypasses all fine-grained permission checks via the app's Gate::before
+ * super-admin bypass, for tests that exercise feature behavior rather than
+ * authorization itself.
+ */
+function grantSuperAdmin(User $user): User
 {
-    // ..
+    Role::firstOrCreate(['name' => 'super-admin', 'guard_name' => 'web']);
+    $user->assignRole('super-admin');
+
+    return $user;
+}
+
+/**
+ * Creates an active student user with the "student" role, for tests that
+ * exercise student-panel access, password/PIN, or profile behavior.
+ *
+ * @param  array<string, mixed>  $attributes
+ */
+function makeStudent(array $attributes = []): User
+{
+    Role::firstOrCreate(['name' => 'student', 'guard_name' => 'web']);
+
+    $user = User::factory()->create(array_merge([
+        'user_type' => UserType::Student,
+        'is_active' => true,
+        'must_change_password' => true,
+    ], $attributes));
+
+    $user->assignRole('student');
+
+    return $user;
 }

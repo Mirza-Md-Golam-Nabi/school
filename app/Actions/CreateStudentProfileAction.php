@@ -7,55 +7,41 @@ use App\Enums\UserType;
 use App\Models\StudentProfile;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class CreateStudentProfileAction
 {
     public function handle(array $data): StudentProfile
     {
-        $user = User::where('email', $data['email'])->first();
+        return DB::transaction(function () use ($data) {
+            // Email depends on the student_profiles primary key, which only exists after
+            // the profile row is inserted — so the user is created with a placeholder first.
+            $user = User::create([
+                'name' => $data['name'],
+                'email' => sprintf('pending-%s@placeholder.internal', Str::uuid()),
+                'password' => 'password',
+                'user_type' => UserType::Student,
+                'is_active' => true,
+                'email_verified_at' => now(),
+                'must_change_password' => true,
+            ]);
 
-        if ($user) {
-            // Case 1: user has an existing student profile → delegate entirely to UpdateStudentProfileAction
-            if ($user->studentProfile) {
-                return app(UpdateStudentProfileAction::class)->handle($user->studentProfile, $data);
-            }
-
-            // Case 2: user exists but has no student profile → update user + create profile
-            $userUpdate = ['name' => $data['name']];
-
-            if (filled($data['password'] ?? null)) {
-                $userUpdate['password'] = $data['password'];
-            }
-
-            $user->update($userUpdate);
-
-            if (! $user->hasRole('student')) {
-                $user->assignRole('student');
-            }
+            $user->assignRole('student');
+            event(new Registered($user));
 
             $profile = $user->studentProfile()->create($this->profileData($data));
+
+            $generatedEmail = sprintf('std%05d@school.com', $profile->id);
+            $user->update(['email' => $generatedEmail]);
+
             $this->saveAddresses($profile, $data);
 
+            $profile->setAttribute('generated_email', $generatedEmail);
+            $profile->setAttribute('generated_password', 'password');
+
             return $profile;
-        }
-
-        // Case 3: new email → create user + profile and send verification email
-        $user = User::create([
-            'name' => $data['name'],
-            'email' => $data['email'],
-            'password' => $data['password'],
-            'user_type' => UserType::Student,
-            'is_active' => true,
-            'email_verified_at' => now(),
-        ]);
-
-        $user->assignRole('student');
-        event(new Registered($user));
-
-        $profile = $user->studentProfile()->create($this->profileData($data));
-        $this->saveAddresses($profile, $data);
-
-        return $profile;
+        });
     }
 
     private function saveAddresses(StudentProfile $profile, array $data): void
@@ -88,6 +74,7 @@ class CreateStudentProfileAction
         return [
             'roll_no' => $data['roll_no'] ?? null,
             'registration_no' => $data['registration_no'] ?? null,
+            'birth_certificate_no' => $data['birth_certificate_no'] ?? null,
             'current_class_id' => $data['current_class_id'] ?? null,
             'current_section_id' => $data['current_section_id'] ?? null,
             'current_group_id' => $data['current_group_id'] ?? null,

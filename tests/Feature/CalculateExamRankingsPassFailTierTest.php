@@ -110,3 +110,57 @@ it('ranks every passing student above every failing student, regardless of raw t
         ->and($highFailerRanking->gpa)->toBe(0.0)
         ->and($lowFailerRanking->gpa)->toBe(0.0);
 });
+
+it('breaks ties by GPA when total marks are equal, and shares rank when both are equal', function () {
+    $class = makeRankTierTestClass();
+    $exam = makeRankTierTestExam($class);
+
+    $subjectOne = makeRankTierTestSubject($class, 'Bangla');
+    $subjectTwo = makeRankTierTestSubject($class, 'English');
+
+    foreach ([$subjectOne, $subjectTwo] as $subject) {
+        ExamSubjectConfig::create([
+            'exam_id' => $exam->id,
+            'subject_id' => $subject->id,
+            'written_total' => 100,
+            'total_marks' => 100,
+            'pass_mark' => 33,
+        ]);
+    }
+
+    // 140 total marks, GPA (5.0 + 3.5) / 2 = 4.25 — highest GPA among equal-marks students.
+    $highGpa = makeRankTierTestStudent($class);
+    StudentResult::create(['exam_id' => $exam->id, 'subject_id' => $subjectOne->id, 'class_id' => $class->id, 'student_id' => $highGpa->id, 'written_marks' => 80]);
+    StudentResult::create(['exam_id' => $exam->id, 'subject_id' => $subjectTwo->id, 'class_id' => $class->id, 'student_id' => $highGpa->id, 'written_marks' => 60]);
+
+    // 140 total marks, GPA (4.0 + 4.0) / 2 = 4.0 — tied with $tieB below.
+    $tieA = makeRankTierTestStudent($class);
+    StudentResult::create(['exam_id' => $exam->id, 'subject_id' => $subjectOne->id, 'class_id' => $class->id, 'student_id' => $tieA->id, 'written_marks' => 70]);
+    StudentResult::create(['exam_id' => $exam->id, 'subject_id' => $subjectTwo->id, 'class_id' => $class->id, 'student_id' => $tieA->id, 'written_marks' => 70]);
+
+    // 140 total marks, GPA (5.0 + 3.0) / 2 = 4.0 — tied with $tieA above.
+    $tieB = makeRankTierTestStudent($class);
+    StudentResult::create(['exam_id' => $exam->id, 'subject_id' => $subjectOne->id, 'class_id' => $class->id, 'student_id' => $tieB->id, 'written_marks' => 90]);
+    StudentResult::create(['exam_id' => $exam->id, 'subject_id' => $subjectTwo->id, 'class_id' => $class->id, 'student_id' => $tieB->id, 'written_marks' => 50]);
+
+    app(CalculateExamRankings::class)->execute($exam);
+
+    $highGpaRanking = StudentMeritRanking::where('exam_id', $exam->id)->where('student_id', $highGpa->id)->first();
+    $tieARanking = StudentMeritRanking::where('exam_id', $exam->id)->where('student_id', $tieA->id)->first();
+    $tieBRanking = StudentMeritRanking::where('exam_id', $exam->id)->where('student_id', $tieB->id)->first();
+
+    expect($highGpaRanking->total_marks)->toBe(140.0)
+        ->and($tieARanking->total_marks)->toBe(140.0)
+        ->and($tieBRanking->total_marks)->toBe(140.0);
+
+    expect($highGpaRanking->gpa)->toBe(4.25)
+        ->and($tieARanking->gpa)->toBe(4.0)
+        ->and($tieBRanking->gpa)->toBe(4.0);
+
+    // Same total marks, higher GPA ranks first.
+    expect($highGpaRanking->class_rank)->toBe(1);
+
+    // Same total marks AND same GPA → share the same rank.
+    expect($tieARanking->class_rank)->toBe($tieBRanking->class_rank)
+        ->and($tieARanking->class_rank)->toBe(2);
+});

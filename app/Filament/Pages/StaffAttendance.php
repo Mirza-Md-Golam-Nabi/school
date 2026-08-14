@@ -5,6 +5,8 @@ namespace App\Filament\Pages;
 use App\Enums\AttendanceSource;
 use App\Enums\AttendanceStatus;
 use App\Enums\EmploymentStatus;
+use App\Enums\Permissions\AttendancePermission;
+use App\Filament\Concerns\HasAttendancePagePermission;
 use App\Models\Attendance;
 use App\Models\StaffProfile;
 use App\Models\User;
@@ -18,7 +20,14 @@ use UnitEnum;
 
 class StaffAttendance extends Page
 {
+    use HasAttendancePagePermission;
+
     protected string $view = 'filament.pages.staff-attendance';
+
+    protected static function attendancePermission(): AttendancePermission
+    {
+        return AttendancePermission::MARK_ATTENDANCE;
+    }
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedClipboardDocumentList;
 

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\ActingAdmins\Schemas;
 
+use App\Enums\ActingAdminLevel;
 use App\Enums\UserType;
 use App\Models\ActingAdmin;
 use App\Models\User;
@@ -26,12 +27,17 @@ class ActingAdminForm
                     ->preload()
                     ->required(),
 
+                Select::make('level')
+                    ->label('Acting As')
+                    ->options(ActingAdminLevel::options())
+                    ->required(),
+
                 DatePicker::make('from_date')
                     ->required(),
 
                 DatePicker::make('to_date')
-                    ->required()
-                    ->afterOrEqual('from_date'),
+                    ->afterOrEqual('from_date')
+                    ->helperText('Leave blank for no end date — stays active until manually removed or deactivated.'),
 
                 Toggle::make('is_active')
                     ->required(),

@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Marksheets\Tables;
 use App\Jobs\GenerateMarksheetPdfJob;
 use App\Models\Exam;
 use App\Models\Marksheet;
+use App\Models\StudentProfile;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -16,6 +17,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Storage;
 
 class MarksheetsTable
@@ -24,10 +26,16 @@ class MarksheetsTable
     {
         return $table
             ->modifyQueryUsing(fn ($query) => $query->with(['student.user', 'student.class', 'student.section', 'exam.examType']))
+            ->defaultSort(fn (Builder $query): Builder => $query->orderBy(
+                StudentProfile::select('roll_no')->whereColumn('student_profiles.id', 'marksheets.student_id')
+            ))
             ->columns([
                 TextColumn::make('student.user.name')
                     ->label('Student')
                     ->searchable()
+                    ->sortable(),
+                TextColumn::make('student.roll_no')
+                    ->label('Roll')
                     ->sortable(),
                 TextColumn::make('student.class.name')
                     ->label('Class'),

@@ -8,6 +8,7 @@ use App\Filament\Resources\SalaryComponents\Pages\ListSalaryComponents;
 use App\Filament\Resources\SalaryComponents\Schemas\SalaryComponentForm;
 use App\Filament\Resources\SalaryComponents\Tables\SalaryComponentsTable;
 use App\Models\SalaryComponent;
+use App\Traits\Permissions\HasEntityPermissions;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -17,6 +18,8 @@ use UnitEnum;
 
 class SalaryComponentResource extends Resource
 {
+    use HasEntityPermissions;
+
     protected static ?string $model = SalaryComponent::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedTag;

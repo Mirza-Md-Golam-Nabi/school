@@ -7,6 +7,11 @@
 
     $schoolName = SchoolSetting::get('school_name', '');
     $schoolAddress = SchoolSetting::get('school_address', '');
+    $schoolEstablishedYear = SchoolSetting::get('school_established_year', '');
+    $schoolAddressLine = collect([
+        $schoolAddress,
+        $schoolEstablishedYear ? "Established: {$schoolEstablishedYear}" : null,
+    ])->filter()->implode(' | ');
     $useLogo = (bool) SchoolSetting::get('marksheet_use_logo', '1');
     $useWatermark = (bool) SchoolSetting::get('marksheet_use_watermark', '0');
     $watermarkText = SchoolSetting::get('marksheet_watermark_text', '');
@@ -31,6 +36,8 @@
     $logoDataUri = $useLogo ? $toDataUri(SchoolSetting::get('school_logo')) : null;
     $sealDataUri = $toDataUri(SchoolSetting::get('school_seal'));
     $signatureDataUri = $toDataUri(SchoolSetting::get('principal_signature'));
+
+    $contributionSourceName = $rows->first(fn (array $row) => $row['contribution'] !== null)['contribution']['source_name'] ?? null;
 @endphp
 <!DOCTYPE html>
 <html>
@@ -121,13 +128,6 @@
             background: #f2f2f2;
         }
 
-        .subject-contribution {
-            display: block;
-            font-size: 9px;
-            color: #555;
-            margin-top: 2px;
-        }
-
         table.summary {
             width: 100%;
             border-collapse: collapse;
@@ -194,8 +194,8 @@
                 <img class="logo" src="{{ $logoDataUri }}" alt="Logo">
             @endif
             <div class="school-name">{{ $schoolName }}</div>
-            @if ($schoolAddress)
-                <div class="school-address">{{ $schoolAddress }}</div>
+            @if ($schoolAddressLine)
+                <div class="school-address">{{ $schoolAddressLine }}</div>
             @endif
         </div>
 
@@ -227,6 +227,9 @@
                     <th>MCQ</th>
                     <th>Written</th>
                     <th>Practical</th>
+                    @if ($contributionSourceName)
+                        <th>{{ $contributionSourceName }}</th>
+                    @endif
                     <th>Marks</th>
                     <th>Best</th>
                     <th>Grade</th>
@@ -235,23 +238,13 @@
             <tbody>
                 @foreach ($rows as $row)
                     <tr>
-                        <td>
-                            {{ $row['subject_name'] }}
-                            @if ($row['contribution'])
-                                @php $c = $row['contribution']; @endphp
-                                <span class="subject-contribution">
-                                    নিজের: {{ $c['own_marks'] }}/{{ $c['own_total'] }}
-                                    + {{ $c['source_name'] }} ({{ $c['source_percent'] }}%):
-                                    {{ $c['contributed_marks'] }}
-                                    @if ($c['breakdown'])
-                                        (সেরা: {{ $c['breakdown'] }})
-                                    @endif
-                                </span>
-                            @endif
-                        </td>
+                        <td>{{ $row['subject_name'] }}</td>
                         <td style="text-align: center;">{{ $row['mcq_marks'] ?? '-' }}</td>
                         <td style="text-align: center;">{{ $row['written_marks'] ?? '-' }}</td>
                         <td style="text-align: center;">{{ $row['practical_marks'] ?? '-' }}</td>
+                        @if ($contributionSourceName)
+                            <td style="text-align: center;">{{ $row['contribution']['contributed_marks'] ?? '-' }}</td>
+                        @endif
                         <td style="text-align: center;">
                             @if ($row['is_absent'])
                                 Absent

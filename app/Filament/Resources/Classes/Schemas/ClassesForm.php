@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Classes\Schemas;
 
 use App\Enums\ClassLevel;
+use App\Models\TeacherProfile;
 use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -25,6 +26,11 @@ class ClassesForm
                     ->required()
                     ->numeric()
                     ->default(0),
+                Select::make('class_teacher_id')
+                    ->label('Class Teacher')
+                    ->options(TeacherProfile::dropdownOptions())
+                    ->searchable()
+                    ->helperText('This teacher is authorized to mark attendance for this class. If another teacher marks it instead, admins and this teacher are notified.'),
                 Radio::make('has_section')
                     ->label('Has Section?')
                     ->required()

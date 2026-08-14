@@ -4,7 +4,7 @@
             <x-slot name="heading">No active classes available.</x-slot>
         </x-filament::empty-state>
     @else
-        <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5">
+        <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             @foreach ($classes as $class)
                 <a
                     href="{{ App\Filament\Resources\Exams\ExamResource::getUrl('exams-by-class') }}?classId={{ $class->id }}"
@@ -25,17 +25,24 @@
                         </div>
                     </div>
 
-                    <div class="flex items-end justify-between">
-                        <div>
-                            <p class="text-xl font-bold tracking-tight text-gray-950 dark:text-white">
-                                {{ $class->exams_count }}
-                            </p>
-                            <p class="text-xs text-gray-500 dark:text-gray-400">Exams</p>
-                        </div>
+                    <p class="text-xl font-bold tracking-tight text-gray-950 dark:text-white">
+                        {{ $class->exams_count }}
+                        <span class="text-xs font-normal text-gray-500 dark:text-gray-400">
+                            {{ Str::plural('Exam', $class->exams_count) }}
+                        </span>
+                    </p>
 
-                        <x-heroicon-o-arrow-right
-                            class="h-4 w-4 text-gray-300 transition-colors duration-150 group-hover:text-primary-500 dark:text-gray-600 dark:group-hover:text-primary-400"
-                        />
+                    <div class="flex flex-col gap-y-2 border-t border-gray-200 pt-3 dark:border-white/10">
+                        <div class="flex items-center gap-x-1 text-xs sm:text-sm">
+                            <x-heroicon-o-check-circle class="h-4 w-4 shrink-0 text-success-600 dark:text-success-400" />
+                            <span class="truncate text-gray-500 dark:text-gray-400">Published :</span>
+                            <span class="font-semibold text-success-600 dark:text-success-400">{{ $class->published_exams_count }}</span>
+                        </div>
+                        <div class="flex items-center gap-x-1 text-xs sm:text-sm">
+                            <x-heroicon-o-x-circle class="h-4 w-4 shrink-0 text-danger-600 dark:text-danger-400" />
+                            <span class="truncate text-gray-500 dark:text-gray-400">Pending :</span>
+                            <span class="font-semibold text-danger-600 dark:text-danger-400">{{ $class->pending_exams_count }}</span>
+                        </div>
                     </div>
                 </a>
             @endforeach
