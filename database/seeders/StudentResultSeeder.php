@@ -9,6 +9,7 @@ use App\Models\StudentProfile;
 use App\Models\StudentResult;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Collection as SupportCollection;
 use Illuminate\Support\Facades\DB;
 
 class StudentResultSeeder extends Seeder
@@ -30,8 +31,9 @@ class StudentResultSeeder extends Seeder
     private function seedExamResults(Exam $exam): void
     {
         $students = StudentProfile::where('current_class_id', $exam->class_id)->active()->get();
+        $subjectConfigs = $exam->subjectConfigs;
 
-        if ($students->isEmpty()) {
+        if ($students->isEmpty() || $subjectConfigs->isEmpty()) {
             return;
         }
 
@@ -45,31 +47,46 @@ class StudentResultSeeder extends Seeder
 
         $absentStudentIds = $this->pickRandomIds($students, min($absentCount, $students->count() - 1));
 
-        foreach ($exam->subjectConfigs as $config) {
-            $this->seedSubjectResults($exam, $config, $students, $absentStudentIds);
+        // Each absent student misses only one subject of the exam, not every subject.
+        $absentSubjectIdByStudent = collect($absentStudentIds)
+            ->mapWithKeys(fn (int $studentId): array => [$studentId => $subjectConfigs->random()->subject_id]);
+
+        // At least 99% of students must pass each exam — at most one student may
+        // fail it, and only in a single subject; even that is not guaranteed.
+        $presentStudents = $students->reject(fn (StudentProfile $student) => in_array($student->id, $absentStudentIds, true));
+
+        $failingStudentId = ($presentStudents->isNotEmpty() && fake()->boolean(40))
+            ? $presentStudents->random()->id
+            : null;
+
+        $failingSubjectId = $failingStudentId ? $subjectConfigs->random()->subject_id : null;
+
+        foreach ($subjectConfigs as $config) {
+            $this->seedSubjectResults($exam, $config, $students, $absentSubjectIdByStudent, $failingStudentId, $failingSubjectId);
         }
     }
 
     /**
      * @param  Collection<int, StudentProfile>  $students
-     * @param  array<int, int>  $absentStudentIds
+     * @param  SupportCollection<int, int>  $absentSubjectIdByStudent  Subject the student is absent for, keyed by student ID.
      */
-    private function seedSubjectResults(Exam $exam, ExamSubjectConfig $config, Collection $students, array $absentStudentIds): void
-    {
-        $presentStudents = $students->reject(fn (StudentProfile $student) => in_array($student->id, $absentStudentIds, true));
-
-        $maxFail = min(3, max(1, intdiv($presentStudents->count(), 2)));
-        $failingStudentIds = $this->pickRandomIds($presentStudents, fake()->numberBetween(1, $maxFail));
-
+    private function seedSubjectResults(
+        Exam $exam,
+        ExamSubjectConfig $config,
+        Collection $students,
+        SupportCollection $absentSubjectIdByStudent,
+        ?int $failingStudentId,
+        ?int $failingSubjectId,
+    ): void {
         foreach ($students as $student) {
-            if (in_array($student->id, $absentStudentIds, true)) {
+            if ($absentSubjectIdByStudent->get($student->id) === $config->subject_id) {
                 $this->saveResult($exam, $config, $student, null, null, null, 0, true);
 
                 continue;
             }
 
-            $shouldPass = ! in_array($student->id, $failingStudentIds, true);
-            [$mcqMarks, $writtenMarks, $practicalMarks, $totalMarks] = $this->randomMarks($config, $shouldPass);
+            $failsThisSubject = $student->id === $failingStudentId && $config->subject_id === $failingSubjectId;
+            [$mcqMarks, $writtenMarks, $practicalMarks, $totalMarks] = $this->randomMarks($config, ! $failsThisSubject);
 
             $this->saveResult($exam, $config, $student, $mcqMarks, $writtenMarks, $practicalMarks, $totalMarks, false);
         }
