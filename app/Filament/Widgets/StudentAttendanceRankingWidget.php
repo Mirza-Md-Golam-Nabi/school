@@ -13,7 +13,7 @@ class StudentAttendanceRankingWidget extends Widget
 {
     protected string $view = 'filament.widgets.student-attendance-ranking';
 
-    protected static ?int $sort = 4;
+    protected static ?int $sort = 5;
 
     protected int|string|array $columnSpan = [
         'default' => 1,

@@ -23,7 +23,11 @@ class ListExams extends Page
     public function getViewData(): array
     {
         $classes = Classes::active()
-            ->withCount('exams')
+            ->withCount([
+                'exams',
+                'exams as published_exams_count' => fn ($query) => $query->where('is_published', true),
+                'exams as pending_exams_count' => fn ($query) => $query->where('is_published', false),
+            ])
             ->orderBy('order')
             ->get();
 
