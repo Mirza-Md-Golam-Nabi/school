@@ -50,7 +50,10 @@ class FinanceOverviewWidget extends Widget
             'expense' => $expense,
             'balance' => $income - $expense,
             'totalDue' => max(0, $netDue - $paid),
-            'transactionsUrl' => AccountTransactionResource::getUrl('index'),
+            'transactionsUrl' => AccountTransactionResource::getUrl('index', [
+                'from' => $start->toDateString(),
+                'until' => now()->toDateString(),
+            ]),
             'duesUrl' => StudentFeeInvoiceResource::getUrl('index'),
         ];
     }
