@@ -14,7 +14,7 @@ class TeacherLeaveOverview extends Widget
 {
     protected string $view = 'filament.teacher.widgets.leave-overview';
 
-    protected static ?int $sort = 4;
+    protected static ?int $sort = 8;
 
     protected int|string|array $columnSpan = [
         'default' => 'full',
