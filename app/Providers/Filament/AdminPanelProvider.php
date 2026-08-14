@@ -58,6 +58,8 @@ class AdminPanelProvider extends PanelProvider
                 'Communication',
                 'Document Management',
                 'HR & Staff Management',
+                'Salary Management',
+                'Fund Management',
                 'User Management',
                 'School Settings',
             ])
