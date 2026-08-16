@@ -93,6 +93,37 @@ test('marking a student dropped keeps their current class but updates status', f
         ->and($student->status)->toBe(StudentStatus::Dropped);
 });
 
+test('graduating a student from the terminal class keeps their class history but marks them graduated', function () {
+    $class = Classes::create(['name' => 'Class 10', 'order' => 10]);
+    $admin = User::factory()->create();
+
+    $student = createStudentForPromotion($class, rollNo: 2, sessionYear: 2026);
+
+    app(PromoteStudentsAction::class)->handle([
+        $student->id => [
+            'status' => 'graduated',
+            'class_id' => null,
+            'section_id' => null,
+            'group_id' => null,
+            'roll_no' => null,
+            'remarks' => 'SSC সম্পন্ন',
+        ],
+    ], $admin->id);
+
+    $history = StudentClassHistory::where('student_id', $student->id)->sole();
+
+    expect($history->class_id)->toBe($class->id)
+        ->and($history->status)->toBe(PromotionStatus::Graduated)
+        ->and($history->remarks)->toBe('SSC সম্পন্ন');
+
+    $student->refresh();
+
+    expect($student->current_class_id)->toBe($class->id)
+        ->and($student->roll_no)->toBe(2)
+        ->and($student->session_year)->toBe(2026)
+        ->and($student->status)->toBe(StudentStatus::Graduated);
+});
+
 test('a student cannot have two history rows for the same session year', function () {
     $class = Classes::create(['name' => 'Class 5', 'order' => 1]);
     $admin = User::factory()->create();

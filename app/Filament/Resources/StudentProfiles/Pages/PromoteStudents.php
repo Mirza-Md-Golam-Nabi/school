@@ -35,28 +35,57 @@ class PromoteStudents extends Page
 
     public bool $hasMainExamResults = false;
 
+    /** Class rank keyed by student_id — also read by the blade to show graduating students their final merit rank. */
+    public Collection $meritRanks;
+
     public function mount(): void
     {
         abort_unless($this->classId, 404);
 
-        $defaultClassId = $this->getNextClass()?->id ?? $this->classId;
+        $nextClass = $this->getNextClass();
+        $defaultStatus = $nextClass ? PromotionStatus::Promoted : PromotionStatus::Graduated;
         $students = $this->getStudents();
-        $meritRanks = $students->isNotEmpty()
+        $this->meritRanks = $students->isNotEmpty()
             ? $this->getMainExamMeritRanks($students->first()->session_year)
             : collect();
 
-        $this->hasMainExamResults = $meritRanks->isNotEmpty();
+        $this->hasMainExamResults = $this->meritRanks->isNotEmpty();
 
         foreach ($students as $student) {
             $this->promotions[$student->id] = [
-                'status' => PromotionStatus::Promoted->value,
-                'class_id' => $defaultClassId,
+                'status' => $defaultStatus->value,
+                'class_id' => $nextClass?->id,
                 'section_id' => null,
-                'group_id' => null,
-                'roll_no' => $meritRanks->get($student->id),
+                'group_id' => $this->resolveDefaultGroupId($student, $nextClass?->id),
+                'roll_no' => $defaultStatus === PromotionStatus::Promoted ? $this->meritRanks->get($student->id) : null,
                 'remarks' => null,
             ];
         }
+    }
+
+    /**
+     * Groups are shared across classes (via the class_groups pivot), so a student's current
+     * group_id is the same row the target class would use — reuse it only if the target
+     * class actually offers that group; otherwise the admin picks fresh.
+     */
+    private function resolveDefaultGroupId(StudentProfile $student, ?int $targetClassId): ?int
+    {
+        if (! $targetClassId || ! $student->current_group_id) {
+            return null;
+        }
+
+        $targetClass = Classes::find($targetClassId);
+
+        if (! $targetClass?->has_group) {
+            return null;
+        }
+
+        $hasSameGroup = $targetClass->groups()
+            ->where('groups.id', $student->current_group_id)
+            ->where('groups.is_active', true)
+            ->exists();
+
+        return $hasSameGroup ? $student->current_group_id : null;
     }
 
     /**
@@ -85,9 +114,11 @@ class PromoteStudents extends Page
         }
 
         $studentId = (int) explode('.', $name)[1];
+        $classId = $this->promotions[$studentId]['class_id'] ?? null;
+        $student = StudentProfile::find($studentId);
 
         $this->promotions[$studentId]['section_id'] = null;
-        $this->promotions[$studentId]['group_id'] = null;
+        $this->promotions[$studentId]['group_id'] = $student ? $this->resolveDefaultGroupId($student, $classId) : null;
     }
 
     public function getTitle(): string|Htmlable
@@ -109,13 +140,29 @@ class PromoteStudents extends Page
         return StudentProfileResource::getUrl('students-by-class', ['classId' => $this->classId]);
     }
 
+    /**
+     * A class can hold two cohorts at once: the batch still waiting to be promoted out, and
+     * a batch that already arrived here from the class below (whose session_year already
+     * advanced). Only the not-yet-promoted batch — the one with the oldest session_year —
+     * belongs on this page, or the newly-arrived batch would get promoted a second time.
+     */
     public function getStudents(): EloquentCollection
     {
+        $sessionYear = $this->resolveSessionYearAwaitingPromotion();
+
         return StudentProfile::with('user')
             ->where('current_class_id', $this->classId)
+            ->where('session_year', $sessionYear)
             ->active()
             ->orderBy('roll_no')
             ->get();
+    }
+
+    public function resolveSessionYearAwaitingPromotion(): ?int
+    {
+        return StudentProfile::where('current_class_id', $this->classId)
+            ->active()
+            ->min('session_year');
     }
 
     public function resolveClass(): ?Classes

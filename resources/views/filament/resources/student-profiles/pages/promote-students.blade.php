@@ -71,7 +71,7 @@
                             @foreach ($students as $student)
                                 @php
                                     $row = $promotions[$student->id] ?? [];
-                                    $isLeaving = in_array($row['status'] ?? null, ['transferred', 'dropped'], true);
+                                    $isLeaving = in_array($row['status'] ?? null, ['graduated', 'transferred', 'dropped'], true);
                                     $sectionOptions = $this->getSectionOptions($row['class_id'] ?? null);
                                     $groupOptions = $this->getGroupOptions($row['class_id'] ?? null);
                                 @endphp
@@ -99,6 +99,7 @@
                                             wire:model.live="promotions.{{ $student->id }}.class_id"
                                             @disabled($isLeaving)
                                             class="w-36 rounded-lg border-gray-300 py-1.5 px-2 text-sm shadow-sm focus:border-primary-500 focus:ring-primary-500 disabled:cursor-not-allowed disabled:bg-gray-100 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:disabled:bg-gray-900">
+                                            <option value="">—</option>
                                             @foreach ($targetClassOptions as $id => $name)
                                                 <option value="{{ $id }}">{{ $name }}</option>
                                             @endforeach
@@ -130,12 +131,21 @@
                                     </td>
 
                                     <td class="px-3 py-1.5">
-                                        <input
-                                            type="number"
-                                            min="1"
-                                            wire:model="promotions.{{ $student->id }}.roll_no"
-                                            @disabled($isLeaving)
-                                            class="w-20 rounded-lg border border-gray-400 bg-white px-2 py-1.5 text-center text-sm shadow-sm transition focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-100 disabled:text-gray-400 dark:border-gray-500 dark:bg-gray-800 dark:text-white dark:disabled:border-gray-700 dark:disabled:bg-gray-900 dark:disabled:text-gray-600">
+                                        @if ($isLeaving)
+                                            <span class="text-xs text-gray-500 dark:text-gray-400">
+                                                @if ($rank = $this->meritRanks->get($student->id))
+                                                    Final Rank: {{ $rank }}
+                                                @else
+                                                    —
+                                                @endif
+                                            </span>
+                                        @else
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                wire:model="promotions.{{ $student->id }}.roll_no"
+                                                class="w-20 rounded-lg border border-gray-400 bg-white px-2 py-1.5 text-center text-sm shadow-sm transition focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-gray-500 dark:bg-gray-800 dark:text-white">
+                                        @endif
                                     </td>
 
                                     <td class="px-3 py-1.5">

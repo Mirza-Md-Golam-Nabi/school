@@ -53,9 +53,11 @@ class PromoteStudentsAction
                     ]);
                 } else {
                     $student->update([
-                        'status' => $status === PromotionStatus::Transferred
-                            ? StudentStatus::Transferred
-                            : StudentStatus::Dropped,
+                        'status' => match ($status) {
+                            PromotionStatus::Transferred => StudentStatus::Transferred,
+                            PromotionStatus::Graduated => StudentStatus::Graduated,
+                            default => StudentStatus::Dropped,
+                        },
                     ]);
                 }
             }
