@@ -24,13 +24,7 @@ class StudentLatestResultWidget extends Widget
 
     public static function canView(): bool
     {
-        $profile = Auth::user()?->studentProfile;
-
-        if (! $profile) {
-            return false;
-        }
-
-        return static::latestRanking($profile)->exists();
+        return filled(Auth::user()?->studentProfile?->current_class_id);
     }
 
     /**
@@ -46,6 +40,20 @@ class StudentLatestResultWidget extends Widget
             ->sortByDesc(fn (StudentMeritRanking $ranking): string => (string) $ranking->exam?->start_date)
             ->first();
 
+        // No published result for the current class/session yet (e.g. right after a
+        // promotion) — show the widget with zeroed-out values instead of hiding it.
+        if (! $ranking) {
+            return [
+                'examLabel' => 'Exam',
+                'gpa' => 0,
+                'classRank' => null,
+                'totalStudents' => StudentProfile::where('current_class_id', $profile->current_class_id)
+                    ->active()
+                    ->count(),
+                'url' => ExamResultResource::getUrl(panel: 'student'),
+            ];
+        }
+
         $totalStudents = StudentProfile::where('current_class_id', $ranking->class_id)
             ->active()
             ->count();
@@ -59,9 +67,17 @@ class StudentLatestResultWidget extends Widget
         ];
     }
 
+    /**
+     * Scoped to the student's current class + session_year, so a promotion
+     * (class/session_year change) resets this widget rather than continuing
+     * to show a result from the class they've already left.
+     */
     private static function latestRanking(StudentProfile $profile): Builder
     {
         return StudentMeritRanking::where('student_id', $profile->id)
-            ->whereHas('exam', fn ($query) => $query->where('is_published', true));
+            ->where('class_id', $profile->current_class_id)
+            ->whereHas('exam', fn ($query) => $query
+                ->where('session_year', $profile->session_year)
+                ->where('is_published', true));
     }
 }
