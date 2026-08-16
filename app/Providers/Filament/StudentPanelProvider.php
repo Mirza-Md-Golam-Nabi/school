@@ -48,6 +48,11 @@ class StudentPanelProvider extends PanelProvider
                 PanelsRenderHook::HEAD_END,
                 fn (): string => '<link rel="manifest" href="/manifest/student.json">',
             )
+            ->navigationGroups([
+                'Results',
+                'Fees',
+                'History',
+            ])
             ->databaseNotifications()
             ->discoverResources(in: app_path('Filament/Student/Resources'), for: 'App\Filament\Student\Resources')
             ->discoverPages(in: app_path('Filament/Student/Pages'), for: 'App\Filament\Student\Pages')
