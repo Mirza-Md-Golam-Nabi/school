@@ -4,15 +4,18 @@ use App\Enums\ExamConfigType;
 use App\Enums\Gender;
 use App\Enums\StudentStatus;
 use App\Enums\UserType;
+use App\Filament\Resources\StudentProfiles\Pages\PromoteStudents;
 use App\Filament\Resources\StudentProfiles\StudentProfileResource;
 use App\Models\Classes;
 use App\Models\Exam;
 use App\Models\ExamType;
 use App\Models\ExamTypeConfig;
+use App\Models\Group;
 use App\Models\StudentMeritRanking;
 use App\Models\StudentProfile;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
 
@@ -73,4 +76,55 @@ test('new roll stays blank when the class has no main exam results', function ()
 
     $response->assertOk();
     $response->assertSee('Main Exam-এর merit ranking পাওয়া যায়নি');
+});
+
+test('the target class group defaults to the student\'s current group when it is offered there', function () {
+    $fromClass = Classes::create(['name' => 'Class 9', 'order' => 9, 'has_group' => true]);
+    $toClass = Classes::create(['name' => 'Class 10', 'order' => 10, 'has_group' => true]);
+    $group = Group::create(['name' => 'Science', 'is_active' => true]);
+    $fromClass->groups()->attach($group->id);
+    $toClass->groups()->attach($group->id);
+
+    $student = createEnrolledStudent($fromClass, rollNo: 5, sessionYear: now()->year);
+    $student->update(['current_group_id' => $group->id]);
+
+    $this->actingAs(createAdminUser());
+
+    Livewire::test(PromoteStudents::class, ['classId' => $fromClass->id])
+        ->assertSet("promotions.{$student->id}.class_id", $toClass->id)
+        ->assertSet("promotions.{$student->id}.group_id", $group->id);
+});
+
+test('the target class group stays blank when it does not offer the student\'s current group', function () {
+    $fromClass = Classes::create(['name' => 'Class 9', 'order' => 9, 'has_group' => true]);
+    $toClass = Classes::create(['name' => 'Class 10', 'order' => 10, 'has_group' => true]);
+    $group = Group::create(['name' => 'Science', 'is_active' => true]);
+    $fromClass->groups()->attach($group->id);
+
+    $student = createEnrolledStudent($fromClass, rollNo: 5, sessionYear: now()->year);
+    $student->update(['current_group_id' => $group->id]);
+
+    $this->actingAs(createAdminUser());
+
+    Livewire::test(PromoteStudents::class, ['classId' => $fromClass->id])
+        ->assertSet("promotions.{$student->id}.class_id", $toClass->id)
+        ->assertSet("promotions.{$student->id}.group_id", null);
+});
+
+test('only the not-yet-promoted (oldest session_year) cohort is listed when the class holds two cohorts', function () {
+    $class = Classes::create(['name' => 'Class 2', 'order' => 2]);
+    Classes::create(['name' => 'Class 3', 'order' => 3]);
+
+    $awaitingPromotion = createEnrolledStudent($class, rollNo: 3, sessionYear: 2026);
+    $alreadyPromotedIn = createEnrolledStudent($class, rollNo: 1, sessionYear: 2027);
+
+    $this->actingAs(createAdminUser());
+
+    $livewire = Livewire::test(PromoteStudents::class, ['classId' => $class->id]);
+
+    $livewire->assertSet("promotions.{$awaitingPromotion->id}.status", 'promoted')
+        ->assertSet("promotions.{$alreadyPromotedIn->id}", null);
+
+    expect($livewire->instance()->getStudents()->pluck('id')->all())
+        ->toBe([$awaitingPromotion->id]);
 });

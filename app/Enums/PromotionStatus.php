@@ -9,6 +9,7 @@ enum PromotionStatus: string implements HasColor, HasLabel
 {
     case Promoted = 'promoted';
     case Repeated = 'repeated';
+    case Graduated = 'graduated';
     case Transferred = 'transferred';
     case Dropped = 'dropped';
 
@@ -17,6 +18,7 @@ enum PromotionStatus: string implements HasColor, HasLabel
         return match ($this) {
             self::Promoted => 'Promoted',
             self::Repeated => 'Repeated',
+            self::Graduated => 'Graduated',
             self::Transferred => 'Transferred',
             self::Dropped => 'Dropped',
         };
@@ -27,6 +29,7 @@ enum PromotionStatus: string implements HasColor, HasLabel
         return match ($this) {
             self::Promoted => 'success',
             self::Repeated => 'warning',
+            self::Graduated => 'primary',
             self::Transferred => 'info',
             self::Dropped => 'danger',
         };

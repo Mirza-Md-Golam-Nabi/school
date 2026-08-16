@@ -84,6 +84,33 @@ class ManageClassMarksheets extends ListRecords
                         ->success()
                         ->send();
                 }),
+
+            Action::make('downloadAllMarksheets')
+                ->label('Download All (PDF)')
+                ->icon(Heroicon::OutlinedArrowDownTray)
+                ->color('primary')
+                ->schema([
+                    Select::make('exam_id')
+                        ->label('Exam')
+                        ->options(fn () => Exam::query()
+                            ->with('examType')
+                            ->where('class_id', $this->classId)
+                            ->orderByDesc('start_date')
+                            ->get()
+                            ->mapWithKeys(fn (Exam $exam) => [$exam->id => "{$exam->examType?->name} — {$exam->session_year}"]))
+                        ->searchable()
+                        ->native(false)
+                        ->required(),
+                ])
+                ->modalHeading(fn (): string => 'Download All Marksheets — '.(Classes::query()->find($this->classId)?->name ?? 'Class'))
+                ->modalDescription('আগে থেকে generate করা সব marksheet একটা PDF-এ, প্রতি student আলাদা পেজে, combine করে download হবে।')
+                ->modalSubmitActionLabel('Download')
+                ->action(function (array $data) {
+                    $this->redirect(route('marksheets.class.download', [
+                        'class' => $this->classId,
+                        'exam' => $data['exam_id'],
+                    ]));
+                }),
         ];
     }
 }

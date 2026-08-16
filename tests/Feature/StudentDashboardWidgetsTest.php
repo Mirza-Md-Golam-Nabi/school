@@ -60,9 +60,23 @@ it('only lists exams that have not started yet for the student\'s class', functi
         ->and((new StudentUpcomingExamWidget)->getViewData()['exams'])->toHaveCount(1);
 });
 
-it('hides the latest-result widget until a published exam has a merit ranking', function () {
+it('shows the latest-result widget with zeroed values when there is no merit ranking yet', function () {
     $class = Classes::create(['name' => 'Class Nine', 'order' => 9]);
     $student = makeDashboardStudent($class);
+
+    $this->actingAs($student->user);
+
+    expect(StudentLatestResultWidget::canView())->toBeTrue();
+
+    $data = (new StudentLatestResultWidget)->getViewData();
+
+    expect($data['gpa'])->toBe(0)
+        ->and($data['classRank'])->toBeNull();
+});
+
+it('hides the latest-result widget when the student has no current class', function () {
+    $student = makeDashboardStudent(Classes::create(['name' => 'Class Nine Unassigned', 'order' => 9]));
+    $student->update(['current_class_id' => null]);
 
     $this->actingAs($student->user);
 
@@ -119,6 +133,47 @@ it('shows gpa and class rank from the most recently held published exam', functi
     expect($data['gpa'])->toBe(4.5)
         ->and($data['classRank'])->toBe(1)
         ->and($data['totalStudents'])->toBe(1);
+});
+
+it('resets the latest-result widget to zero after promotion until the new class has a published result', function () {
+    $oldClass = Classes::create(['name' => 'Class Nine Old', 'order' => 9]);
+    $newClass = Classes::create(['name' => 'Class Ten New', 'order' => 10]);
+    $student = makeDashboardStudent($oldClass);
+    $examType = ExamType::create(['name' => 'Final']);
+
+    $oldExam = Exam::create([
+        'exam_type_id' => $examType->id,
+        'class_id' => $oldClass->id,
+        'session_year' => now()->year,
+        'start_date' => today()->subDays(60)->toDateString(),
+        'end_date' => today()->subDays(58)->toDateString(),
+        'is_published' => true,
+    ]);
+
+    StudentMeritRanking::create([
+        'exam_id' => $oldExam->id,
+        'student_id' => $student->id,
+        'class_id' => $oldClass->id,
+        'total_marks' => 400,
+        'gpa' => 3.5,
+        'class_rank' => 1,
+    ]);
+
+    $this->actingAs($student->user);
+    expect((new StudentLatestResultWidget)->getViewData()['gpa'])->toBe(3.5);
+
+    // Promotion: new class + next session_year, no exam there yet.
+    $student->update(['current_class_id' => $newClass->id, 'session_year' => now()->year + 1]);
+
+    // Re-authenticate so Auth::user()->studentProfile isn't a stale cached relation.
+    $this->actingAs($student->user->fresh());
+
+    expect(StudentLatestResultWidget::canView())->toBeTrue();
+
+    $data = (new StudentLatestResultWidget)->getViewData();
+
+    expect($data['gpa'])->toBe(0)
+        ->and($data['classRank'])->toBeNull();
 });
 
 it('shows a red-banner due message when the student has an unpaid invoice', function () {

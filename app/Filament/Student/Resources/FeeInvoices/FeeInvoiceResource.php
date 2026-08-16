@@ -2,6 +2,7 @@
 
 namespace App\Filament\Student\Resources\FeeInvoices;
 
+use App\Filament\Student\Resources\FeeInvoices\Pages\AcademicHistoryFees;
 use App\Filament\Student\Resources\FeeInvoices\Pages\ListFeeInvoices;
 use App\Models\StudentFeeInvoice;
 use App\Models\StudentProfile;
@@ -120,6 +121,7 @@ class FeeInvoiceResource extends Resource
     {
         return [
             'index' => ListFeeInvoices::route('/'),
+            'academic-history' => AcademicHistoryFees::route('/history'),
         ];
     }
 

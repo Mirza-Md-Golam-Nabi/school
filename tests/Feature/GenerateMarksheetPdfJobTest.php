@@ -328,3 +328,130 @@ it('renders separate MCQ, Written, and Practical columns alongside Marks, Best, 
     // English has no MCQ/Practical config at all — those cells fall back to the placeholder.
     expect(substr_count($html, '>-<'))->toBeGreaterThanOrEqual(2);
 });
+
+it('shows the 1st position student\'s total marks and gpa on every student\'s marksheet', function () {
+    $class = Classes::create(['name' => 'Class One', 'order' => 1]);
+    $examType = ExamType::create(['name' => 'Half Yearly', 'is_active' => true]);
+    $exam = makeMarksheetJobTestExam($class->id, $examType);
+
+    $subject = Subject::create(['name' => 'Bangla', 'has_mcq' => false, 'has_written' => true, 'has_practical' => false, 'is_active' => true]);
+    $subject->classes()->attach($class->id, ['subject_type' => SubjectType::Compulsory->value]);
+
+    ExamSubjectConfig::create([
+        'exam_id' => $exam->id,
+        'subject_id' => $subject->id,
+        'written_total' => 100,
+        'total_marks' => 100,
+        'pass_mark' => 33,
+    ]);
+
+    $topper = makeMarksheetJobTestStudent($class->id);
+    StudentResult::create([
+        'exam_id' => $exam->id,
+        'subject_id' => $subject->id,
+        'class_id' => $class->id,
+        'student_id' => $topper->id,
+        'written_marks' => 95,
+    ]);
+    StudentMeritRanking::create([
+        'exam_id' => $exam->id,
+        'student_id' => $topper->id,
+        'class_id' => $class->id,
+        'total_marks' => 95,
+        'gpa' => 5.0,
+        'class_rank' => 1,
+    ]);
+
+    $secondStudent = makeMarksheetJobTestStudent($class->id);
+    StudentResult::create([
+        'exam_id' => $exam->id,
+        'subject_id' => $subject->id,
+        'class_id' => $class->id,
+        'student_id' => $secondStudent->id,
+        'written_marks' => 70,
+    ]);
+    $secondRanking = StudentMeritRanking::create([
+        'exam_id' => $exam->id,
+        'student_id' => $secondStudent->id,
+        'class_id' => $class->id,
+        'total_marks' => 70,
+        'gpa' => 3.5,
+        'class_rank' => 2,
+    ]);
+
+    ['summary' => $summary] = app(BuildStudentMarksDetail::class)->handle($secondRanking);
+
+    expect($summary['top_rank_total_marks'])->toBe(95.0)
+        ->and($summary['top_rank_gpa'])->toBe('5.00')
+        ->and($summary['top_rank_grade_label'])->toBe('A+');
+
+    $marksheet = Marksheet::create(['student_id' => $secondStudent->id, 'exam_id' => $exam->id]);
+    ['rows' => $rows, 'summary' => $summary] = app(BuildStudentMarksDetail::class)->handle($secondRanking);
+    $html = view('documents.marksheet', compact('marksheet', 'rows', 'summary'))->render();
+
+    expect($html)->toContain('1st Position Total Marks')
+        ->toContain('1st Position GPA')
+        ->toMatch('/>\s*95\s*</')
+        ->toContain('5.00 (A+)');
+});
+
+it('bases 1st position on class_rank, not on roll_no 1', function () {
+    $class = Classes::create(['name' => 'Class One', 'order' => 1]);
+    $examType = ExamType::create(['name' => 'Half Yearly', 'is_active' => true]);
+    $exam = makeMarksheetJobTestExam($class->id, $examType);
+
+    $subject = Subject::create(['name' => 'Bangla', 'has_mcq' => false, 'has_written' => true, 'has_practical' => false, 'is_active' => true]);
+    $subject->classes()->attach($class->id, ['subject_type' => SubjectType::Compulsory->value]);
+
+    ExamSubjectConfig::create([
+        'exam_id' => $exam->id,
+        'subject_id' => $subject->id,
+        'written_total' => 100,
+        'total_marks' => 100,
+        'pass_mark' => 33,
+    ]);
+
+    // Roll No 1 does not top the exam — class_rank 2 despite being roll 1.
+    $rollOneStudent = makeMarksheetJobTestStudent($class->id);
+    $rollOneStudent->update(['roll_no' => 1]);
+    StudentResult::create([
+        'exam_id' => $exam->id,
+        'subject_id' => $subject->id,
+        'class_id' => $class->id,
+        'student_id' => $rollOneStudent->id,
+        'written_marks' => 50,
+    ]);
+    StudentMeritRanking::create([
+        'exam_id' => $exam->id,
+        'student_id' => $rollOneStudent->id,
+        'class_id' => $class->id,
+        'total_marks' => 50,
+        'gpa' => 2.0,
+        'class_rank' => 2,
+    ]);
+
+    // A different student, roll 7, actually has class_rank 1.
+    $actualTopper = makeMarksheetJobTestStudent($class->id);
+    $actualTopper->update(['roll_no' => 7]);
+    StudentResult::create([
+        'exam_id' => $exam->id,
+        'subject_id' => $subject->id,
+        'class_id' => $class->id,
+        'student_id' => $actualTopper->id,
+        'written_marks' => 90,
+    ]);
+    StudentMeritRanking::create([
+        'exam_id' => $exam->id,
+        'student_id' => $actualTopper->id,
+        'class_id' => $class->id,
+        'total_marks' => 90,
+        'gpa' => 5.0,
+        'class_rank' => 1,
+    ]);
+
+    $ranking = StudentMeritRanking::where('student_id', $rollOneStudent->id)->firstOrFail();
+    ['summary' => $summary] = app(BuildStudentMarksDetail::class)->handle($ranking);
+
+    expect($summary['top_rank_total_marks'])->toBe(90.0)
+        ->and($summary['top_rank_gpa'])->toBe('5.00');
+});
