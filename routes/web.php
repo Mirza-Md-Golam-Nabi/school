@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AdmitCardPdfController;
+use App\Http\Controllers\ClassMarksheetsPdfController;
 use App\Http\Controllers\EmailVerificationController;
 use App\Http\Controllers\FundTransactionAttachmentController;
 use App\Http\Controllers\MarksheetPdfController;
@@ -21,6 +22,10 @@ Route::get('/admit-cards/{admitCard}/view', AdmitCardPdfController::class)
 Route::get('/marksheets/{marksheet}/view', MarksheetPdfController::class)
     ->middleware('auth')
     ->name('marksheets.view');
+
+Route::get('/classes/{class}/marksheets/{exam}/download', ClassMarksheetsPdfController::class)
+    ->middleware('auth')
+    ->name('marksheets.class.download');
 
 // No 'auth' middleware here — this app has no generic named 'login' route (Filament panels
 // each have their own), so the default guest-redirect would throw RouteNotFoundException.

@@ -96,6 +96,14 @@ class BuildStudentMarksDetail
 
         $overallGrade = Grade::fromGpa((float) $ranking->gpa);
 
+        // "1st position" means class_rank = 1 (the top exam performer), never roll_no = 1.
+        $topRanking = StudentMeritRanking::where('exam_id', $ranking->exam_id)
+            ->where('class_id', $ranking->class_id)
+            ->where('class_rank', 1)
+            ->first();
+
+        $topRankGrade = $topRanking ? Grade::fromGpa((float) $topRanking->gpa) : null;
+
         $summary = [
             'total_marks' => $ranking->total_marks,
             'class_rank' => $ranking->class_rank,
@@ -103,6 +111,9 @@ class BuildStudentMarksDetail
             'gpa' => number_format((float) $ranking->gpa, 2),
             'overall_grade_label' => $overallGrade->getLabel(),
             'overall_grade_color' => $overallGrade->getColor(),
+            'top_rank_total_marks' => $topRanking?->total_marks,
+            'top_rank_gpa' => $topRanking ? number_format((float) $topRanking->gpa, 2) : null,
+            'top_rank_grade_label' => $topRankGrade?->getLabel(),
         ];
 
         return ['rows' => $rows, 'summary' => $summary];

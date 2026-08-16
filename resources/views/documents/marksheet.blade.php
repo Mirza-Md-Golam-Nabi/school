@@ -274,6 +274,18 @@
                 <td class="summary-label">Section Rank</td>
                 <td>{{ $summary['section_rank'] ?? '-' }}</td>
             </tr>
+            <tr>
+                <td class="summary-label">1st Position Total Marks</td>
+                <td>{{ $summary['top_rank_total_marks'] ?? '-' }}</td>
+                <td class="summary-label">1st Position GPA</td>
+                <td>
+                    @if ($summary['top_rank_gpa'])
+                        {{ $summary['top_rank_gpa'] }} ({{ $summary['top_rank_grade_label'] }})
+                    @else
+                        -
+                    @endif
+                </td>
+            </tr>
         </table>
 
         <table class="signatures">
