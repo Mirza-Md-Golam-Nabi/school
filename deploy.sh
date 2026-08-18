@@ -12,14 +12,14 @@ echo "✅ Maintenance mode ON"
 git pull origin dev
 echo "✅ Git pull done"
 
+# Composer install
+$PHP composer.phar install --no-dev --optimize-autoloader
+echo "✅ Composer done"
+
 # Cache clear
 $PHP artisan optimize:clear
 $PHP artisan filament:optimize-clear
 echo "✅ Cache cleared"
-
-# Composer install
-$PHP composer.phar install --no-dev --optimize-autoloader
-echo "✅ Composer done"
 
 # .env file না থাকলে copy করো
 if [ ! -f .env ]; then
