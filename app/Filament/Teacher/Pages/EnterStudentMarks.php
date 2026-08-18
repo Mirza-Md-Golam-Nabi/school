@@ -14,6 +14,7 @@ use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Validator;
 use Livewire\Attributes\Url;
 use UnitEnum;
 
@@ -115,9 +116,54 @@ class EnterStudentMarks extends Page
             ->first();
     }
 
+    private function validateMarks(): void
+    {
+        $this->resetErrorBag();
+
+        $config = $this->getSubjectConfig();
+
+        $limits = [
+            'mcq_marks' => ['label' => 'MCQ marks', 'max' => $config?->mcq_total],
+            'written_marks' => ['label' => 'Written marks', 'max' => $config?->written_total],
+            'practical_marks' => ['label' => 'Practical marks', 'max' => $config?->practical_total],
+        ];
+
+        $rules = [];
+        $attributes = [];
+
+        foreach ($limits as $field => ['label' => $label, 'max' => $max]) {
+            if ($max === null) {
+                continue;
+            }
+
+            $rules["marks.*.{$field}"] = ['nullable', 'numeric', 'min:0', "max:{$max}"];
+            $attributes["marks.*.{$field}"] = $label;
+        }
+
+        if ($rules === []) {
+            return;
+        }
+
+        $marksForValidation = collect($this->marks)
+            ->map(function (array $mark): array {
+                $isAbsent = (bool) ($mark['is_absent'] ?? false);
+
+                foreach (['mcq_marks', 'written_marks', 'practical_marks'] as $field) {
+                    $mark[$field] = ($isAbsent || ($mark[$field] ?? '') === '') ? null : $mark[$field];
+                }
+
+                return $mark;
+            })
+            ->all();
+
+        Validator::make(['marks' => $marksForValidation], $rules, [], $attributes)->validate();
+    }
+
     public function save(): void
     {
         abort_unless($this->teacherCanEnterMarks(), 403);
+
+        $this->validateMarks();
 
         foreach ($this->marks as $studentId => $mark) {
             $isAbsent = (bool) ($mark['is_absent'] ?? false);

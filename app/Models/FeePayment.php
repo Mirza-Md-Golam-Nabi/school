@@ -9,9 +9,13 @@ use App\Notifications\FeePaymentReceivedNotification;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Notifications\DatabaseNotification;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class FeePayment extends Model
 {
+    use LogsActivity;
+
     protected $fillable = [
         'receipt_no',
         'student_id',
@@ -82,5 +86,14 @@ class FeePayment extends Model
     public function receivedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'received_by');
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logFillable()
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
+            ->useLogName('fee_payment');
     }
 }

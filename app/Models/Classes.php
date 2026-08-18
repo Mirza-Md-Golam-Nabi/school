@@ -6,6 +6,7 @@ use App\Enums\ClassLevel;
 use App\Models\ClassGroupSubject;
 use App\Models\Group;
 use App\Models\Section;
+use App\Traits\LogsRelationLabels;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -15,9 +16,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class Classes extends Model
 {
+    use LogsActivity;
+    use LogsRelationLabels;
     use SoftDeletes;
 
     protected $table = 'classes';
@@ -45,6 +50,7 @@ class Classes extends Model
     public function groups(): BelongsToMany
     {
         return $this->belongsToMany(Group::class, 'class_groups', 'class_id', 'group_id')
+            ->using(ClassGroup::class)
             ->withTimestamps();
     }
 
@@ -104,5 +110,22 @@ class Classes extends Model
             })
             ->with('subject')
             ->get();
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logFillable()
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
+            ->useLogName('class')
+            ->setDescriptionForEvent(fn (string $eventName): string => ucfirst($eventName)." class \"{$this->name}\".");
+    }
+
+    protected function activityLogRelationLabels(): array
+    {
+        return [
+            'class_teacher_id' => fn (int|string|null $id): ?string => $id === null ? null : TeacherProfile::find($id)?->user?->name,
+        ];
     }
 }

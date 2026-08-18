@@ -7,9 +7,13 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class StudentFeeInvoice extends Model
 {
+    use LogsActivity;
+
     protected $fillable = [
         'student_id',
         'fee_type_id',
@@ -64,5 +68,14 @@ class StudentFeeInvoice extends Model
     public function scopePayable(Builder $query): void
     {
         $query->whereIn('status', [InvoiceStatus::Unpaid, InvoiceStatus::Partial]);
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logFillable()
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
+            ->useLogName('student_fee_invoice');
     }
 }

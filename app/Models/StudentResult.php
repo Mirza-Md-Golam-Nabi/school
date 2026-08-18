@@ -2,11 +2,17 @@
 
 namespace App\Models;
 
+use App\Traits\LogsRelationLabels;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class StudentResult extends Model
 {
+    use LogsActivity;
+    use LogsRelationLabels;
+
     protected $fillable = [
         'exam_id',
         'subject_id',
@@ -101,5 +107,50 @@ class StudentResult extends Model
         }
 
         return $ownTotalMarks / (1 - ($this->contribution_percent / 100));
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logFillable()
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
+            ->useLogName('student_result')
+            ->setDescriptionForEvent(fn (): string => $this->activityLogDescription());
+    }
+
+    protected function activityLogRelationLabels(): array
+    {
+        return [
+            'exam_id' => fn (int|string|null $id): ?string => $id === null ? null : Exam::withTrashed()->with(['examType', 'class'])->find($id)?->displayLabel(),
+            'class_id' => fn (int|string|null $id): ?string => $id === null ? null : Classes::find($id)?->name,
+            'subject_id' => fn (int|string|null $id): ?string => $id === null ? null : Subject::find($id)?->name,
+            'student_id' => fn (int|string|null $id): ?string => $id === null ? null : self::studentLabel($id),
+            'contribution_source_exam_type_id' => fn (int|string|null $id): ?string => $id === null ? null : ExamType::find($id)?->name,
+        ];
+    }
+
+    private function activityLogDescription(): string
+    {
+        $exam = Exam::withTrashed()->with('examType')->find($this->exam_id);
+        $studentLabel = self::studentLabel($this->student_id) ?? "Student #{$this->student_id}";
+        $subjectLabel = Subject::find($this->subject_id)?->name ?? "Subject #{$this->subject_id}";
+        $classLabel = Classes::find($this->class_id)?->name ?? "Class #{$this->class_id}";
+        $examTypeLabel = $exam?->examType?->name ?? "Exam #{$this->exam_id}";
+
+        $classWithYear = $exam?->session_year !== null ? "{$classLabel} ({$exam->session_year})" : $classLabel;
+
+        return "{$classWithYear} - {$examTypeLabel} - {$subjectLabel} - {$studentLabel}";
+    }
+
+    private static function studentLabel(int|string $studentId): ?string
+    {
+        $student = StudentProfile::withTrashed()->with('user')->find($studentId);
+
+        if (! $student) {
+            return null;
+        }
+
+        return trim("{$student->user?->name} (Roll: {$student->roll_no})");
     }
 }

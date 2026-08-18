@@ -104,8 +104,11 @@
                                                 step="0.1"
                                                 wire:model.lazy="marks.{{ $student->id }}.mcq_marks"
                                                 @disabled($isAbsent)
-                                                class="w-20 rounded-lg border border-gray-400 bg-white px-2 py-1.5 text-center text-sm shadow-sm transition focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-100 disabled:text-gray-400 dark:border-gray-500 dark:bg-gray-800 dark:text-white dark:disabled:border-gray-700 dark:disabled:bg-gray-900 dark:disabled:text-gray-600"
+                                                class="w-20 rounded-lg border border-gray-400 bg-white px-2 py-1.5 text-center text-sm shadow-sm transition focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-100 disabled:text-gray-400 dark:border-gray-500 dark:bg-gray-800 dark:text-white dark:disabled:border-gray-700 dark:disabled:bg-gray-900 dark:disabled:text-gray-600 @error('marks.'.$student->id.'.mcq_marks') border-danger-500 dark:border-danger-500 @enderror"
                                             >
+                                            @error('marks.'.$student->id.'.mcq_marks')
+                                                <p class="mt-1 text-xs text-danger-600 dark:text-danger-400">{{ $message }}</p>
+                                            @enderror
                                         </td>
                                     @endif
 
@@ -118,8 +121,11 @@
                                                 step="0.1"
                                                 wire:model.lazy="marks.{{ $student->id }}.written_marks"
                                                 @disabled($isAbsent)
-                                                class="w-20 rounded-lg border border-gray-400 bg-white px-2 py-1.5 text-center text-sm shadow-sm transition focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-100 disabled:text-gray-400 dark:border-gray-500 dark:bg-gray-800 dark:text-white dark:disabled:border-gray-700 dark:disabled:bg-gray-900 dark:disabled:text-gray-600"
+                                                class="w-20 rounded-lg border border-gray-400 bg-white px-2 py-1.5 text-center text-sm shadow-sm transition focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-100 disabled:text-gray-400 dark:border-gray-500 dark:bg-gray-800 dark:text-white dark:disabled:border-gray-700 dark:disabled:bg-gray-900 dark:disabled:text-gray-600 @error('marks.'.$student->id.'.written_marks') border-danger-500 dark:border-danger-500 @enderror"
                                             >
+                                            @error('marks.'.$student->id.'.written_marks')
+                                                <p class="mt-1 text-xs text-danger-600 dark:text-danger-400">{{ $message }}</p>
+                                            @enderror
                                         </td>
                                     @endif
 
@@ -132,8 +138,11 @@
                                                 step="0.1"
                                                 wire:model.lazy="marks.{{ $student->id }}.practical_marks"
                                                 @disabled($isAbsent)
-                                                class="w-20 rounded-lg border border-gray-400 bg-white px-2 py-1.5 text-center text-sm shadow-sm transition focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-100 disabled:text-gray-400 dark:border-gray-500 dark:bg-gray-800 dark:text-white dark:disabled:border-gray-700 dark:disabled:bg-gray-900 dark:disabled:text-gray-600"
+                                                class="w-20 rounded-lg border border-gray-400 bg-white px-2 py-1.5 text-center text-sm shadow-sm transition focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-100 disabled:text-gray-400 dark:border-gray-500 dark:bg-gray-800 dark:text-white dark:disabled:border-gray-700 dark:disabled:bg-gray-900 dark:disabled:text-gray-600 @error('marks.'.$student->id.'.practical_marks') border-danger-500 dark:border-danger-500 @enderror"
                                             >
+                                            @error('marks.'.$student->id.'.practical_marks')
+                                                <p class="mt-1 text-xs text-danger-600 dark:text-danger-400">{{ $message }}</p>
+                                            @enderror
                                         </td>
                                     @endif
 

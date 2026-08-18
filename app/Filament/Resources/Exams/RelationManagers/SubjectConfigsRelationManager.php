@@ -14,10 +14,10 @@ use Filament\Actions\EditAction;
 use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreBulkAction;
 use Filament\Facades\Filament;
-use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
@@ -234,9 +234,9 @@ class SubjectConfigsRelationManager extends RelationManager
                             ->required(),
                     ]),
 
-                Placeholder::make('contribution_grand_total_info')
+                TextEntry::make('contribution_grand_total_info')
                     ->label('Grand Total (contribution সহ)')
-                    ->content(fn (Get $get): string => self::grandTotalHelperText($get, $targetRule))
+                    ->state(fn (Get $get): string => self::grandTotalHelperText($get, $targetRule))
                     ->visible($targetRule !== null),
             ]);
     }

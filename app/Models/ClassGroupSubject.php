@@ -6,13 +6,17 @@ use App\Enums\SubjectType;
 use App\Models\Classes;
 use App\Models\Group;
 use App\Models\Subject;
+use App\Traits\LogsRelationLabels;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Support\Collection;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class ClassGroupSubject extends Pivot
 {
-    // protected $table = 'class_group_subject';
+    use LogsActivity;
+    use LogsRelationLabels;
 
     protected $fillable = [
         'class_id',
@@ -73,5 +77,37 @@ class ClassGroupSubject extends Pivot
             ->pluck('subject.name', 'subject_id')
             ->unique()
             ->filter();
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logFillable()
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
+            ->useLogName('class_subject')
+            ->setDescriptionForEvent(fn (string $eventName): string => $this->activityLogDescription($eventName));
+    }
+
+    protected function activityLogRelationLabels(): array
+    {
+        return [
+            'class_id' => fn (int|string|null $id): ?string => $id === null ? null : Classes::find($id)?->name,
+            'group_id' => fn (int|string|null $id): ?string => $id === null ? 'All Groups' : Group::find($id)?->name,
+            'subject_id' => fn (int|string|null $id): ?string => $id === null ? null : Subject::find($id)?->name,
+        ];
+    }
+
+    private function activityLogDescription(string $eventName): string
+    {
+        $classLabel = $this->schoolClass?->name ?? "Class #{$this->class_id}";
+        $subjectLabel = $this->subject?->name ?? "Subject #{$this->subject_id}";
+        $groupLabel = $this->group_id === null ? 'All Groups' : ($this->group?->name ?? "Group #{$this->group_id}");
+
+        return match ($eventName) {
+            'created' => "Attached subject \"{$subjectLabel}\" to class \"{$classLabel}\" ({$groupLabel}).",
+            'deleted' => "Detached subject \"{$subjectLabel}\" from class \"{$classLabel}\" ({$groupLabel}).",
+            default => "Updated subject \"{$subjectLabel}\" attachment on class \"{$classLabel}\" ({$groupLabel}).",
+        };
     }
 }

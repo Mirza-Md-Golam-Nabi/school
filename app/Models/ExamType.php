@@ -6,9 +6,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class ExamType extends Model
 {
+    use LogsActivity;
     use SoftDeletes;
 
     protected $fillable = ['name', 'is_active'];
@@ -38,5 +41,15 @@ class ExamType extends Model
     public function contributeRules(): HasMany
     {
         return $this->hasMany(ExamContributeRule::class, 'source_exam_type_id');
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logFillable()
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
+            ->useLogName('exam_type')
+            ->setDescriptionForEvent(fn (string $eventName): string => ucfirst($eventName)." exam type \"{$this->name}\".");
     }
 }

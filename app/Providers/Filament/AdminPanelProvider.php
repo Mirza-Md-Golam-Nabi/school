@@ -61,6 +61,7 @@ class AdminPanelProvider extends PanelProvider
                 'Salary Management',
                 'Fund Management',
                 'User Management',
+                'Activity Log',
                 'School Settings',
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')

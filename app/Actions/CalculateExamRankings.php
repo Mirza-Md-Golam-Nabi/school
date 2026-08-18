@@ -77,7 +77,27 @@ class CalculateExamRankings
             );
         }
 
+        $this->logCalculation($exam, count($studentData));
+
         return count($studentData);
+    }
+
+    private function logCalculation(Exam $exam, int $studentCount): void
+    {
+        activity('merit_ranking')
+            ->performedOn($exam)
+            ->event('calculated')
+            ->withProperties([
+                'attributes' => [
+                    'exam_id' => $exam->id,
+                    'exam_id_label' => $exam->displayLabel(),
+                    'class_id' => $exam->class_id,
+                    'class_id_label' => $exam->class?->name,
+                    'session_year' => $exam->session_year,
+                    'ranked_student_count' => $studentCount,
+                ],
+            ])
+            ->log("Merit ranking calculated for {$exam->displayLabel()} — {$studentCount} students ranked.");
     }
 
     /**
