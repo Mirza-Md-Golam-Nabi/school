@@ -6,6 +6,7 @@ use App\Enums\BloodGroup;
 use App\Enums\Gender;
 use App\Enums\Religion;
 use App\Enums\StudentStatus;
+use App\Traits\LogsRelationLabels;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -18,6 +19,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 class StudentProfile extends Model
 {
     use LogsActivity;
+    use LogsRelationLabels;
     use SoftDeletes;
 
     protected $fillable = [
@@ -128,6 +130,30 @@ class StudentProfile extends Model
             ->logFillable()
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs()
-            ->useLogName('student_profile');
+            ->useLogName('student_profile')
+            ->setDescriptionForEvent(fn (string $eventName): string => ucfirst($eventName)." student profile \"{$this->displayName()}\".");
+    }
+
+    protected function activityLogRelationLabels(): array
+    {
+        return [
+            'user_id' => fn (int|string|null $id): ?string => $id === null ? null : User::find($id)?->name,
+            'current_class_id' => fn (int|string|null $id): ?string => $id === null ? null : Classes::find($id)?->name,
+            'current_section_id' => fn (int|string|null $id): ?string => $id === null ? null : Section::find($id)?->name,
+            'current_group_id' => fn (int|string|null $id): ?string => $id === null ? null : Group::find($id)?->name,
+        ];
+    }
+
+    private function displayName(): string
+    {
+        $name = trim("{$this->user?->name} (Roll: {$this->roll_no})") ?: "Student #{$this->id}";
+
+        if ($this->current_class_id === null) {
+            return $name;
+        }
+
+        $classLabel = $this->class?->name ?? "Class #{$this->current_class_id}";
+
+        return "{$name} - {$classLabel}";
     }
 }

@@ -6,6 +6,7 @@ use App\Enums\BloodGroup;
 use App\Enums\EmploymentStatus;
 use App\Enums\Gender;
 use App\Enums\Religion;
+use App\Traits\LogsRelationLabels;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -21,6 +22,7 @@ class TeacherProfile extends Model
 {
     use HasFactory;
     use LogsActivity;
+    use LogsRelationLabels;
     use SoftDeletes;
 
     protected $fillable = [
@@ -134,6 +136,20 @@ class TeacherProfile extends Model
             ->logFillable()
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs()
-            ->useLogName('teacher_profile');
+            ->useLogName('teacher_profile')
+            ->setDescriptionForEvent(fn (string $eventName): string => ucfirst($eventName)." teacher profile \"{$this->displayName()}\".");
+    }
+
+    protected function activityLogRelationLabels(): array
+    {
+        return [
+            'user_id' => fn (int|string|null $id): ?string => $id === null ? null : User::find($id)?->name,
+            'default_school_account_id' => fn (int|string|null $id): ?string => $id === null ? null : SchoolAccount::find($id)?->name,
+        ];
+    }
+
+    private function displayName(): string
+    {
+        return $this->user?->name ?? "Teacher #{$this->id}";
     }
 }
