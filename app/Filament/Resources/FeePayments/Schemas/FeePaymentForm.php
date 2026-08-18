@@ -75,6 +75,7 @@ class FeePaymentForm
                                     return StudentProfile::with('user')
                                         ->former()
                                         ->where('current_class_id', $classId)
+                                        ->orderBy('roll_no')
                                         ->get()
                                         ->mapWithKeys(fn ($s) => [
                                             $s->id => $s->user->name.' ('.($s->status->getLabel()).')',
@@ -84,6 +85,7 @@ class FeePaymentForm
                                 return StudentProfile::with('user')
                                     ->active()
                                     ->when($classId, fn ($q) => $q->where('current_class_id', $classId))
+                                    ->orderBy('roll_no')
                                     ->get()
                                     ->mapWithKeys(fn ($s) => [$s->id => $s->user->name.' (Roll: '.$s->roll_no.')']);
                             })

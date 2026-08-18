@@ -10,6 +10,17 @@ class EditStudentFeeInvoice extends EditRecord
 {
     protected static string $resource = StudentFeeInvoiceResource::class;
 
+    protected function mutateFormDataBeforeFill(array $data): array
+    {
+        $student = $this->getRecord()->loadMissing('student')->student;
+
+        if ($student) {
+            $data['class_id_filter'] = $student->current_class_id;
+        }
+
+        return $data;
+    }
+
     protected function getHeaderActions(): array
     {
         return [

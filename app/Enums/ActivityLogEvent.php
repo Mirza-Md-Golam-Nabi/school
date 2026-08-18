@@ -15,6 +15,7 @@ enum ActivityLogEvent: string implements HasColor, HasLabel
     case Logout = 'logout';
     case FailedLogin = 'failed_login';
     case Calculated = 'calculated';
+    case Generated = 'generated';
 
     public function getLabel(): string
     {
@@ -27,6 +28,7 @@ enum ActivityLogEvent: string implements HasColor, HasLabel
             self::Logout => 'Logout',
             self::FailedLogin => 'Failed Login',
             self::Calculated => 'Calculated',
+            self::Generated => 'Generated',
         };
     }
 
@@ -39,6 +41,7 @@ enum ActivityLogEvent: string implements HasColor, HasLabel
             self::Restored => 'info',
             self::FailedLogin => 'danger',
             self::Calculated => 'info',
+            self::Generated => 'info',
         };
     }
 }

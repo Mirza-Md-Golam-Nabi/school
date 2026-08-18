@@ -37,7 +37,6 @@ class FeeStructureForm
                     ->placeholder('0.00'),
                 TextInput::make('due_day')
                     ->label('Due Day (1–31)')
-                    ->required()
                     ->numeric()
                     ->minValue(1)
                     ->maxValue(31)
@@ -53,7 +52,7 @@ class FeeStructureForm
                 Radio::make('is_active')
                     ->label('Status')
                     ->default(true)
-                    ->boolean()
+                    ->boolean(trueLabel: 'Active', falseLabel: 'Inactive')
                     ->inline()
                     ->inlineLabel(false),
             ]);

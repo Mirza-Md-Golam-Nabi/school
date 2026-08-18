@@ -10,6 +10,7 @@ use App\Models\StudentFeeInvoice;
 use App\Models\StudentProfile;
 use App\Models\User;
 use App\Notifications\FeeInvoiceGeneratedNotification;
+use Carbon\Carbon;
 
 class GenerateMonthlyFeeInvoicesAction
 {
@@ -127,6 +128,31 @@ class GenerateMonthlyFeeInvoicesAction
             unset($students, $structures, $toInsert, $notificationData, $existingSet);
         }
 
+        $this->logGeneration($month, $year, $classId, $generated, $skipped);
+
         return ['generated' => $generated, 'skipped' => $skipped];
+    }
+
+    private function logGeneration(int $month, int $year, ?int $classId, int $generated, int $skipped): void
+    {
+        $scopeLabel = $classId
+            ? (Classes::find($classId)?->name ?? "Class #{$classId}")
+            : 'All Classes';
+
+        $periodLabel = Carbon::create()->month($month)->format('F').' '.$year;
+
+        activity('fee_invoice_generation')
+            ->event('generated')
+            ->withProperties([
+                'attributes' => [
+                    'class_id' => $classId,
+                    'class_id_label' => $classId ? $scopeLabel : null,
+                    'month' => $month,
+                    'year' => $year,
+                    'generated_count' => $generated,
+                    'skipped_count' => $skipped,
+                ],
+            ])
+            ->log("Generated {$generated} monthly fee invoice(s) for {$scopeLabel} ({$periodLabel}) — {$skipped} skipped (already invoiced).");
     }
 }
