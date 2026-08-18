@@ -90,22 +90,37 @@ class StaffAttendance extends Page
 
         foreach ($staff as $member) {
             $isPresent = in_array((string) $member->id, $this->presentIds);
+            $newStatus = $isPresent ? AttendanceStatus::Present : AttendanceStatus::Absent;
 
-            Attendance::updateOrCreate(
-                [
-                    'attendable_type' => StaffProfile::class,
-                    'attendable_id' => $member->id,
-                    'date' => $this->date,
-                    'class_id' => null,
-                    'subject_id' => null,
-                ],
-                [
-                    'status' => $isPresent ? AttendanceStatus::Present : AttendanceStatus::Absent,
-                    'source' => AttendanceSource::Manual,
-                    'marked_by' => $markedBy,
-                    'entry_time' => $isPresent ? now()->format('H:i:s') : null,
-                ]
-            );
+            $keys = [
+                'attendable_type' => StaffProfile::class,
+                'attendable_id' => $member->id,
+                'date' => $this->date,
+                'class_id' => null,
+                'subject_id' => null,
+            ];
+
+            $existing = Attendance::where($keys)->first();
+            $statusChanged = $existing && $existing->status !== $newStatus;
+
+            $attendance = $existing ?? new Attendance($keys);
+
+            $attendance->fill([
+                'status' => $newStatus,
+                'source' => AttendanceSource::Manual,
+                'marked_by' => $markedBy,
+                // Only stamp a fresh entry time when presence is newly recorded or
+                // just flipped to present — resaving unchanged staff must not
+                // touch their row, or everyone would show as "updated" whenever
+                // one staff member is corrected.
+                'entry_time' => $isPresent
+                    ? ((! $existing || $statusChanged) ? now()->format('H:i:s') : $attendance->entry_time)
+                    : null,
+            ]);
+
+            if (! $existing || $attendance->isDirty()) {
+                $attendance->save();
+            }
         }
 
         if ($this->date !== now()->toDateString()) {

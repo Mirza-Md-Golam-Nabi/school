@@ -28,7 +28,7 @@ class StaffAttendanceOverviewWidget extends Widget
 
         $todayCounts = Attendance::query()
             ->where('attendable_type', StaffProfile::class)
-            ->where('date', today())
+            ->where('date', today()->toDateString())
             ->whereNull('subject_id')
             ->selectRaw('status, count(*) as total')
             ->groupBy('status')

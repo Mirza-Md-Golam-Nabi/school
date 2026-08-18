@@ -32,7 +32,7 @@ it('computes total, present, and absent student counts for today', function () {
     Attendance::create([
         'attendable_type' => StudentProfile::class,
         'attendable_id' => $student1->id,
-        'date' => today(),
+        'date' => today()->toDateString(),
         'status' => AttendanceStatus::Present,
         'source' => AttendanceSource::Manual,
     ]);
@@ -40,7 +40,7 @@ it('computes total, present, and absent student counts for today', function () {
     Attendance::create([
         'attendable_type' => StudentProfile::class,
         'attendable_id' => $student2->id,
-        'date' => today(),
+        'date' => today()->toDateString(),
         'status' => AttendanceStatus::Absent,
         'source' => AttendanceSource::Manual,
     ]);
@@ -59,7 +59,7 @@ it('ignores attendance from other dates', function () {
     Attendance::create([
         'attendable_type' => StudentProfile::class,
         'attendable_id' => $student->id,
-        'date' => today()->subDay(),
+        'date' => today()->subDay()->toDateString(),
         'status' => AttendanceStatus::Present,
         'source' => AttendanceSource::Manual,
     ]);

@@ -36,7 +36,7 @@ class StudentAttendance extends Page
     {
         $todayCounts = Attendance::query()
             ->where('attendable_type', StudentProfile::class)
-            ->where('date', today())
+            ->where('date', today()->toDateString())
             ->whereNull('subject_id')
             ->selectRaw('class_id, status, count(*) as total')
             ->groupBy('class_id', 'status')
