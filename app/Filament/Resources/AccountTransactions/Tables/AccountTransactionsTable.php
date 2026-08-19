@@ -5,6 +5,7 @@ namespace App\Filament\Resources\AccountTransactions\Tables;
 use App\Enums\TransactionSource;
 use App\Enums\TransactionType;
 use App\Filament\Resources\Concerns\ResponsiveText;
+use App\Models\AccountTransaction;
 use App\Models\SchoolAccount;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DatePicker;
@@ -39,6 +40,13 @@ class AccountTransactionsTable
                     ->label('Source')
                     ->badge()
                     ->color('gray'),
+                TextColumn::make('party')
+                    ->label('Party')
+                    ->state(fn (AccountTransaction $record): ?string => $record->resolvePartyLabel())
+                    ->description(fn (AccountTransaction $record): string => $record->partyRoleLabel())
+                    ->placeholder('—')
+                    ->wrap()
+                    ->extraAttributes(['class' => ResponsiveText::CLASSES]),
                 TextColumn::make('description')
                     ->searchable()
                     ->wrap()
@@ -91,6 +99,12 @@ class AccountTransactionsTable
                                 TextEntry::make('account.name')->label('Account')->extraAttributes(['class' => ResponsiveText::CLASSES]),
                                 TextEntry::make('transaction_type')->label('Type')->badge(),
                                 TextEntry::make('source_type')->label('Source')->badge()->color('gray'),
+                                TextEntry::make('party')
+                                    ->label(fn (AccountTransaction $record): string => $record->partyRoleLabel())
+                                    ->state(fn (AccountTransaction $record): ?string => $record->resolvePartyLabel())
+                                    ->placeholder('—')
+                                    ->icon('heroicon-o-user')
+                                    ->extraAttributes(['class' => ResponsiveText::CLASSES]),
                                 TextEntry::make('amount')->money('BDT')->weight('bold')->extraAttributes(['class' => ResponsiveText::CLASSES]),
                                 TextEntry::make('transaction_date')->label('Date')->date()->extraAttributes(['class' => ResponsiveText::CLASSES]),
                                 TextEntry::make('description')->columnSpanFull()->extraAttributes(['class' => ResponsiveText::CLASSES]),

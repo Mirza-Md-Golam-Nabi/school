@@ -244,7 +244,7 @@ it('renders the changed students for a given batch on the details page', functio
     $attendance = Attendance::create([
         'attendable_type' => StudentProfile::class,
         'attendable_id' => $student->id,
-        'date' => today()->subDays(2),
+        'date' => today()->subDays(2)->toDateString(),
         'class_id' => $class->id,
         'status' => AttendanceStatus::Absent,
     ]);

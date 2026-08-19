@@ -43,7 +43,7 @@ class MyAttendance extends Page
         $this->todayStatus = Attendance::query()
             ->where('attendable_type', TeacherProfile::class)
             ->where('attendable_id', $profile->id)
-            ->where('date', today())
+            ->where('date', today()->toDateString())
             ->whereNull('class_id')
             ->whereNull('subject_id')
             ->value('status')?->value;
@@ -63,7 +63,7 @@ class MyAttendance extends Page
             [
                 'attendable_type' => TeacherProfile::class,
                 'attendable_id' => $profile->id,
-                'date' => today(),
+                'date' => today()->toDateString(),
                 'class_id' => null,
                 'subject_id' => null,
             ],
@@ -172,7 +172,7 @@ class MyAttendance extends Page
             ->where('attendable_id', $profileId)
             ->whereNull('class_id')
             ->whereNull('subject_id')
-            ->where('date', '!=', today())
+            ->where('date', '!=', today()->toDateString())
             ->orderByDesc('date')
             ->limit(10)
             ->get();

@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\StudentFeeDiscounts\Schemas;
 
 use App\Enums\StudentStatus;
+use App\Enums\UserType;
 use App\Models\Classes;
 use App\Models\FeeDiscount;
 use App\Models\FeeType;
@@ -14,6 +15,7 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
+use Illuminate\Database\Eloquent\Builder;
 
 class StudentFeeDiscountForm
 {
@@ -47,6 +49,7 @@ class StudentFeeDiscountForm
                                     $get('class_id_filter'),
                                     fn ($q, $classId) => $q->where('current_class_id', $classId)
                                 )
+                                ->orderBy('roll_no')
                                 ->get()
                                 ->mapWithKeys(fn ($s) => [$s->id => $s->user->name.' (Roll: '.$s->roll_no.')'])
                             )
@@ -84,8 +87,20 @@ class StudentFeeDiscountForm
                             ->default(now()->year),
                         Select::make('approved_by')
                             ->label('Approved By')
-                            ->relationship('approvedBy', 'name')
+                            ->relationship(
+                                name: 'approvedBy',
+                                titleAttribute: 'name',
+                                modifyQueryUsing: fn (Builder $query) => $query
+                                    ->where('is_active', true)
+                                    ->whereIn('user_type', [
+                                        UserType::SuperAdmin,
+                                        UserType::Admin,
+                                        UserType::Teacher,
+                                        UserType::Staff,
+                                    ]),
+                            )
                             ->searchable()
+                            ->preload()
                             ->nullable()
                             ->native(false),
                         Textarea::make('remarks')

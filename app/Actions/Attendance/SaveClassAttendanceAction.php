@@ -48,15 +48,27 @@ class SaveClassAttendanceAction
             ];
 
             $existing = Attendance::where($keys)->first();
+            $oldStatus = $existing?->status;
+            $statusChanged = $existing && $oldStatus !== $newStatus;
 
-            $attendance = Attendance::updateOrCreate($keys, [
+            $attendance = $existing ?? new Attendance($keys);
+
+            $attendance->fill([
                 'status' => $newStatus,
                 'source' => AttendanceSource::Manual,
                 'marked_by' => $markedBy,
-                'entry_time' => $isPresent ? now()->format('H:i:s') : null,
+                // Only stamp a fresh entry time when presence is newly recorded or
+                // just flipped to present — resaving an unchanged "present" student
+                // must not touch their row, or every student would show as
+                // "updated" in the activity log whenever one student is corrected.
+                'entry_time' => $isPresent
+                    ? ((! $existing || $statusChanged) ? now()->format('H:i:s') : $attendance->entry_time)
+                    : null,
             ]);
 
-            $statusChanged = $existing && $existing->status !== $newStatus;
+            if (! $existing || $attendance->isDirty()) {
+                $attendance->save();
+            }
 
             // Any new entry or real status change on a non-today date must be
             // flagged for admin review — resaving an unchanged status is a no-op.
@@ -66,7 +78,7 @@ class SaveClassAttendanceAction
                     'class_id' => $classId,
                     'student_profile_id' => $student->id,
                     'date' => $date,
-                    'old_status' => $existing?->status,
+                    'old_status' => $oldStatus,
                     'new_status' => $newStatus,
                     'changed_by' => $markedBy,
                     'batch_id' => $batchId,

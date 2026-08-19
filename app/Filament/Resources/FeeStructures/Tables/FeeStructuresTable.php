@@ -40,7 +40,7 @@ class FeeStructuresTable
                     ->weight('semibold'),
                 TextColumn::make('due_day')
                     ->label('Due Day')
-                    ->formatStateUsing(fn (int $state): string => $state.'th')
+                    ->formatStateUsing(fn (?int $state): string => $state === null ? '—' : "{$state}th")
                     ->alignCenter(),
                 TextColumn::make('session_year')
                     ->label('Year')

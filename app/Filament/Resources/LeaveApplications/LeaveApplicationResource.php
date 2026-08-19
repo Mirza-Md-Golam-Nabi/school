@@ -13,6 +13,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 use UnitEnum;
 
 class LeaveApplicationResource extends Resource
@@ -24,6 +25,11 @@ class LeaveApplicationResource extends Resource
     protected static string|UnitEnum|null $navigationGroup = 'HR & Staff Management';
 
     protected static ?int $navigationSort = 2;
+
+    public static function canEdit(Model $record): bool
+    {
+        return $record->isEditable();
+    }
 
     public static function form(Schema $schema): Schema
     {

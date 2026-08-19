@@ -3,6 +3,7 @@
 namespace App\Enums;
 
 use App\Enums\Permissions\AcademicPermission;
+use App\Enums\Permissions\ActivityLogPermission;
 use App\Enums\Permissions\AttendancePermission;
 use App\Enums\Permissions\CommunicationPermission;
 use App\Enums\Permissions\DocumentPermission;
@@ -26,6 +27,7 @@ class PermissionRegistry
             'Communication' => CommunicationPermission::cases(),
             'Document Management' => DocumentPermission::cases(),
             'HR & Staff Management' => HrPermission::cases(),
+            'Activity Log' => ActivityLogPermission::cases(),
         ];
     }
 }

@@ -5,19 +5,13 @@ PHP="/opt/cpanel/ea-php83/root/usr/bin/php"
 
 echo "🚀 Deployment started..."
 
-$PHP artisan down
-echo "✅ Maintenance mode ON"
-
 # Git থেকে latest code নামাও
 git pull origin dev
 echo "✅ Git pull done"
 
-# Cache clear
-$PHP artisan optimize:clear
-$PHP artisan filament:optimize-clear
-echo "✅ Cache cleared"
-
-# Composer install
+# Composer install — artisan down এর আগে চালানো জরুরি, নাহলে নতুন কোড
+# পুরনো vendor/ এর সাথে না মিললে artisan down নিজেই crash করবে এবং
+# পরের deploy attempt এই একই জায়গায় আটকে যাবে (deadlock)।
 $PHP composer.phar install --no-dev --optimize-autoloader
 echo "✅ Composer done"
 
@@ -27,6 +21,14 @@ if [ ! -f .env ]; then
     $PHP artisan key:generate
     echo "✅ .env created"
 fi
+
+$PHP artisan down
+echo "✅ Maintenance mode ON"
+
+# Cache clear
+$PHP artisan optimize:clear
+$PHP artisan filament:optimize-clear
+echo "✅ Cache cleared"
 
 # Migrate
 $PHP artisan migrate --force

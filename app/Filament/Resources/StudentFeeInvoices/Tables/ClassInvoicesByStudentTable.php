@@ -3,9 +3,12 @@
 namespace App\Filament\Resources\StudentFeeInvoices\Tables;
 
 use App\Enums\InvoiceStatus;
+use App\Filament\Resources\StudentFeeInvoices\StudentFeeInvoiceResource;
+use App\Models\StudentFeeInvoice;
 use App\Models\StudentProfile;
 use Carbon\Carbon;
 use Filament\Actions\Action;
+use Filament\Facades\Filament;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
@@ -29,6 +32,14 @@ class ClassInvoicesByStudentTable
                 ->with(['user', 'feeInvoices.feeType', 'feeInvoices.payments']))
             ->defaultSort('roll_no')
             ->recordUrl(null)
+            // Without an explicit recordAction, clicking anywhere on a row (not just
+            // the icon button) falls back to a default "view" action name, which
+            // isn't defined on this table — Filament then resolves it against the
+            // owning resource's default table (StudentFeeInvoicesTable) instead,
+            // a *different*, StudentFeeInvoice-typed action. Since this table's
+            // records are StudentProfile, that mismatch throws a TypeError. Pin
+            // row clicks to this table's own action to avoid the fallback.
+            ->recordAction('viewPending')
             ->columns([
                 TextColumn::make('user.name')
                     ->label('Student')
@@ -76,8 +87,17 @@ class ClassInvoicesByStudentTable
                                             ->money('BDT')
                                             ->color('danger'),
                                         TextEntry::make('status')->badge(),
+                                        TextEntry::make('edit')
+                                            ->label('')
+                                            ->state('Edit')
+                                            ->icon(Heroicon::OutlinedPencilSquare)
+                                            ->color('primary')
+                                            ->url(fn (StudentFeeInvoice $record): string => StudentFeeInvoiceResource::getUrl('edit', ['record' => $record]))
+                                            ->openUrlInNewTab()
+                                            // The teacher panel's StudentFeeInvoiceResource has no edit page.
+                                            ->visible(fn (): bool => Filament::getCurrentPanel()?->getId() === 'admin'),
                                     ])
-                                    ->columns(['default' => 2, 'sm' => 3, 'lg' => 5]),
+                                    ->columns(['default' => 2, 'sm' => 3, 'lg' => 6]),
                             ]),
                     ])
                     ->modalSubmitAction(false)

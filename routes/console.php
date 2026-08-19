@@ -19,3 +19,6 @@ Schedule::command(CheckLeaveExcess::class)->dailyAt('08:00');
 
 // Deactivate acting-admin records whose to_date has passed, daily at 12:10 AM
 Schedule::job(new DeactivateExpiredActingAdminsJob)->dailyAt('00:10');
+
+// Delete activity log entries older than activitylog.delete_records_older_than_days (730 days), weekly
+Schedule::command('activitylog:clean')->weeklyOn(0, '01:00');

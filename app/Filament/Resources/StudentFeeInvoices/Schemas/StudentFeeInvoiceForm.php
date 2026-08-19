@@ -5,12 +5,14 @@ namespace App\Filament\Resources\StudentFeeInvoices\Schemas;
 use App\Enums\FeeDiscountType;
 use App\Enums\InvoiceStatus;
 use App\Enums\StudentStatus;
+use App\Enums\UserType;
 use App\Models\Classes;
 use App\Models\FeeStructure;
 use App\Models\FeeType;
 use App\Models\StudentFeeDiscount;
 use App\Models\StudentFeeInvoice;
 use App\Models\StudentProfile;
+use Carbon\Carbon;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -20,6 +22,7 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
+use Illuminate\Database\Eloquent\Builder;
 
 class StudentFeeInvoiceForm
 {
@@ -48,6 +51,7 @@ class StudentFeeInvoiceForm
                                     $get('class_id_filter'),
                                     fn ($q, $classId) => $q->where('current_class_id', $classId)
                                 )
+                                ->orderBy('roll_no')
                                 ->get()
                                 ->mapWithKeys(fn ($s) => [$s->id => $s->user->name.' (Roll: '.$s->roll_no.')'])
                             )
@@ -71,13 +75,13 @@ class StudentFeeInvoiceForm
                                 self::checkDuplicate($get, $set);
                             }),
 
-                        TextInput::make('month')
-                            ->label('Month (1–12)')
-                            ->numeric()
-                            ->minValue(1)
-                            ->maxValue(12)
+                        Select::make('month')
+                            ->label('Month')
+                            ->options(fn () => collect(range(1, 12))
+                                ->mapWithKeys(fn (int $m) => [$m => Carbon::create()->month($m)->format('F')]))
+                            ->native(false)
                             ->nullable()
-                            ->live(onBlur: true)
+                            ->live()
                             ->helperText('Leave empty for one-time fees')
                             ->afterStateUpdated(fn (Get $get, Set $set) => self::checkDuplicate($get, $set)),
 
@@ -160,8 +164,26 @@ class StudentFeeInvoiceForm
                     ->schema([
                         Select::make('waiver_by')
                             ->label('Waived By')
-                            ->relationship('waivedBy', 'name')
+                            ->relationship(
+                                name: 'waivedBy',
+                                titleAttribute: 'name',
+                                modifyQueryUsing: fn (Builder $query) => $query
+                                    ->where('is_active', true)
+                                    ->whereIn('user_type', [
+                                        UserType::SuperAdmin,
+                                        UserType::Admin,
+                                        UserType::Teacher,
+                                        UserType::Staff,
+                                    ])
+                                    // Admins/Super Admins first, then Teachers/Staff — alphabetical within each group.
+                                    ->orderByRaw('case when user_type in (?, ?) then 0 else 1 end', [
+                                        UserType::SuperAdmin->value,
+                                        UserType::Admin->value,
+                                    ])
+                                    ->orderBy('name'),
+                            )
                             ->searchable()
+                            ->preload()
                             ->nullable()
                             ->native(false),
                         Textarea::make('waiver_reason')

@@ -110,6 +110,31 @@ class GenerateOneTimeFeeInvoicesAction
                 });
         }
 
+        $this->logGeneration($structure, $generated, $skipped);
+
         return ['generated' => $generated, 'skipped' => $skipped];
+    }
+
+    private function logGeneration(FeeStructure $structure, int $generated, int $skipped): void
+    {
+        $classLabel = $structure->class?->name ?? "Class #{$structure->class_id}";
+        $feeTypeLabel = $structure->feeType?->name ?? "Fee Type #{$structure->fee_type_id}";
+
+        activity('fee_invoice_generation')
+            ->performedOn($structure)
+            ->event('generated')
+            ->withProperties([
+                'attributes' => [
+                    'fee_structure_id' => $structure->id,
+                    'class_id' => $structure->class_id,
+                    'class_id_label' => $classLabel,
+                    'fee_type_id' => $structure->fee_type_id,
+                    'fee_type_id_label' => $feeTypeLabel,
+                    'session_year' => $structure->session_year,
+                    'generated_count' => $generated,
+                    'skipped_count' => $skipped,
+                ],
+            ])
+            ->log("Generated {$generated} one-time \"{$feeTypeLabel}\" invoice(s) for {$classLabel} ({$structure->session_year}) — {$skipped} skipped (already invoiced).");
     }
 }

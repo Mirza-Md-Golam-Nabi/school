@@ -12,7 +12,7 @@ use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
 
-function createSortTestStructure(TeacherProfile|StaffProfile $profile): SalaryStructure
+function createSortTestStructure(TeacherProfile|StaffProfile $profile, ?string $effectiveTo = null): SalaryStructure
 {
     return SalaryStructure::create([
         'profileable_type' => $profile::class,
@@ -20,10 +20,11 @@ function createSortTestStructure(TeacherProfile|StaffProfile $profile): SalarySt
         'use_components' => false,
         'flat_amount' => 10000,
         'effective_from' => '2026-01-01',
+        'effective_to' => $effectiveTo,
     ]);
 }
 
-it('renders the list page and sorts by name across teachers and staff without error', function () {
+it('defaults to open-ended structures first, most recently created first within each group', function () {
     $admin = grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]));
     $this->actingAs($admin);
 
@@ -36,13 +37,32 @@ it('renders the list page and sorts by name across teachers and staff without er
     ]);
     $mizan = TeacherProfile::factory()->create(['status' => EmploymentStatus::Active, 'user_id' => User::factory()->create(['name' => 'Mizan Chowdhury'])]);
 
-    createSortTestStructure($zaman);
-    createSortTestStructure($anisa);
-    createSortTestStructure($mizan);
+    // Closed structures created first (lower ids), open-ended ones created after (higher ids).
+    createSortTestStructure($zaman, '2025-12-31'); // closed, id 1
+    createSortTestStructure($anisa, '2025-12-31'); // closed, id 2
+    createSortTestStructure($mizan); // open-ended, id 3
 
     Livewire::test(ListSalaryStructures::class)
         ->assertOk()
-        ->assertSeeInOrder(['Anisa Rahman', 'Mizan Chowdhury', 'Zaman Khan']);
+        // Open-ended (Mizan) first, then closed structures newest-id-first (Anisa before Zaman).
+        ->assertSeeInOrder(['Mizan Chowdhury', 'Anisa Rahman', 'Zaman Khan']);
+});
+
+it('orders closed structures by id descending when several are closed', function () {
+    $admin = grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]));
+    $this->actingAs($admin);
+
+    $firstTeacher = TeacherProfile::factory()->create(['status' => EmploymentStatus::Active, 'user_id' => User::factory()->create(['name' => 'Rahim Uddin'])]);
+    $secondTeacher = TeacherProfile::factory()->create(['status' => EmploymentStatus::Active, 'user_id' => User::factory()->create(['name' => 'Karim Ahmed'])]);
+
+    $first = createSortTestStructure($firstTeacher, '2025-06-30');
+    $second = createSortTestStructure($secondTeacher, '2025-12-31');
+
+    expect($second->id)->toBeGreaterThan($first->id);
+
+    Livewire::test(ListSalaryStructures::class)
+        ->assertOk()
+        ->assertSeeInOrder(['Karim Ahmed', 'Rahim Uddin']);
 });
 
 it('re-sorts by name descending when the Name column header is clicked', function () {

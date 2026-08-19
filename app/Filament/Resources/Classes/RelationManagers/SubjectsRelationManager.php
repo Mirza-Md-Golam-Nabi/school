@@ -128,7 +128,9 @@ class SubjectsRelationManager extends RelationManager
                     ->multiple()
                     ->recordSelectOptionsQuery(fn ($query) => $query->active())
                     ->schema(fn (AttachAction $action): array => [
-                        $action->getRecordSelect(), // subject dropdown
+                        $action->getRecordSelect() // Subject List Dropdown
+                            ->label('Subject Name')
+                            ->hiddenLabel(false),
 
                         Select::make('subject_type')
                             ->label('Subject Type')

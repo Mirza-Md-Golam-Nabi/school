@@ -28,5 +28,9 @@ class AppServiceProvider extends ServiceProvider
 
         Attendance::observe(AttendanceObserver::class);
         ActingAdmin::observe(ActingAdminObserver::class);
+
+        // Login/Logout/Failed-login activity logging is handled by
+        // App\Listeners\Log*Login/Logout, auto-discovered from app/Listeners
+        // — do not also register them here, or events fire twice.
     }
 }

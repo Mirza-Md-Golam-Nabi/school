@@ -4,9 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class SchoolAccount extends Model
 {
+    use LogsActivity;
+
     protected $fillable = [
         'name',
         'current_balance',
@@ -39,5 +43,15 @@ class SchoolAccount extends Model
     public function fundTransactions(): HasMany
     {
         return $this->hasMany(FundTransaction::class);
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logFillable()
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
+            ->useLogName('school_account')
+            ->setDescriptionForEvent(fn (string $eventName): string => ucfirst($eventName)." school account \"{$this->name}\".");
     }
 }

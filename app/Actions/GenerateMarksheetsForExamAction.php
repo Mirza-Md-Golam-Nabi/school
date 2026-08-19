@@ -59,10 +59,31 @@ class GenerateMarksheetsForExamAction
             GenerateMarksheetPdfJob::dispatch($marksheet->id);
         }
 
+        $this->logGeneration($exam, $created, $regenerated, $skippedNoRanking);
+
         return [
             'created' => $created,
             'regenerated' => $regenerated,
             'skipped_no_ranking' => $skippedNoRanking,
         ];
+    }
+
+    private function logGeneration(Exam $exam, int $created, int $regenerated, int $skippedNoRanking): void
+    {
+        $examLabel = $exam->displayLabel();
+
+        activity('marksheet_generation')
+            ->performedOn($exam)
+            ->event('generated')
+            ->withProperties([
+                'attributes' => [
+                    'exam_id' => $exam->id,
+                    'exam_id_label' => $examLabel,
+                    'created_count' => $created,
+                    'regenerated_count' => $regenerated,
+                    'skipped_no_ranking_count' => $skippedNoRanking,
+                ],
+            ])
+            ->log("Generated {$created} marksheet(s) for \"{$examLabel}\" ({$regenerated} regenerated) — {$skippedNoRanking} skipped (no ranking yet).");
     }
 }
