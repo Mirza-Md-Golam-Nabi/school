@@ -10,11 +10,15 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class LeaveType extends Model
 {
     /** @use HasFactory<LeaveTypeFactory> */
     use HasFactory;
+
+    use LogsActivity;
 
     protected $fillable = ['name', 'allowed_days_per_year', 'applicable_gender', 'is_active'];
 
@@ -75,5 +79,26 @@ class LeaveType extends Model
             ->where('assignable_type', $applicant::class)
             ->where('assignable_id', $applicant->getKey())
             ->exists();
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logFillable()
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
+            ->useLogName('leave_type')
+            ->setDescriptionForEvent(fn (string $eventName): string => $this->activityLogDescription($eventName));
+    }
+
+    private function activityLogDescription(string $eventName): string
+    {
+        if ($eventName === 'created') {
+            $genderLabel = $this->applicable_gender?->getLabel() ?? (string) $this->applicable_gender;
+
+            return "Created leave type \"{$this->name}\" ({$this->allowed_days_per_year} days/year, {$genderLabel}).";
+        }
+
+        return ucfirst($eventName)." leave type \"{$this->name}\".";
     }
 }

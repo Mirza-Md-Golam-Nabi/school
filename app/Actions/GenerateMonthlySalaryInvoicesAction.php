@@ -9,6 +9,7 @@ use App\Models\SalaryInvoice;
 use App\Models\SalaryStructure;
 use App\Models\StaffProfile;
 use App\Models\TeacherProfile;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class GenerateMonthlySalaryInvoicesAction
@@ -71,7 +72,27 @@ class GenerateMonthlySalaryInvoicesAction
             }
         }
 
+        $this->logGeneration($month, $year, $generated, $skipped, $noStructure);
+
         return ['generated' => $generated, 'skipped' => $skipped, 'no_structure' => $noStructure];
+    }
+
+    private function logGeneration(int $month, int $year, int $generated, int $skipped, int $noStructure): void
+    {
+        $periodLabel = Carbon::create()->month($month)->format('F').' '.$year;
+
+        activity('salary_invoice_generation')
+            ->event('generated')
+            ->withProperties([
+                'attributes' => [
+                    'month' => $month,
+                    'year' => $year,
+                    'generated_count' => $generated,
+                    'skipped_count' => $skipped,
+                    'no_structure_count' => $noStructure,
+                ],
+            ])
+            ->log("Generated {$generated} monthly salary invoice(s) for {$periodLabel} — {$skipped} skipped (already invoiced), {$noStructure} skipped (no salary structure).");
     }
 
     protected function createInvoiceFromStructure(SalaryStructure $structure, string $profileClass, int $profileId, int $month, int $year, ?int $createdBy): void

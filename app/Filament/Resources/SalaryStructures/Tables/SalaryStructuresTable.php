@@ -21,7 +21,7 @@ class SalaryStructuresTable
     public static function configure(Table $table): Table
     {
         return $table
-            ->defaultSort(fn (Builder $query, string $direction): Builder => self::orderByProfileableName($query, $direction))
+            ->defaultSort(fn (Builder $query): Builder => self::orderByOpenEndedFirst($query))
             ->columns([
                 TextColumn::make('profileable.user.name')
                     ->label('Name')
@@ -79,6 +79,19 @@ class SalaryStructuresTable
                     DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    /**
+     * Default listing order: still-open ("চলমান") structures first, since those
+     * are the ones an admin usually needs to check/act on; closed-out structures
+     * follow, most recently created first (id desc).
+     */
+    private static function orderByOpenEndedFirst(Builder $query): Builder
+    {
+        $table = $query->getModel()->getTable();
+
+        return $query->orderByRaw("(CASE WHEN {$table}.effective_to IS NULL THEN 0 ELSE 1 END) asc")
+            ->orderByDesc("{$table}.id");
     }
 
     /**
