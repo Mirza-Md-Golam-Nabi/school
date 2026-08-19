@@ -213,7 +213,9 @@ class LeaveApplicationsTable
                     ])
                     ->modalSubmitAction(false)
                     ->modalCancelActionLabel('Close'),
-                EditAction::make()->iconButton(),
+                EditAction::make()
+                    ->iconButton()
+                    ->visible(fn (LeaveApplication $record): bool => $record->isEditable()),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

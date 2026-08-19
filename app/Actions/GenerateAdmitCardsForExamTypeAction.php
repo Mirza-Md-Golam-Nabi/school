@@ -42,14 +42,36 @@ class GenerateAdmitCardsForExamTypeAction
 
     protected function clearAdmitCardsForOtherExamTypes(ExamType $examType): void
     {
-        AdmitCard::whereHas('exam', fn ($query) => $query->where('exam_type_id', '!=', $examType->id))
-            ->get()
-            ->each(function (AdmitCard $admitCard) {
-                if ($admitCard->file_path && Storage::disk('local')->exists($admitCard->file_path)) {
-                    Storage::disk('local')->delete($admitCard->file_path);
-                }
+        $otherAdmitCards = AdmitCard::whereHas('exam', fn ($query) => $query->where('exam_type_id', '!=', $examType->id))
+            ->get();
 
-                $admitCard->delete();
-            });
+        if ($otherAdmitCards->isEmpty()) {
+            return;
+        }
+
+        foreach ($otherAdmitCards as $admitCard) {
+            if ($admitCard->file_path && Storage::disk('local')->exists($admitCard->file_path)) {
+                Storage::disk('local')->delete($admitCard->file_path);
+            }
+
+            $admitCard->delete();
+        }
+
+        $this->logClear($examType, $otherAdmitCards->count());
+    }
+
+    private function logClear(ExamType $examType, int $clearedCount): void
+    {
+        activity('admit_card_generation')
+            ->performedOn($examType)
+            ->event('deleted')
+            ->withProperties([
+                'attributes' => [
+                    'exam_type_id' => $examType->id,
+                    'exam_type_id_label' => $examType->name,
+                    'cleared_count' => $clearedCount,
+                ],
+            ])
+            ->log("Cleared {$clearedCount} existing admit card(s) from other exam types before generating \"{$examType->name}\" admit cards.");
     }
 }

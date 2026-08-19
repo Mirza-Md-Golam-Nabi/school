@@ -42,6 +42,27 @@ class GenerateAdmitCardsForExamAction
             GenerateAdmitCardPdfJob::dispatch($admitCard->id);
         }
 
+        $this->logGeneration($exam, $created, $skipped, $pageSize);
+
         return ['created' => $created, 'skipped' => $skipped];
+    }
+
+    private function logGeneration(Exam $exam, int $created, int $skipped, string $pageSize): void
+    {
+        $examLabel = $exam->displayLabel();
+
+        activity('admit_card_generation')
+            ->performedOn($exam)
+            ->event('generated')
+            ->withProperties([
+                'attributes' => [
+                    'exam_id' => $exam->id,
+                    'exam_id_label' => $examLabel,
+                    'page_size' => $pageSize,
+                    'created_count' => $created,
+                    'skipped_count' => $skipped,
+                ],
+            ])
+            ->log("Generated {$created} admit card(s) for \"{$examLabel}\" — {$skipped} skipped (already exists).");
     }
 }

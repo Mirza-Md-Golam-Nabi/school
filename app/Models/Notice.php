@@ -3,13 +3,19 @@
 namespace App\Models;
 
 use App\Enums\NoticeTargetType;
+use App\Traits\LogsRelationLabels;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class Notice extends Model
 {
+    use LogsActivity;
+    use LogsRelationLabels;
+
     protected $fillable = [
         'title',
         'body',
@@ -122,5 +128,33 @@ class Notice extends Model
         }
 
         return $this->reads()->where('user_id', $user->id)->exists();
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logFillable()
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
+            ->useLogName('notice')
+            ->setDescriptionForEvent(fn (string $eventName): string => $this->activityLogDescription($eventName));
+    }
+
+    protected function activityLogRelationLabels(): array
+    {
+        return [
+            'created_by' => fn (int|string|null $id): ?string => $id === null ? null : User::find($id)?->name,
+        ];
+    }
+
+    private function activityLogDescription(string $eventName): string
+    {
+        if ($eventName === 'created') {
+            $targetLabel = $this->target_type?->getLabel() ?? (string) $this->target_type;
+
+            return "Created notice \"{$this->title}\" targeting {$targetLabel}.";
+        }
+
+        return ucfirst($eventName)." notice \"{$this->title}\".";
     }
 }
