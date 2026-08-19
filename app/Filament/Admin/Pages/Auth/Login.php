@@ -30,7 +30,7 @@ class Login extends BaseLogin
 
         if (app()->isLocal()) {
             $this->form->fill([
-                'email' => 'admin@example.com',
+                'email' => 'super_admin@example.com',
                 'password' => 'password',
             ]);
         }
