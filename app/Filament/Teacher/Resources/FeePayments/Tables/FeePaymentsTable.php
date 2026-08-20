@@ -3,6 +3,10 @@
 namespace App\Filament\Teacher\Resources\FeePayments\Tables;
 
 use App\Enums\PaymentMethod;
+use App\Filament\Teacher\Resources\FeePayments\FeePaymentResource;
+use App\Models\FeePayment;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -36,6 +40,14 @@ class FeePaymentsTable
             ->filters([
                 SelectFilter::make('payment_method')
                     ->options(PaymentMethod::class),
+            ])
+            ->recordActions([
+                EditAction::make()
+                    ->iconButton()
+                    ->visible(fn (FeePayment $record): bool => FeePaymentResource::canEdit($record)),
+                DeleteAction::make()
+                    ->iconButton()
+                    ->visible(fn (FeePayment $record): bool => FeePaymentResource::canDelete($record)),
             ]);
     }
 }

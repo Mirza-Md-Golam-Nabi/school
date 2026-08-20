@@ -32,6 +32,14 @@ class CreateRole extends CreateRecord
             ->toArray();
 
         $this->record->syncPermissions($permissions);
+
+        if ($permissions !== []) {
+            activity('role_permission')
+                ->performedOn($this->record)
+                ->event('created')
+                ->withProperties(['attributes' => ['permissions' => $permissions]])
+                ->log('Assigned '.count($permissions)." permission(s) to role \"{$this->record->name}\".");
+        }
     }
 
     protected function getRedirectUrl(): string

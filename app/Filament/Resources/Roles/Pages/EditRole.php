@@ -63,12 +63,41 @@ class EditRole extends EditRecord
             ->values()
             ->toArray();
 
+        $before = $this->record->permissions()->pluck('name')->toArray();
+
         $this->record->syncPermissions($permissions);
+
+        $this->logPermissionChanges($before, $permissions);
 
         // Keep Acting Admin's permissions mirroring the real 'admin' role.
         if ($this->record->name === 'admin') {
             app(SyncActingAdminRolePermissionsAction::class)->handle();
         }
+    }
+
+    /**
+     * @param  array<int, string>  $before
+     * @param  array<int, string>  $after
+     */
+    private function logPermissionChanges(array $before, array $after): void
+    {
+        $added = array_values(array_diff($after, $before));
+        $removed = array_values(array_diff($before, $after));
+
+        if ($added === [] && $removed === []) {
+            return;
+        }
+
+        $summary = collect([
+            $added !== [] ? count($added).' added' : null,
+            $removed !== [] ? count($removed).' removed' : null,
+        ])->filter()->implode(', ');
+
+        activity('role_permission')
+            ->performedOn($this->record)
+            ->event('updated')
+            ->withProperties(['attributes' => ['added' => $added, 'removed' => $removed]])
+            ->log("Updated permissions for role \"{$this->record->name}\" ({$summary}).");
     }
 
     protected function getRedirectUrl(): string

@@ -4,6 +4,7 @@ namespace App\Filament\Teacher\Resources\FeePayments;
 
 use App\Filament\Teacher\Concerns\ScopesToClassTeacherStudents;
 use App\Filament\Teacher\Resources\FeePayments\Pages\CreateFeePayment;
+use App\Filament\Teacher\Resources\FeePayments\Pages\EditFeePayment;
 use App\Filament\Teacher\Resources\FeePayments\Pages\ListFeePayments;
 use App\Filament\Teacher\Resources\FeePayments\Pages\ManageClassFeePayments;
 use App\Filament\Teacher\Resources\FeePayments\Schemas\FeePaymentForm;
@@ -53,6 +54,7 @@ class FeePaymentResource extends Resource
             'index' => ListFeePayments::route('/'),
             'class-payments' => ManageClassFeePayments::route('/class-payments'),
             'create' => CreateFeePayment::route('/create'),
+            'edit' => EditFeePayment::route('/{record}/edit'),
         ];
     }
 }

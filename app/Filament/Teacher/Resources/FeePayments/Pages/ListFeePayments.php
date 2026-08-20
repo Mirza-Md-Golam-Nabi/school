@@ -47,7 +47,8 @@ class ListFeePayments extends Page
             Action::make('create')
                 ->label('Collect Fee')
                 ->url(FeePaymentResource::getUrl('create'))
-                ->icon('heroicon-o-plus'),
+                ->icon('heroicon-o-plus')
+                ->visible(fn (): bool => FeePaymentResource::canCreate()),
         ];
     }
 }
