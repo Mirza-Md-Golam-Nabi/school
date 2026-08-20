@@ -48,6 +48,10 @@ class StudentPanelProvider extends PanelProvider
                 PanelsRenderHook::HEAD_END,
                 fn (): string => '<link rel="manifest" href="/manifest/student.json">',
             )
+            ->renderHook(
+                PanelsRenderHook::BODY_END,
+                fn (): string => auth()->check() ? view('filament.shared.webpush-subscribe')->render() : '',
+            )
             ->navigationGroups([
                 'Results',
                 'Fees',

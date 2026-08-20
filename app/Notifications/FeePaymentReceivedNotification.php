@@ -10,6 +10,8 @@ use Filament\Notifications\Notification as FilamentNotification;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
+use NotificationChannels\WebPush\WebPushChannel;
+use NotificationChannels\WebPush\WebPushMessage;
 
 class FeePaymentReceivedNotification extends Notification implements ShouldQueue
 {
@@ -21,7 +23,21 @@ class FeePaymentReceivedNotification extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return ['database'];
+        return ['database', WebPushChannel::class];
+    }
+
+    public function toWebPush(object $notifiable, self $notification): WebPushMessage
+    {
+        $invoice = $this->payment->invoice()->with('feeType')->first();
+
+        return (new WebPushMessage)
+            ->title('Fee Payment Received')
+            ->icon('/favicon.ico')
+            ->body($this->buildBody($invoice))
+            ->data(['url' => $invoice ? FeeInvoiceResource::getUrl('index', [
+                'tableAction' => 'view',
+                'tableActionRecord' => $invoice->id,
+            ], panel: 'student') : FeeInvoiceResource::getUrl('index', panel: 'student')]);
     }
 
     /**

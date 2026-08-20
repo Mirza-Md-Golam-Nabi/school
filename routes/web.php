@@ -5,6 +5,7 @@ use App\Http\Controllers\ClassMarksheetsPdfController;
 use App\Http\Controllers\EmailVerificationController;
 use App\Http\Controllers\FundTransactionAttachmentController;
 use App\Http\Controllers\MarksheetPdfController;
+use App\Http\Controllers\PushSubscriptionController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -32,3 +33,11 @@ Route::get('/classes/{class}/marksheets/{exam}/download', ClassMarksheetsPdfCont
 // The controller itself checks auth()->check() and aborts 401 instead.
 Route::get('/fund-transactions/{fundTransaction}/attachment', FundTransactionAttachmentController::class)
     ->name('fund-transactions.attachment');
+
+// No 'auth' middleware here either, for the same reason as above — the Form
+// Requests' authorize() checks auth()->check() and returns 403 instead.
+Route::post('/push-subscriptions', [PushSubscriptionController::class, 'store'])
+    ->name('push-subscriptions.store');
+
+Route::delete('/push-subscriptions', [PushSubscriptionController::class, 'destroy'])
+    ->name('push-subscriptions.destroy');

@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Storage;
+use NotificationChannels\WebPush\HasPushSubscriptions;
 use Spatie\Permission\Traits\HasRoles;
 
 #[Fillable(['name', 'phone', 'email', 'user_type', 'avatar', 'is_super_admin', 'is_active', 'password', 'email_verified_at', 'must_change_password', 'pin'])]
@@ -26,7 +27,7 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable implements FilamentUser, HasAvatar, MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, HasRoles, HasUserType, Notifiable;
+    use HasFactory, HasPushSubscriptions, HasRoles, HasUserType, Notifiable;
 
     /**
      * Get the attributes that should be cast.
