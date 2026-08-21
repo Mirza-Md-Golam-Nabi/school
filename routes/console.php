@@ -2,6 +2,7 @@
 
 use App\Console\Commands\CheckLeaveExcess;
 use App\Console\Commands\GenerateMonthlyFeeInvoices;
+use App\Console\Commands\PrunePushNotificationDeliveries;
 use App\Console\Commands\ResendUnacknowledgedPushNotifications;
 use App\Jobs\DeactivateExpiredActingAdminsJob;
 use Illuminate\Foundation\Inspiring;
@@ -35,3 +36,10 @@ Schedule::command('activitylog:clean')->weeklyOn(0, '01:00');
 Schedule::command(ResendUnacknowledgedPushNotifications::class)
     ->cron('*/'.config('push_notifications.retry_interval_minutes').' * * * *')
     ->withoutOverlapping();
+
+// Delete push notification delivery records older than a week, daily —
+// the command's own cutoff (created_at < 1 week ago, see
+// PrunePushNotificationDeliveries) still decides what gets deleted; running
+// daily instead of weekly just sweeps stale rows out sooner after they cross
+// that age, rather than letting up to a week's worth pile up between runs.
+Schedule::command(PrunePushNotificationDeliveries::class)->dailyAt('02:00');

@@ -5,9 +5,10 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use NotificationChannels\WebPush\PushSubscription;
 
-#[Fillable(['token_hash', 'notifiable_type', 'notifiable_id', 'payload', 'attempts', 'last_sent_at', 'received_at'])]
+#[Fillable(['token_hash', 'push_subscription_id', 'payload', 'attempts', 'last_sent_at', 'received_at'])]
 class PushNotificationDelivery extends Model
 {
     protected function casts(): array
@@ -19,9 +20,9 @@ class PushNotificationDelivery extends Model
         ];
     }
 
-    public function notifiable(): MorphTo
+    public function pushSubscription(): BelongsTo
     {
-        return $this->morphTo();
+        return $this->belongsTo(PushSubscription::class);
     }
 
     public function markReceived(): void
