@@ -32,7 +32,7 @@ class FeePaymentReceivedNotification extends Notification implements ShouldQueue
 
         return (new WebPushMessage)
             ->title('Fee Payment Received')
-            ->icon('/favicon.ico')
+            ->icon('/icons/192x192.png')
             ->body($this->buildBody($invoice))
             ->data(['url' => $invoice ? FeeInvoiceResource::getUrl('index', [
                 'tableAction' => 'view',
