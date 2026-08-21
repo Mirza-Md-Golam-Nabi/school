@@ -5,6 +5,7 @@ use App\Http\Controllers\ClassMarksheetsPdfController;
 use App\Http\Controllers\EmailVerificationController;
 use App\Http\Controllers\FundTransactionAttachmentController;
 use App\Http\Controllers\MarksheetPdfController;
+use App\Http\Controllers\PushNotificationDeliveryController;
 use App\Http\Controllers\PushSubscriptionController;
 use Illuminate\Support\Facades\Route;
 
@@ -41,3 +42,7 @@ Route::post('/push-subscriptions', [PushSubscriptionController::class, 'store'])
 
 Route::delete('/push-subscriptions', [PushSubscriptionController::class, 'destroy'])
     ->name('push-subscriptions.destroy');
+
+Route::post('/push-notification-deliveries/acknowledge', [PushNotificationDeliveryController::class, 'acknowledge'])
+    ->middleware('throttle:60,1')
+    ->name('push-notification-deliveries.acknowledge');

@@ -4,12 +4,14 @@ namespace App\Notifications;
 
 use App\Filament\Student\Resources\FeeInvoices\FeeInvoiceResource;
 use App\Models\FeePayment;
+use App\Models\PushNotificationDelivery;
 use Carbon\Carbon;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification as FilamentNotification;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
+use Illuminate\Support\Str;
 use NotificationChannels\WebPush\WebPushChannel;
 use NotificationChannels\WebPush\WebPushMessage;
 
@@ -17,9 +19,13 @@ class FeePaymentReceivedNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
+    public readonly string $deliveryToken;
+
     public function __construct(
         public readonly FeePayment $payment,
-    ) {}
+    ) {
+        $this->deliveryToken = Str::random(64);
+    }
 
     public function via(object $notifiable): array
     {
@@ -28,16 +34,14 @@ class FeePaymentReceivedNotification extends Notification implements ShouldQueue
 
     public function toWebPush(object $notifiable, self $notification): WebPushMessage
     {
-        $invoice = $this->payment->invoice()->with('feeType')->first();
+        $payload = $this->webPushPayload();
 
         return (new WebPushMessage)
-            ->title('Fee Payment Received')
-            ->icon('/icons/192x192.png')
-            ->body($this->buildBody($invoice))
-            ->data(['url' => $invoice ? FeeInvoiceResource::getUrl('index', [
-                'tableAction' => 'view',
-                'tableActionRecord' => $invoice->id,
-            ], panel: 'student') : FeeInvoiceResource::getUrl('index', panel: 'student')]);
+            ->title($payload['title'])
+            ->icon($payload['icon'])
+            ->tag($payload['tag'])
+            ->body($payload['body'])
+            ->data($payload['data']);
     }
 
     /**
@@ -46,6 +50,15 @@ class FeePaymentReceivedNotification extends Notification implements ShouldQueue
     public function toDatabase(object $notifiable): array
     {
         $invoice = $this->payment->invoice()->with('feeType')->first();
+
+        PushNotificationDelivery::firstOrCreate([
+            'token_hash' => hash('sha256', $this->deliveryToken),
+        ], [
+            'notifiable_type' => $notifiable::class,
+            'notifiable_id' => $notifiable->getKey(),
+            'payload' => $this->webPushPayload(),
+            'last_sent_at' => now(),
+        ]);
 
         return FilamentNotification::make()
             ->title('Fee Payment Received')
@@ -59,7 +72,7 @@ class FeePaymentReceivedNotification extends Notification implements ShouldQueue
                     ->url(FeeInvoiceResource::getUrl('index', [
                         'tableAction' => 'view',
                         'tableActionRecord' => $invoice->id,
-                    ], panel: 'student'))
+                    ], panel : 'student'))
                     ->markAsRead(),
             ] : [])
             ->getDatabaseMessage() + [
@@ -74,6 +87,34 @@ class FeePaymentReceivedNotification extends Notification implements ShouldQueue
                 'net_amount' => $invoice ? (float) $invoice->net_amount : null,
                 'invoice_status' => $invoice?->status?->value,
             ];
+    }
+
+    /**
+     * The raw webpush message shape — built once so it can be sent now
+     * (toWebPush) and stored for a later resend if delivery is never
+     * acknowledged (see ResendUnacknowledgedPushNotificationsAction).
+     *
+     * @return array{title: string, icon: string, body: string, data: array<string, mixed>}
+     */
+    private function webPushPayload(): array
+    {
+        $invoice = $this->payment->invoice()->with('feeType')->first();
+
+        return [
+            'title' => 'Fee Payment Received',
+            'icon' => '/icons/192x192.png',
+            // Same tag on every resend of this delivery — the browser replaces
+            // the existing notification instead of stacking a duplicate.
+            'tag' => $this->deliveryToken,
+            'body' => $this->buildBody($invoice),
+            'data' => [
+                'delivery_token' => $this->deliveryToken,
+                'url' => $invoice ? FeeInvoiceResource::getUrl('index', [
+                    'tableAction' => 'view',
+                    'tableActionRecord' => $invoice->id,
+                ], panel: 'student') : FeeInvoiceResource::getUrl('index', panel: 'student'),
+            ],
+        ];
     }
 
     private function buildBody(mixed $invoice): string
