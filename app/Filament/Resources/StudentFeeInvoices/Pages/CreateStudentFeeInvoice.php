@@ -3,11 +3,14 @@
 namespace App\Filament\Resources\StudentFeeInvoices\Pages;
 
 use App\Filament\Resources\StudentFeeInvoices\StudentFeeInvoiceResource;
+use App\Notifications\Concerns\NotifiesStudentFeeInvoice;
 use Filament\Actions\Action;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreateStudentFeeInvoice extends CreateRecord
 {
+    use NotifiesStudentFeeInvoice;
+
     protected static string $resource = StudentFeeInvoiceResource::class;
 
     public int $filterClassId = 0;
@@ -42,5 +45,10 @@ class CreateStudentFeeInvoice extends CreateRecord
     protected function getRedirectUrl(): string
     {
         return $this->getResource()::getUrl('index');
+    }
+
+    protected function afterCreate(): void
+    {
+        $this->notifyFeeInvoiceGenerated($this->getRecord());
     }
 }

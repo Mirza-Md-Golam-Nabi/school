@@ -8,12 +8,12 @@ use App\Models\Classes;
 use App\Models\FeeStructure;
 use App\Models\StudentFeeInvoice;
 use App\Models\StudentProfile;
-use App\Models\User;
-use App\Notifications\FeeInvoiceGeneratedNotification;
+use App\Notifications\Concerns\NotifiesStudentFeeInvoice;
 use Carbon\Carbon;
 
 class GenerateMonthlyFeeInvoicesAction
 {
+    use NotifiesStudentFeeInvoice;
     use ResolvesFeeDiscount;
 
     /**
@@ -34,7 +34,6 @@ class GenerateMonthlyFeeInvoicesAction
 
         $generated = 0;
         $skipped = 0;
-        $now = now();
 
         foreach ($classes as $class) {
             $structures = FeeStructure::where('class_id', $class->id)
@@ -50,6 +49,7 @@ class GenerateMonthlyFeeInvoicesAction
             $students = StudentProfile::with([
                 'feeDiscounts:student_id,fee_type_id,session_year,discount_id',
                 'feeDiscounts.discount:id,discount_type,discount_value',
+                'user',
             ])
                 ->active()
                 ->where('current_class_id', $class->id)
@@ -66,9 +66,6 @@ class GenerateMonthlyFeeInvoicesAction
                 ->mapWithKeys(fn ($inv) => ["{$inv->student_id}-{$inv->fee_type_id}" => true])
                 ->all();
 
-            $toInsert = [];
-            $notificationData = [];
-
             foreach ($students as $student) {
                 foreach ($structures as $structure) {
                     $key = "{$student->id}-{$structure->fee_type_id}";
@@ -82,7 +79,7 @@ class GenerateMonthlyFeeInvoicesAction
                     $discountAmount = $this->resolveDiscount($student, $structure->fee_type_id, (float) $structure->amount, $year);
                     $netAmount = max(0, $structure->amount - $discountAmount);
 
-                    $toInsert[] = [
+                    $invoice = StudentFeeInvoice::create([
                         'student_id' => $student->id,
                         'fee_type_id' => $structure->fee_type_id,
                         'month' => $month,
@@ -92,40 +89,16 @@ class GenerateMonthlyFeeInvoicesAction
                         'fine_amount' => 0,
                         'waiver_amount' => 0,
                         'net_amount' => $netAmount,
-                        'status' => InvoiceStatus::Unpaid->value,
-                        'created_at' => $now,
-                        'updated_at' => $now,
-                    ];
+                        'status' => InvoiceStatus::Unpaid,
+                    ]);
 
                     $generated++;
 
-                    if ($student->user_id) {
-                        $notificationData[$student->user_id] ??= ['count' => 0, 'total' => 0.0];
-                        $notificationData[$student->user_id]['count']++;
-                        $notificationData[$student->user_id]['total'] += $netAmount;
-                    }
+                    $this->notifyFeeInvoiceGenerated($invoice, $student->user);
                 }
             }
 
-            foreach (array_chunk($toInsert, 500) as $chunk) {
-                StudentFeeInvoice::insert($chunk);
-            }
-
-            if ($notificationData) {
-                User::whereIn('id', array_keys($notificationData))
-                    ->get(['id'])
-                    ->each(function (User $user) use ($notificationData, $month, $year) {
-                        $data = $notificationData[$user->id];
-                        $user->notify(new FeeInvoiceGeneratedNotification(
-                            count: $data['count'],
-                            totalAmount: $data['total'],
-                            month: $month,
-                            year: $year,
-                        ));
-                    });
-            }
-
-            unset($students, $structures, $toInsert, $notificationData, $existingSet);
+            unset($students, $structures, $existingSet);
         }
 
         $this->logGeneration($month, $year, $classId, $generated, $skipped);

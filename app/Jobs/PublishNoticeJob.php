@@ -3,11 +3,13 @@
 namespace App\Jobs;
 
 use App\Models\Notice;
+use App\Notifications\Concerns\NotifiesNoticeCreated;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
 class PublishNoticeJob implements ShouldQueue
 {
+    use NotifiesNoticeCreated;
     use Queueable;
 
     public function __construct(public readonly int $noticeId) {}
@@ -20,12 +22,13 @@ class PublishNoticeJob implements ShouldQueue
             return;
         }
 
-        // Already published or became a draft — nothing to do.
-        if (! $notice->isScheduled()) {
+        // The notice was rescheduled to a later time (or its schedule was
+        // cleared) after this delayed job was queued — a fresh job for the
+        // new time already exists, so this stale run has nothing to do.
+        if (! $notice->isPublished()) {
             return;
         }
 
-        // Notice is now past its publish time — mark as published (published_at stays).
-        // Future extensions (SMS sending) would be triggered here.
+        $this->notifyNoticeCreated($notice);
     }
 }

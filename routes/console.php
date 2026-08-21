@@ -2,6 +2,7 @@
 
 use App\Console\Commands\CheckLeaveExcess;
 use App\Console\Commands\GenerateMonthlyFeeInvoices;
+use App\Console\Commands\GenerateMonthlySalaryInvoices;
 use App\Console\Commands\PrunePushNotificationDeliveries;
 use App\Console\Commands\ResendUnacknowledgedPushNotifications;
 use App\Jobs\DeactivateExpiredActingAdminsJob;
@@ -15,6 +16,14 @@ Artisan::command('inspire', function () {
 
 // Generate monthly fee invoices on the 1st of every month at 7:00 AM
 Schedule::command(GenerateMonthlyFeeInvoices::class)->monthlyOn(1, '07:00');
+
+// Generate the current month's teacher/staff salary invoices on the last day
+// of the month at 11:00 PM. GenerateMonthlySalaryInvoicesAction defaults month/year
+// to "now" when no --month/--year option is passed, so running this on e.g.
+// Aug 31 11 PM correctly generates August's invoices, not September's.
+// Duplicate generation is already guarded inside the action (skips any
+// profile/month/year combination that already has an invoice).
+Schedule::command(GenerateMonthlySalaryInvoices::class)->lastDayOfMonth('23:00');
 
 // Check leave excess daily at 8:00 AM — creates excess logs for absent employees
 Schedule::command(CheckLeaveExcess::class)->dailyAt('08:00');

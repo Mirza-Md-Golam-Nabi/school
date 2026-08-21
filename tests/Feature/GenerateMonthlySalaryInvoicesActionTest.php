@@ -9,7 +9,9 @@ use App\Models\SalaryStructure;
 use App\Models\SalaryStructureComponent;
 use App\Models\StaffProfile;
 use App\Models\TeacherProfile;
+use App\Notifications\SalaryInvoiceGeneratedNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Notification;
 
 uses(RefreshDatabase::class);
 
@@ -118,4 +120,60 @@ it('generates invoices for both teachers and staff', function () {
 
     expect($result['generated'])->toBe(2);
     expect(SalaryInvoice::where('profileable_type', StaffProfile::class)->where('profileable_id', $staff->id)->exists())->toBeTrue();
+});
+
+it('notifies the teacher when their salary invoice is generated', function () {
+    Notification::fake();
+
+    $teacher = TeacherProfile::factory()->create(['status' => EmploymentStatus::Active, 'joining_date' => '2025-01-01']);
+    createGenerateTestStructure($teacher, ['use_components' => false, 'flat_amount' => 12000]);
+
+    app(GenerateMonthlySalaryInvoicesAction::class)->handle(7, 2026);
+
+    $invoice = SalaryInvoice::where('profileable_id', $teacher->id)->where('profileable_type', TeacherProfile::class)->first();
+
+    Notification::assertSentTo(
+        $teacher->user,
+        SalaryInvoiceGeneratedNotification::class,
+        fn (SalaryInvoiceGeneratedNotification $notification) => $notification->invoice->is($invoice),
+    );
+});
+
+it('notifies staff when their salary invoice is generated', function () {
+    Notification::fake();
+
+    $staff = StaffProfile::factory()->create(['status' => EmploymentStatus::Active, 'joining_date' => '2025-01-01']);
+    createGenerateTestStructure($staff, ['use_components' => false, 'flat_amount' => 8000]);
+
+    app(GenerateMonthlySalaryInvoicesAction::class)->handle(7, 2026);
+
+    $invoice = SalaryInvoice::where('profileable_id', $staff->id)->where('profileable_type', StaffProfile::class)->first();
+
+    Notification::assertSentTo(
+        $staff->user,
+        SalaryInvoiceGeneratedNotification::class,
+        fn (SalaryInvoiceGeneratedNotification $notification) => $notification->invoice->is($invoice),
+    );
+});
+
+it('links a teacher notification to their own My Salary page', function () {
+    $teacher = TeacherProfile::factory()->create(['status' => EmploymentStatus::Active, 'joining_date' => '2025-01-01']);
+    createGenerateTestStructure($teacher, ['use_components' => false, 'flat_amount' => 12000]);
+
+    app(GenerateMonthlySalaryInvoicesAction::class)->handle(7, 2026);
+
+    $notification = $teacher->user->notifications()->latest()->first();
+
+    expect($notification->data['actions'][0]['url'])->toContain('/teacher/my-salary');
+});
+
+it('links a staff notification to the invoice in the admin panel, since staff share the admin panel', function () {
+    $staff = StaffProfile::factory()->create(['status' => EmploymentStatus::Active, 'joining_date' => '2025-01-01']);
+    createGenerateTestStructure($staff, ['use_components' => false, 'flat_amount' => 8000]);
+
+    app(GenerateMonthlySalaryInvoicesAction::class)->handle(7, 2026);
+
+    $notification = $staff->user->notifications()->latest()->first();
+
+    expect($notification->data['actions'][0]['url'])->toContain('/admin/salary-invoices');
 });

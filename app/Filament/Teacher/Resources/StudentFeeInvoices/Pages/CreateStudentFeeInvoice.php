@@ -5,6 +5,7 @@ namespace App\Filament\Teacher\Resources\StudentFeeInvoices\Pages;
 use App\Filament\Teacher\Concerns\ScopesToClassTeacherStudents;
 use App\Filament\Teacher\Resources\StudentFeeInvoices\StudentFeeInvoiceResource;
 use App\Models\StudentProfile;
+use App\Notifications\Concerns\NotifiesStudentFeeInvoice;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
@@ -13,6 +14,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class CreateStudentFeeInvoice extends CreateRecord
 {
+    use NotifiesStudentFeeInvoice;
     use ScopesToClassTeacherStudents;
 
     protected static string $resource = StudentFeeInvoiceResource::class;
@@ -56,5 +58,10 @@ class CreateStudentFeeInvoice extends CreateRecord
     protected function getRedirectUrl(): string
     {
         return $this->getResource()::getUrl('index');
+    }
+
+    protected function afterCreate(): void
+    {
+        $this->notifyFeeInvoiceGenerated($this->getRecord());
     }
 }

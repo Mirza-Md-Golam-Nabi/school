@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Exams\Pages;
 use App\Actions\CalculateExamRankings;
 use App\Filament\Resources\Exams\ExamResource;
 use App\Models\Exam;
+use App\Notifications\Concerns\NotifiesExamResultPublished;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ForceDeleteAction;
@@ -17,6 +18,8 @@ use Livewire\Component;
 
 class EditExam extends EditRecord
 {
+    use NotifiesExamResultPublished;
+
     protected static string $resource = ExamResource::class;
 
     protected function getHeaderActions(): array
@@ -50,14 +53,23 @@ class EditExam extends EditRecord
 
     protected function handleRecordUpdate(Model $record, array $data): Model
     {
+        $wasPublished = (bool) $record->is_published;
+        $willBePublished = (bool) ($data['is_published'] ?? false);
+
         $record->update([
             'exam_type_id' => $data['exam_type_id'],
             'class_id' => $data['class_id'],
             'session_year' => $data['session_year'],
             'start_date' => $data['start_date'],
             'end_date' => $data['end_date'],
-            'is_published' => $data['is_published'] ?? false,
+            'is_published' => $willBePublished,
         ]);
+
+        // Only a genuine false→true flip is worth notifying students about —
+        // not a resave of an already-published exam.
+        if (! $wasPublished && $willBePublished) {
+            $this->notifyExamResultPublished($record);
+        }
 
         return $record;
     }

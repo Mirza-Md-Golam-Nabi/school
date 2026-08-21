@@ -9,6 +9,7 @@ use App\Models\SalaryInvoice;
 use App\Models\SalaryStructure;
 use App\Models\StaffProfile;
 use App\Models\TeacherProfile;
+use App\Notifications\SalaryInvoiceGeneratedNotification;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -38,7 +39,7 @@ class GenerateMonthlySalaryInvoicesAction
                 ->where(function ($query) use ($referenceDate) {
                     $query->whereNull('joining_date')->orWhere('joining_date', '<=', $referenceDate);
                 })
-                ->get(['id']);
+                ->get(['id', 'user_id']);
 
             foreach ($profiles as $profile) {
                 $alreadyExists = SalaryInvoice::where('profileable_type', $profileClass)
@@ -66,9 +67,13 @@ class GenerateMonthlySalaryInvoicesAction
                     continue;
                 }
 
-                DB::transaction(fn () => $this->createInvoiceFromStructure($structure, $profileClass, $profile->id, $month, $year, $createdBy));
+                $invoice = DB::transaction(fn () => $this->createInvoiceFromStructure($structure, $profileClass, $profile->id, $month, $year, $createdBy));
 
                 $generated++;
+
+                if ($profile->user_id) {
+                    $profile->user?->notify(new SalaryInvoiceGeneratedNotification($invoice));
+                }
             }
         }
 
@@ -95,7 +100,7 @@ class GenerateMonthlySalaryInvoicesAction
             ->log("Generated {$generated} monthly salary invoice(s) for {$periodLabel} — {$skipped} skipped (already invoiced), {$noStructure} skipped (no salary structure).");
     }
 
-    protected function createInvoiceFromStructure(SalaryStructure $structure, string $profileClass, int $profileId, int $month, int $year, ?int $createdBy): void
+    protected function createInvoiceFromStructure(SalaryStructure $structure, string $profileClass, int $profileId, int $month, int $year, ?int $createdBy): SalaryInvoice
     {
         if ($structure->use_components) {
             $grossAmount = (float) $structure->components->where('component.type', SalaryComponentType::Allowance)->sum('amount');
@@ -132,5 +137,7 @@ class GenerateMonthlySalaryInvoicesAction
                 ]);
             }
         }
+
+        return $invoice;
     }
 }

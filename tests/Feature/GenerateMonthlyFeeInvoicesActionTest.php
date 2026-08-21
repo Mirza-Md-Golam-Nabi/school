@@ -14,7 +14,7 @@ use App\Models\StudentFeeDiscount;
 use App\Models\StudentFeeInvoice;
 use App\Models\StudentProfile;
 use App\Models\User;
-use App\Notifications\FeeInvoiceGeneratedNotification;
+use App\Notifications\StudentFeeInvoiceGeneratedNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 
@@ -59,7 +59,33 @@ it('generates a monthly invoice for every active student in classes with a month
     expect(StudentFeeInvoice::where('student_id', $student1->id)->where('month', now()->month)->exists())->toBeTrue()
         ->and(StudentFeeInvoice::where('student_id', $student2->id)->where('month', now()->month)->exists())->toBeTrue();
 
-    Notification::assertSentTo($student1->user, FeeInvoiceGeneratedNotification::class);
+    Notification::assertSentTo($student1->user, StudentFeeInvoiceGeneratedNotification::class);
+    Notification::assertSentTo($student2->user, StudentFeeInvoiceGeneratedNotification::class);
+});
+
+it('sends a separate notification for each fee type generated in the same run', function () {
+    Notification::fake();
+
+    $class = Classes::create(['name' => 'Class One B', 'order' => 1]);
+    $tuition = FeeType::create(['name' => 'Tuition Fee', 'is_monthly' => true, 'is_active' => true]);
+    $transport = FeeType::create(['name' => 'Transport Fee', 'is_monthly' => true, 'is_active' => true]);
+
+    foreach ([$tuition, $transport] as $feeType) {
+        FeeStructure::create([
+            'class_id' => $class->id,
+            'fee_type_id' => $feeType->id,
+            'amount' => 500,
+            'due_day' => 10,
+            'session_year' => now()->year,
+            'is_active' => true,
+        ]);
+    }
+
+    $student = createMonthlyInvoiceTestStudent($class->id);
+
+    app(GenerateMonthlyFeeInvoicesAction::class)->handle(now()->month, now()->year);
+
+    Notification::assertSentToTimes($student->user, StudentFeeInvoiceGeneratedNotification::class, 2);
 });
 
 it('does not create duplicate invoices when run twice for the same month/year', function () {
