@@ -33,6 +33,7 @@ class AdminPanelProvider extends PanelProvider
             ->viteTheme('resources/css/filament/theme.css')
             ->databaseTransactions()
             ->databaseNotifications()
+            ->globalSearch(false)
             ->login(Login::class)
             ->registration(Register::class)
             ->passwordReset()

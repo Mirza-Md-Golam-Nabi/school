@@ -1,3 +1,15 @@
+// Take over immediately on deploy — without this, a currently-active
+// service worker keeps running until every tab for this origin is fully
+// closed and reopened, so updates to this file (e.g. the acknowledge logic
+// below) silently never take effect for already-subscribed devices.
+self.addEventListener("install", function (event) {
+    event.waitUntil(self.skipWaiting());
+});
+
+self.addEventListener("activate", function (event) {
+    event.waitUntil(self.clients.claim());
+});
+
 self.addEventListener("push", function (event) {
     if (!event.data) {
         return;
