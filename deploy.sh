@@ -5,17 +5,17 @@ PHP="/opt/cpanel/ea-php83/root/usr/bin/php"
 
 echo "🚀 Deployment started..."
 
-# Git থেকে latest code নামাও
+# Pull the latest code from Git
 git pull origin dev
 echo "✅ Git pull done"
 
-# Composer install — artisan down এর আগে চালানো জরুরি, নাহলে নতুন কোড
-# পুরনো vendor/ এর সাথে না মিললে artisan down নিজেই crash করবে এবং
-# পরের deploy attempt এই একই জায়গায় আটকে যাবে (deadlock)।
+# Run composer install before artisan down — if the new code doesn't
+# match the old vendor/ folder, artisan down itself will crash, and
+# the next deploy attempt will get stuck at this same spot (deadlock).
 $PHP composer.phar install --no-dev --optimize-autoloader
 echo "✅ Composer done"
 
-# .env file না থাকলে copy করো
+# Copy .env file if it doesn't exist
 if [ ! -f .env ]; then
     cp .env.example .env
     $PHP artisan key:generate
@@ -39,7 +39,7 @@ $PHP artisan optimize
 $PHP artisan filament:optimize
 echo "✅ Cache rebuilt"
 
-# Queue worker কে নতুন কোড লোড করতে বাধ্য করা
+# Force the queue worker to load the new code
 $PHP artisan queue:restart
 echo "✅ Queue restarted"
 
