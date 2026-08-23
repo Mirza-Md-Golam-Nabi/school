@@ -12,9 +12,6 @@
         $schoolAddress,
         $schoolEstablishedYear ? "Established: {$schoolEstablishedYear}" : null,
     ])->filter()->implode(' | ');
-    $useLogo = (bool) SchoolSetting::get('admit_card_use_logo', '1');
-    $useWatermark = (bool) SchoolSetting::get('admit_card_use_watermark', '0');
-    $watermarkText = SchoolSetting::get('admit_card_watermark_text', '');
     $footerText = SchoolSetting::get('admit_card_footer_text', '');
 
     $toDataUri = function (?string $path): ?string {
@@ -33,7 +30,6 @@
         return 'data:' . $mime . ';base64,' . base64_encode($disk->get($path));
     };
 
-    $logoDataUri = $useLogo ? $toDataUri(SchoolSetting::get('school_logo')) : null;
     $sealDataUri = $toDataUri(SchoolSetting::get('school_seal'));
     $signatureDataUri = $toDataUri(SchoolSetting::get('principal_signature'));
     $studentPhotoDataUri = $toDataUri($student->user?->avatar);
@@ -157,28 +153,12 @@
             color: #555;
         }
 
-        .watermark {
-            position: fixed;
-            top: 40%;
-            left: 15%;
-            font-size: 48px;
-            color: #e0e0e0;
-            transform: rotate(-30deg);
-            z-index: -1;
-        }
     </style>
 </head>
 
 <body>
-    @if ($useWatermark && $watermarkText)
-        <div class="watermark">{{ $watermarkText }}</div>
-    @endif
-
     <div class="card">
         <div class="header">
-            @if ($logoDataUri)
-                <img class="logo" src="{{ $logoDataUri }}" alt="Logo">
-            @endif
             <div class="school-name">{{ $schoolName }}</div>
             @if ($schoolAddressLine)
                 <div class="school-address">{{ $schoolAddressLine }}</div>

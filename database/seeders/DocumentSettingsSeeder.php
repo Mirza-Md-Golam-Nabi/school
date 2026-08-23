@@ -39,18 +39,6 @@ class DocumentSettingsSeeder extends Seeder
         ],
 
         // Admit card specific toggles.
-        'admit_card_use_watermark' => [
-            'value' => '0',
-            'description' => 'Whether admit cards render a background watermark ("1" or "0").',
-        ],
-        'admit_card_watermark_text' => [
-            'value' => '',
-            'description' => 'Watermark text printed on admit cards when admit_card_use_watermark is enabled.',
-        ],
-        'admit_card_use_logo' => [
-            'value' => '1',
-            'description' => 'Whether the school logo is printed on admit cards ("1" or "0").',
-        ],
         'admit_card_footer_text' => [
             'value' => '',
             'description' => 'Footer text printed at the bottom of admit cards.',

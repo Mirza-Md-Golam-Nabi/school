@@ -49,9 +49,6 @@ class SchoolSettings extends Page
             'school_established_year' => SchoolSetting::get('school_established_year') ?: null,
             'school_seal' => SchoolSetting::get('school_seal') ?: null,
             'principal_signature' => SchoolSetting::get('principal_signature') ?: null,
-            'admit_card_use_watermark' => (bool) SchoolSetting::get('admit_card_use_watermark', '0'),
-            'admit_card_watermark_text' => SchoolSetting::get('admit_card_watermark_text', ''),
-            'admit_card_use_logo' => (bool) SchoolSetting::get('admit_card_use_logo', '1'),
             'admit_card_footer_text' => SchoolSetting::get('admit_card_footer_text', ''),
             'marksheet_use_watermark' => (bool) SchoolSetting::get('marksheet_use_watermark', '0'),
             'marksheet_watermark_text' => SchoolSetting::get('marksheet_watermark_text', ''),
@@ -123,20 +120,9 @@ class SchoolSettings extends Page
                     ]),
 
                 Section::make('Admit Card')
-                    ->columns(2)
                     ->schema([
-                        Toggle::make('admit_card_use_logo')
-                            ->label('Show School Logo'),
-                        Toggle::make('admit_card_use_watermark')
-                            ->label('Show Watermark')
-                            ->live(),
-                        TextInput::make('admit_card_watermark_text')
-                            ->label('Watermark Text')
-                            ->visible(fn (Get $get) => $get('admit_card_use_watermark'))
-                            ->columnSpanFull(),
                         TextInput::make('admit_card_footer_text')
-                            ->label('Footer Text')
-                            ->columnSpanFull(),
+                            ->label('Footer Text'),
                     ]),
 
                 Section::make('Marksheet')
@@ -180,9 +166,6 @@ class SchoolSettings extends Page
         SchoolSetting::set('school_established_year', $data['school_established_year'] ?? '');
         SchoolSetting::set('school_seal', $data['school_seal'] ?? '');
         SchoolSetting::set('principal_signature', $data['principal_signature'] ?? '');
-        SchoolSetting::set('admit_card_use_watermark', $data['admit_card_use_watermark'] ? '1' : '0');
-        SchoolSetting::set('admit_card_watermark_text', $data['admit_card_watermark_text'] ?? '');
-        SchoolSetting::set('admit_card_use_logo', $data['admit_card_use_logo'] ? '1' : '0');
         SchoolSetting::set('admit_card_footer_text', $data['admit_card_footer_text'] ?? '');
         SchoolSetting::set('marksheet_use_watermark', $data['marksheet_use_watermark'] ? '1' : '0');
         SchoolSetting::set('marksheet_watermark_text', $data['marksheet_watermark_text'] ?? '');
