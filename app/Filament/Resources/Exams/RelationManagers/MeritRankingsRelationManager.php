@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\Exams\RelationManagers;
 
 use App\Actions\BuildStudentMarksDetail;
-use App\Enums\Grade;
+use App\Models\GradeScale;
 use App\Models\StudentMeritRanking;
 use Filament\Actions\Action;
 use Filament\Resources\RelationManagers\RelationManager;
@@ -80,14 +80,14 @@ class MeritRankingsRelationManager extends RelationManager
                     ->sortable()
                     ->badge()
                     ->formatStateUsing(fn ($state): string => number_format((float) $state, 2))
-                    ->color(fn ($state): string => Grade::fromGpa((float) $state)->getColor()),
+                    ->color(fn ($state): string => GradeScale::fromGpa((float) $state)?->color ?? 'gray'),
 
                 TextColumn::make('grade')
                     ->label('Grade')
                     ->alignCenter()
                     ->badge()
-                    ->state(fn (StudentMeritRanking $record): string => Grade::fromGpa((float) $record->gpa)->getLabel())
-                    ->color(fn (StudentMeritRanking $record): string => Grade::fromGpa((float) $record->gpa)->getColor()),
+                    ->state(fn (StudentMeritRanking $record): string => GradeScale::fromGpa((float) $record->gpa)?->letter_grade ?? '—')
+                    ->color(fn (StudentMeritRanking $record): string => GradeScale::fromGpa((float) $record->gpa)?->color ?? 'gray'),
             ])
             ->filters([
                 SelectFilter::make('section_id')

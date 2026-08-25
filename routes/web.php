@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AdmitCardPdfController;
 use App\Http\Controllers\ClassAdmitCardsPdfController;
+use App\Http\Controllers\ClassAttendanceReportPdfController;
 use App\Http\Controllers\ClassMarksheetsPdfController;
 use App\Http\Controllers\ClassSeatPlanPdfController;
 use App\Http\Controllers\EmailVerificationController;
@@ -38,6 +39,11 @@ Route::get('/classes/{class}/admit-cards/{exam}/download', ClassAdmitCardsPdfCon
 Route::get('/classes/{class}/seat-plan/download', ClassSeatPlanPdfController::class)
     ->middleware('auth')
     ->name('seat-plan.class.download');
+
+Route::get('/classes/{class}/attendance-report/{year}/{month}/download', ClassAttendanceReportPdfController::class)
+    ->middleware('auth')
+    ->whereNumber(['year', 'month'])
+    ->name('attendance-report.class.download');
 
 // No 'auth' middleware here — this app has no generic named 'login' route (Filament panels
 // each have their own), so the default guest-redirect would throw RouteNotFoundException.

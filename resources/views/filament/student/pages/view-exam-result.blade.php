@@ -89,8 +89,8 @@
                             @foreach ($rankings as $ranking)
                                 @php
                                     $isMe = (int) $ranking->student_id === (int) $myStudentId;
-                                    $grade = \App\Enums\Grade::fromGpa((float) $ranking->gpa);
-                                    $gradeColor = $grade->getColor();
+                                    $grade = \App\Models\GradeScale::fromGpa((float) $ranking->gpa);
+                                    $gradeColor = $grade?->color ?? 'gray';
                                     $rankLabel = match ((int) $ranking->class_rank) {
                                         1 => '🥇 1st',
                                         2 => '🥈 2nd',
@@ -171,7 +171,7 @@
                                     <td class="px-2 py-2.5 text-center sm:px-4 sm:py-3">
                                         <span
                                             class="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium sm:text-xs sm:px-2 {{ $badgeClass }}">
-                                            {{ $grade->getLabel() }}
+                                            {{ $grade?->letter_grade ?? '—' }}
                                         </span>
                                     </td>
 
