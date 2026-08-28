@@ -44,6 +44,11 @@ class ExamSeeder extends Seeder
             $examTypes = ExamType::pluck('id', 'name');
             $classes = Classes::whereNull('deleted_at')->get();
 
+            // Half Yearly itself, and every Tutorial round held before it, are treated as
+            // already conducted and published; Annual and the later Tutorial rounds are
+            // still upcoming, so they stay unpublished.
+            $halfYearlyStart = $schedule['Half Yearly'][0]['start'] ?? null;
+
             foreach ($classes as $class) {
                 $subjectIds = ClassGroupSubject::where('class_id', $class->id)
                     ->whereNull('group_id')
@@ -59,7 +64,9 @@ class ExamSeeder extends Seeder
                     }
 
                     foreach ($dateRanges as $dateRange) {
-                        $exam = $this->findOrCreateExam($examTypeId, $class->id, $sessionYear, $dateRange);
+                        $isPublished = $halfYearlyStart !== null && $dateRange['start'] <= $halfYearlyStart;
+
+                        $exam = $this->findOrCreateExam($examTypeId, $class->id, $sessionYear, $dateRange, $isPublished);
 
                         foreach ($subjects as $subject) {
                             $this->seedSubjectConfig($exam, $subject, $examTypeName);
@@ -73,7 +80,7 @@ class ExamSeeder extends Seeder
     /**
      * @param  array{start: string, end: string}  $dateRange
      */
-    private function findOrCreateExam(int $examTypeId, int $classId, int $sessionYear, array $dateRange): Exam
+    private function findOrCreateExam(int $examTypeId, int $classId, int $sessionYear, array $dateRange, bool $isPublished): Exam
     {
         // Exam stores `start_date` via the model's default datetime format ("Y-m-d
         // H:i:s"), so a plain "Y-m-d" string never matches on a plain firstOrCreate()
@@ -85,13 +92,21 @@ class ExamSeeder extends Seeder
             ->whereDate('start_date', $dateRange['start'])
             ->first();
 
-        return $exam ?? Exam::create([
+        if ($exam) {
+            if ($exam->is_published !== $isPublished) {
+                $exam->update(['is_published' => $isPublished]);
+            }
+
+            return $exam;
+        }
+
+        return Exam::create([
             'exam_type_id' => $examTypeId,
             'class_id' => $classId,
             'session_year' => $sessionYear,
             'start_date' => $dateRange['start'],
             'end_date' => $dateRange['end'],
-            'is_published' => false,
+            'is_published' => $isPublished,
         ]);
     }
 

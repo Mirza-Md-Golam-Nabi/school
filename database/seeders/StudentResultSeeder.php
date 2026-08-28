@@ -61,16 +61,22 @@ class StudentResultSeeder extends Seeder
 
         $failingSubjectId = $failingStudentId ? $subjectConfigs->random()->subject_id : null;
 
+        $rows = [];
+
         foreach ($subjectConfigs as $config) {
-            $this->seedSubjectResults($exam, $config, $students, $absentSubjectIdByStudent, $failingStudentId, $failingSubjectId);
+            $this->collectSubjectResults($rows, $exam, $config, $students, $absentSubjectIdByStudent, $failingStudentId, $failingSubjectId);
         }
+
+        $this->upsertResults($rows);
     }
 
     /**
+     * @param  array<int, array<string, mixed>>  $rows
      * @param  Collection<int, StudentProfile>  $students
      * @param  SupportCollection<int, int>  $absentSubjectIdByStudent  Subject the student is absent for, keyed by student ID.
      */
-    private function seedSubjectResults(
+    private function collectSubjectResults(
+        array &$rows,
         Exam $exam,
         ExamSubjectConfig $config,
         Collection $students,
@@ -80,7 +86,7 @@ class StudentResultSeeder extends Seeder
     ): void {
         foreach ($students as $student) {
             if ($absentSubjectIdByStudent->get($student->id) === $config->subject_id) {
-                $this->saveResult($exam, $config, $student, null, null, null, 0, true);
+                $rows[] = $this->resultRow($exam, $config, $student, null, null, null, 0, true);
 
                 continue;
             }
@@ -88,7 +94,7 @@ class StudentResultSeeder extends Seeder
             $failsThisSubject = $student->id === $failingStudentId && $config->subject_id === $failingSubjectId;
             [$mcqMarks, $writtenMarks, $practicalMarks, $totalMarks] = $this->randomMarks($config, ! $failsThisSubject);
 
-            $this->saveResult($exam, $config, $student, $mcqMarks, $writtenMarks, $practicalMarks, $totalMarks, false);
+            $rows[] = $this->resultRow($exam, $config, $student, $mcqMarks, $writtenMarks, $practicalMarks, $totalMarks, false);
         }
     }
 
@@ -132,7 +138,10 @@ class StudentResultSeeder extends Seeder
         return [$marks['mcq'], $marks['written'], $marks['practical'], (float) $total];
     }
 
-    private function saveResult(
+    /**
+     * @return array<string, mixed>
+     */
+    private function resultRow(
         Exam $exam,
         ExamSubjectConfig $config,
         StudentProfile $student,
@@ -141,21 +150,37 @@ class StudentResultSeeder extends Seeder
         ?int $practicalMarks,
         float $totalMarks,
         bool $isAbsent
-    ): void {
-        StudentResult::updateOrCreate(
-            [
-                'exam_id' => $exam->id,
-                'subject_id' => $config->subject_id,
-                'student_id' => $student->id,
-            ],
-            [
-                'class_id' => $exam->class_id,
-                'mcq_marks' => $mcqMarks,
-                'written_marks' => $writtenMarks,
-                'practical_marks' => $practicalMarks,
-                'total_marks' => $totalMarks,
-                'is_absent' => $isAbsent,
-            ]
+    ): array {
+        return [
+            'exam_id' => $exam->id,
+            'subject_id' => $config->subject_id,
+            'student_id' => $student->id,
+            'class_id' => $exam->class_id,
+            'mcq_marks' => $mcqMarks,
+            'written_marks' => $writtenMarks,
+            'practical_marks' => $practicalMarks,
+            'total_marks' => $totalMarks,
+            'is_absent' => $isAbsent,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ];
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $rows
+     */
+    private function upsertResults(array $rows): void
+    {
+        if (empty($rows)) {
+            return;
+        }
+
+        collect($rows)->chunk(500)->each(
+            fn (SupportCollection $chunk) => StudentResult::upsert(
+                $chunk->all(),
+                ['exam_id', 'subject_id', 'student_id'],
+                ['class_id', 'mcq_marks', 'written_marks', 'practical_marks', 'total_marks', 'is_absent', 'updated_at']
+            )
         );
     }
 

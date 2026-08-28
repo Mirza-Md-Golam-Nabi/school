@@ -12,12 +12,18 @@ use Database\Seeders\FeeDiscountSeeder;
 use Database\Seeders\FeePaymentSeeder;
 use Database\Seeders\FeeStructureSeeder;
 use Database\Seeders\FeeTypeSeeder;
+use Database\Seeders\FundTransactionSeeder;
 use Database\Seeders\LeaveApplicationSeeder;
 use Database\Seeders\LeaveTypeSeeder;
 use Database\Seeders\NoticeSeeder;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\PublicHolidaySeeder;
 use Database\Seeders\RoleSeeder;
+use Database\Seeders\SalaryComponentSeeder;
+use Database\Seeders\SalaryInvoiceSeeder;
+use Database\Seeders\SalaryPaymentSeeder;
+use Database\Seeders\SalaryStructureSeeder;
+use Database\Seeders\SchoolAccountSeeder;
 use Database\Seeders\StaffAttendanceSeeder;
 use Database\Seeders\StaffSeeder;
 use Database\Seeders\StudentAttendanceSeeder;
@@ -29,6 +35,7 @@ use Database\Seeders\SubjectSeeder;
 use Database\Seeders\TeacherAttendanceSeeder;
 use Database\Seeders\TeacherSeeder;
 use Database\Seeders\TeacherSubjectSeeder;
+use Database\Seeders\TransactionCategorySeeder;
 use Database\Seeders\UserSeeder;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -49,16 +56,20 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             LeaveTypeSeeder::class,
             PublicHolidaySeeder::class,
+            TeacherSeeder::class,
             ClassSeeder::class,
             StudentSeeder::class,
             StudentAttendanceSeeder::class,
-            TeacherSeeder::class,
             TeacherAttendanceSeeder::class,
             ActingAdminSeeder::class,
             NoticeSeeder::class,
             StaffSeeder::class,
             StaffAttendanceSeeder::class,
             LeaveApplicationSeeder::class,
+            SalaryComponentSeeder::class,
+            SalaryStructureSeeder::class,
+            SalaryInvoiceSeeder::class,
+            SalaryPaymentSeeder::class,
             SubjectSeeder::class,
             ClassSubjectSeeder::class,
             TeacherSubjectSeeder::class,
@@ -70,6 +81,9 @@ class DatabaseSeeder extends Seeder
             ExamSeeder::class,
             StudentFeeInvoiceSeeder::class,
             FeePaymentSeeder::class,
+            SchoolAccountSeeder::class,
+            TransactionCategorySeeder::class,
+            FundTransactionSeeder::class,
             StudentResultSeeder::class,
             DocumentSettingsSeeder::class,
         ]);

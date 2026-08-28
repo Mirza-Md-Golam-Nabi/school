@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Actions\Leave\ApproveLeaveApplicationAction;
 use App\Actions\Leave\RejectLeaveApplicationAction;
+use App\Enums\LeaveApplicability;
 use App\Enums\LeaveApplicationStatus;
 use App\Enums\UserType;
 use App\Models\LeaveApplication;
@@ -88,7 +89,15 @@ class LeaveApplicationSeeder extends Seeder
         ApproveLeaveApplicationAction $approveAction,
         RejectLeaveApplicationAction $rejectAction
     ): void {
-        $leaveType = $leaveTypes->random();
+        // Male/female-only leave types (e.g. Maternity, Paternity) must never land on
+        // an applicant of the wrong gender — restrict the random pick to types that
+        // actually apply, falling back to the full list only if none do.
+        $applicableLeaveTypes = $leaveTypes->filter(
+            fn (LeaveType $leaveType): bool => $leaveType->applicable_gender === LeaveApplicability::All
+                || $leaveType->applicable_gender?->value === $applicant->gender?->value
+        );
+
+        $leaveType = $applicableLeaveTypes->isNotEmpty() ? $applicableLeaveTypes->random() : $leaveTypes->random();
 
         $fromDate = Carbon::yesterday()->subDays(fake()->numberBetween(5, 180));
         $toDate = $fromDate->copy()->addDays(fake()->numberBetween(1, 4));

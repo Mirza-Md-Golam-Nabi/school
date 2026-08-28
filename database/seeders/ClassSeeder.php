@@ -6,6 +6,7 @@ use App\Enums\ClassLevel;
 use App\Models\Classes;
 use App\Models\Group;
 use App\Models\Section;
+use App\Models\TeacherProfile;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Seeder;
 
@@ -31,13 +32,15 @@ class ClassSeeder extends Seeder
         ];
 
         $groups = $this->createGroups();
+        $teachers = TeacherProfile::inRandomOrder()->get();
 
-        foreach ($classConfigs as $config) {
+        foreach ($classConfigs as $index => $config) {
             $class = Classes::firstOrCreate(
                 ['name' => 'Class '.$config['number']],
                 [
                     'level' => $config['level'],
                     'order' => $config['number'],
+                    'class_teacher_id' => $teachers->get($index)?->id,
                     'has_section' => $config['has_section'],
                     'has_group' => $config['has_group'],
                     'is_active' => true,

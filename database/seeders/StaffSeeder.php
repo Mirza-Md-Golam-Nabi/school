@@ -7,6 +7,7 @@ use App\Enums\EmploymentStatus;
 use App\Enums\Gender;
 use App\Enums\Religion;
 use App\Enums\UserType;
+use App\Models\SchoolAccount;
 use App\Models\User;
 use Database\Seeders\Helpers\LocationData;
 use Illuminate\Database\Seeder;
@@ -17,6 +18,8 @@ use Illuminate\Support\Str;
 class StaffSeeder extends Seeder
 {
     private string $hashedPassword;
+
+    private int $defaultSalaryAccountId;
 
     /** @var array<int, string> */
     private array $maleNames = [
@@ -40,12 +43,17 @@ class StaffSeeder extends Seeder
     public function run(): void
     {
         $this->hashedPassword = Hash::make('password');
+        $this->defaultSalaryAccountId = SchoolAccount::firstOrCreate(
+            ['name' => 'Main Account'],
+            ['current_balance' => 0]
+        )->id;
 
         DB::transaction(function () {
             $email = UserType::Staff->value.'@example.com';
             $user = User::where('email', $email)->first();
             $user->staffProfile()->firstOrCreate([], [
                 'gender' => Gender::Male,
+                'default_school_account_id' => $this->defaultSalaryAccountId,
             ]);
 
             $staffMembers = collect($this->maleNames)->map(fn (string $name) => ['name' => $name, 'is_male' => true])
@@ -87,6 +95,7 @@ class StaffSeeder extends Seeder
             'nationality' => 'Bangladeshi',
             'designation' => fake()->randomElement($this->designations),
             'status' => EmploymentStatus::Active,
+            'default_school_account_id' => $this->defaultSalaryAccountId,
         ]);
 
         $isSameAddress = fake()->boolean(70);
