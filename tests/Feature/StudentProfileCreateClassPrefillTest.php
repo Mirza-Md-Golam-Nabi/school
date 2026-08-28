@@ -11,6 +11,7 @@ use App\Models\Classes;
 use App\Models\StudentProfile;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
 
@@ -44,16 +45,14 @@ it('does not show the email field on create, since it is system-generated', func
         ->assertFormFieldIsHidden('email');
 });
 
-it('rejects a duplicate birth certificate no on create', function () {
-    Role::firstOrCreate(['name' => 'student', 'guard_name' => 'web']);
-
+it('shows the existing student email when a matching birth certificate no is entered on create', function () {
     $admin = grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]));
     $this->actingAs($admin);
 
     $class = Classes::create(['name' => 'Class 5', 'order' => 5]);
-
+    $existingUser = User::factory()->create(['email' => 'std00001@school.com']);
     StudentProfile::create([
-        'user_id' => User::factory()->create()->id,
+        'user_id' => $existingUser->id,
         'roll_no' => 1,
         'birth_certificate_no' => '1111111111',
         'current_class_id' => $class->id,
@@ -63,10 +62,82 @@ it('rejects a duplicate birth certificate no on create', function () {
     ]);
 
     Livewire::test(CreateStudentProfile::class)
+        ->fillForm(['birth_certificate_no' => '1111111111'])
+        ->assertFormSet(['email' => 'std00001@school.com']);
+
+    Livewire::test(CreateStudentProfile::class)
+        ->fillForm(['birth_certificate_no' => '9999999999'])
+        ->assertFormSet(['email' => null]);
+});
+
+it('replaces the matching profile in place instead of creating a duplicate when the birth certificate no already exists', function () {
+    Role::firstOrCreate(['name' => 'student', 'guard_name' => 'web']);
+
+    $admin = grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]));
+    $this->actingAs($admin);
+
+    $oldClass = Classes::create(['name' => 'Class 5', 'order' => 5]);
+    $newClass = Classes::create(['name' => 'Class 6', 'order' => 6]);
+
+    $existingUser = User::factory()->create(['name' => 'Old Name', 'email' => 'std00001@school.com', 'pin' => '1234', 'must_change_password' => false]);
+    $existingProfile = StudentProfile::create([
+        'user_id' => $existingUser->id,
+        'roll_no' => 1,
+        'birth_certificate_no' => '1111111111',
+        'current_class_id' => $oldClass->id,
+        'session_year' => now()->year,
+        'gender' => Gender::Male,
+        'status' => StudentStatus::Active,
+    ]);
+
+    Livewire::test(CreateStudentProfile::class)
         ->fillForm([
-            'name' => 'Second Student',
-            'roll_no' => 2,
+            'name' => 'Updated Name',
+            'roll_no' => 9,
             'birth_certificate_no' => '1111111111',
+            'session_year' => now()->year,
+            'current_class_id' => $newClass->id,
+            'gender' => 'male',
+            'nationality' => 'Bangladeshi',
+            'status' => 'active',
+        ])
+        ->call('create')
+        ->assertHasNoFormErrors();
+
+    expect(StudentProfile::where('birth_certificate_no', '1111111111')->count())->toBe(1);
+
+    $existingProfile->refresh();
+    $refreshedUser = $existingUser->fresh();
+
+    expect($existingProfile->roll_no)->toBe(9)
+        ->and($existingProfile->current_class_id)->toBe($newClass->id)
+        ->and($refreshedUser->name)->toBe('Updated Name')
+        // Same account, same email — no duplicate login is created.
+        ->and($refreshedUser->email)->toBe('std00001@school.com')
+        // Password is reset to the default and must be changed again on next login.
+        ->and(Hash::check('password', $refreshedUser->password))->toBeTrue()
+        ->and($refreshedUser->must_change_password)->toBeTrue()
+        ->and($refreshedUser->pin)->toBeNull();
+
+    expect(session('generated_student_credentials'))->toBe([
+        'email' => 'std00001@school.com',
+        'password' => 'password',
+    ]);
+});
+
+it('still generates a new email when birth certificate no is left blank', function () {
+    Role::firstOrCreate(['name' => 'student', 'guard_name' => 'web']);
+
+    $admin = grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]));
+    $this->actingAs($admin);
+
+    $class = Classes::create(['name' => 'Class 5', 'order' => 5]);
+
+    Livewire::test(CreateStudentProfile::class)
+        ->fillForm([
+            'name' => 'No Birth Cert Student',
+            'roll_no' => 30,
+            'birth_certificate_no' => null,
             'session_year' => now()->year,
             'current_class_id' => $class->id,
             'gender' => 'male',
@@ -74,7 +145,11 @@ it('rejects a duplicate birth certificate no on create', function () {
             'status' => 'active',
         ])
         ->call('create')
-        ->assertHasFormErrors(['birth_certificate_no' => 'unique']);
+        ->assertHasNoFormErrors();
+
+    $profile = StudentProfile::where('roll_no', 30)->whereNull('birth_certificate_no')->firstOrFail();
+
+    expect($profile->user->email)->toBe(sprintf('std%05d@school.com', $profile->id));
 });
 
 it('generates a std-prefixed email from the new student_profiles id and forces a password change', function () {
