@@ -1,11 +1,10 @@
 <?php
 
-namespace App\Filament\Resources\StudentProfiles\Pages;
+namespace App\Filament\Pages;
 
 use App\Actions\PromoteStudentsAction;
 use App\Enums\ExamConfigType;
 use App\Enums\PromotionStatus;
-use App\Filament\Resources\StudentProfiles\StudentProfileResource;
 use App\Models\Classes;
 use App\Models\Exam;
 use App\Models\Section;
@@ -13,7 +12,7 @@ use App\Models\StudentMeritRanking;
 use App\Models\StudentProfile;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
-use Filament\Resources\Pages\Page;
+use Filament\Pages\Page;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
@@ -21,14 +20,17 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Url;
 
-class PromoteStudents extends Page
+class BulkPromoteStudentsForClass extends Page
 {
-    protected static string $resource = StudentProfileResource::class;
+    protected static bool $shouldRegisterNavigation = false;
 
-    protected string $view = 'filament.resources.student-profiles.pages.promote-students';
+    protected string $view = 'filament.pages.bulk-promote-students-for-class';
 
     #[Url(as: 'classId')]
     public int $classId = 0;
+
+    #[Url(as: 'year')]
+    public int $year = 0;
 
     /** @var array<int, array<string, mixed>> */
     public array $promotions = [];
@@ -40,14 +42,12 @@ class PromoteStudents extends Page
 
     public function mount(): void
     {
-        abort_unless($this->classId, 404);
+        abort_unless($this->classId && $this->year, 404);
 
         $nextClass = $this->getNextClass();
         $defaultStatus = $nextClass ? PromotionStatus::Promoted : PromotionStatus::Graduated;
         $students = $this->getStudents();
-        $this->meritRanks = $students->isNotEmpty()
-            ? $this->getMainExamMeritRanks($students->first()->session_year)
-            : collect();
+        $this->meritRanks = $this->getMainExamMeritRanks($this->year);
 
         $this->hasMainExamResults = $this->meritRanks->isNotEmpty();
 
@@ -123,46 +123,31 @@ class PromoteStudents extends Page
 
     public function getTitle(): string|Htmlable
     {
-        return 'Promote Students — '.($this->resolveClass()?->name ?? 'Class');
+        return 'Bulk Promote — '.($this->resolveClass()?->name ?? 'Class');
     }
 
     public function getBreadcrumbs(): array
     {
         return [
-            StudentProfileResource::getUrl() => 'Students',
-            StudentProfileResource::getUrl('students-by-class', ['classId' => $this->classId]) => $this->resolveClass()?->name ?? 'Class',
-            '' => 'Promote',
+            PromoteStudents::getUrl() => 'Promote',
+            PromoteStudentsForClass::getUrl(['classId' => $this->classId, 'year' => $this->year]) => $this->resolveClass()?->name ?? 'Class',
+            '' => 'Bulk Promote',
         ];
     }
 
     public function getBackUrl(): string
     {
-        return StudentProfileResource::getUrl('students-by-class', ['classId' => $this->classId]);
+        return PromoteStudentsForClass::getUrl(['classId' => $this->classId, 'year' => $this->year]);
     }
 
-    /**
-     * A class can hold two cohorts at once: the batch still waiting to be promoted out, and
-     * a batch that already arrived here from the class below (whose session_year already
-     * advanced). Only the not-yet-promoted batch — the one with the oldest session_year —
-     * belongs on this page, or the newly-arrived batch would get promoted a second time.
-     */
     public function getStudents(): EloquentCollection
     {
-        $sessionYear = $this->resolveSessionYearAwaitingPromotion();
-
         return StudentProfile::with('user')
             ->where('current_class_id', $this->classId)
-            ->where('session_year', $sessionYear)
+            ->where('session_year', $this->year)
             ->active()
             ->orderBy('roll_no')
             ->get();
-    }
-
-    public function resolveSessionYearAwaitingPromotion(): ?int
-    {
-        return StudentProfile::where('current_class_id', $this->classId)
-            ->active()
-            ->min('session_year');
     }
 
     public function resolveClass(): ?Classes
@@ -209,6 +194,24 @@ class PromoteStudents extends Page
         return $class->groups()->where('groups.is_active', true)->pluck('groups.name', 'groups.id');
     }
 
+    /**
+     * Whether to show the Section column at all — based on the default target
+     * class every student in this bulk batch promotes into, not each row's
+     * individually-edited target, so the column doesn't flicker in and out
+     * as an admin tweaks one student's target class.
+     */
+    public function nextClassHasSections(): bool
+    {
+        $nextClass = $this->getNextClass();
+
+        return $nextClass && $this->getSectionOptions($nextClass->id)->isNotEmpty();
+    }
+
+    public function nextClassHasGroups(): bool
+    {
+        return (bool) $this->getNextClass()?->has_group;
+    }
+
     public function promote(): void
     {
         foreach ($this->promotions as $row) {
@@ -235,7 +238,7 @@ class PromoteStudents extends Page
             ->title('Students promoted successfully')
             ->send();
 
-        $this->redirect(StudentProfileResource::getUrl('students-by-class', ['classId' => $this->classId]));
+        $this->redirect(PromoteStudentsForClass::getUrl(['classId' => $this->classId, 'year' => $this->year]));
     }
 
     public function promoteAction(): Action
