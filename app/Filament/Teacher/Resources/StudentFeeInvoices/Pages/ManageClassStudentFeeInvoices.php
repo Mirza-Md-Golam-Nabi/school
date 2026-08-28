@@ -8,6 +8,7 @@ use App\Filament\Teacher\Concerns\ScopesToClassTeacherStudents;
 use App\Filament\Teacher\Resources\StudentFeeInvoices\StudentFeeInvoiceResource;
 use App\Models\Classes;
 use Filament\Actions\Action;
+use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Tables\Table;
 use Illuminate\Contracts\Support\Htmlable;
@@ -65,6 +66,10 @@ class ManageClassStudentFeeInvoices extends ListRecords
                 ->url(StudentFeeInvoiceResource::getUrl('index'))
                 ->icon('heroicon-o-arrow-left')
                 ->color('gray'),
+
+            CreateAction::make()
+                ->url(fn (): string => StudentFeeInvoiceResource::getUrl('create'))
+                ->visible(fn (): bool => StudentFeeInvoiceResource::canCreate()),
         ];
     }
 }

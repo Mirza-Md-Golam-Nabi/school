@@ -3,7 +3,8 @@
 namespace App\Filament\Resources\StudentFeeInvoices\Tables;
 
 use App\Enums\InvoiceStatus;
-use App\Filament\Resources\StudentFeeInvoices\StudentFeeInvoiceResource;
+use App\Filament\Resources\StudentFeeInvoices\StudentFeeInvoiceResource as AdminStudentFeeInvoiceResource;
+use App\Filament\Teacher\Resources\StudentFeeInvoices\StudentFeeInvoiceResource as TeacherStudentFeeInvoiceResource;
 use App\Models\StudentFeeInvoice;
 use App\Models\StudentProfile;
 use Carbon\Carbon;
@@ -92,10 +93,9 @@ class ClassInvoicesByStudentTable
                                             ->state('Edit')
                                             ->icon(Heroicon::OutlinedPencilSquare)
                                             ->color('primary')
-                                            ->url(fn (StudentFeeInvoice $record): string => StudentFeeInvoiceResource::getUrl('edit', ['record' => $record]))
+                                            ->url(fn (StudentFeeInvoice $record): string => self::resourceForCurrentPanel()::getUrl('edit', ['record' => $record]))
                                             ->openUrlInNewTab()
-                                            // The teacher panel's StudentFeeInvoiceResource has no edit page.
-                                            ->visible(fn (): bool => Filament::getCurrentPanel()?->getId() === 'admin'),
+                                            ->visible(fn (StudentFeeInvoice $record): bool => self::resourceForCurrentPanel()::canEdit($record)),
                                     ])
                                     ->columns(['default' => 2, 'sm' => 3, 'lg' => 6]),
                             ]),
@@ -103,6 +103,16 @@ class ClassInvoicesByStudentTable
                     ->modalSubmitAction(false)
                     ->modalCancelActionLabel('Close'),
             ]);
+    }
+
+    /**
+     * @return class-string<AdminStudentFeeInvoiceResource>|class-string<TeacherStudentFeeInvoiceResource>
+     */
+    private static function resourceForCurrentPanel(): string
+    {
+        return Filament::getCurrentPanel()?->getId() === 'admin'
+            ? AdminStudentFeeInvoiceResource::class
+            : TeacherStudentFeeInvoiceResource::class;
     }
 
     private static function totalDue(StudentProfile $record): float

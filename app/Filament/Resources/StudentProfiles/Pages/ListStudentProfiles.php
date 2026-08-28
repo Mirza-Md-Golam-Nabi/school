@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\StudentProfiles\Pages;
 
+use App\Enums\StudentStatus;
 use App\Filament\Resources\StudentProfiles\StudentProfileResource;
 use App\Models\Classes;
 use Filament\Actions\CreateAction;
@@ -24,7 +25,9 @@ class ListStudentProfiles extends Page
     {
         $classes = Classes::active()
             ->withCount([
-                'studentProfiles' => fn ($q) => $q->whereNull('deleted_at'),
+                'studentProfiles as student_profiles_count' => fn ($q) => $q
+                    ->where('status', StudentStatus::Active)
+                    ->where('session_year', now()->year),
             ])
             ->orderBy('order')
             ->get();

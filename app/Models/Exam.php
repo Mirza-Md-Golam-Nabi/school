@@ -59,6 +59,11 @@ class Exam extends Model
         return $this->hasMany(ExamSubjectConfig::class);
     }
 
+    public function schedules(): HasMany
+    {
+        return $this->hasMany(ExamSchedule::class);
+    }
+
     public function results(): HasMany
     {
         return $this->hasMany(StudentResult::class);

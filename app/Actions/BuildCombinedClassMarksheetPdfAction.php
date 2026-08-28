@@ -6,13 +6,12 @@ use App\Models\Classes;
 use App\Models\Exam;
 use App\Models\Marksheet;
 use App\Models\StudentMeritRanking;
-use Mpdf\Config\ConfigVariables;
-use Mpdf\Config\FontVariables;
-use Mpdf\Mpdf;
-use Mpdf\Output\Destination;
+use App\Support\Concerns\BuildsMpdfDocuments;
 
 class BuildCombinedClassMarksheetPdfAction
 {
+    use BuildsMpdfDocuments;
+
     /**
      * Combine every already-generated marksheet for this class + exam into one
      * PDF, one student per page, reusing the same per-student layout and data
@@ -30,18 +29,7 @@ class BuildCombinedClassMarksheetPdfAction
 
         abort_if($marksheets->isEmpty(), 404, 'এই ক্লাস ও exam-এর জন্য এখনো কোনো marksheet generate করা হয়নি।');
 
-        $fontPath = public_path('fonts');
-
-        $mpdf = new Mpdf([
-            'format' => 'A4',
-            'orientation' => 'P',
-            'fontDir' => array_merge((new ConfigVariables)->getDefaults()['fontDir'], [$fontPath]),
-            'fontdata' => (new FontVariables)->getDefaults()['fontdata'] + [
-                'solaimanlipi' => ['R' => 'SolaimanLipi.ttf', 'useOTL' => 0xFF],
-            ],
-            'default_font' => 'solaimanlipi',
-            'tempDir' => storage_path('app/mpdf'),
-        ]);
+        $mpdf = $this->makeMpdf();
 
         foreach ($marksheets as $index => $marksheet) {
             $ranking = StudentMeritRanking::where('exam_id', $marksheet->exam_id)
@@ -67,6 +55,6 @@ class BuildCombinedClassMarksheetPdfAction
             $mpdf->WriteHTML($html);
         }
 
-        return $mpdf->Output('', Destination::STRING_RETURN);
+        return $this->outputMpdfString($mpdf);
     }
 }

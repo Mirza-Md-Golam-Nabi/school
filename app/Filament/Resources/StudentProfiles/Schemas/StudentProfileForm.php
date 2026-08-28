@@ -8,6 +8,7 @@ use App\Enums\Religion;
 use App\Enums\StudentStatus;
 use App\Models\Classes;
 use App\Models\Section as SectionModel;
+use App\Models\StudentProfile;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
@@ -36,8 +37,10 @@ class StudentProfileForm
                                 ->label('Email')
                                 ->disabled()
                                 ->dehydrated(false)
-                                ->hidden(fn (string $operation): bool => $operation === 'create')
-                                ->helperText('এই ইমেইল সিস্টেম কর্তৃক স্বয়ংক্রিয়ভাবে তৈরি — পরিবর্তনযোগ্য নয়'),
+                                ->hidden(fn (string $operation, Get $get): bool => $operation === 'create' && blank($get('email')))
+                                ->helperText(fn (string $operation, Get $get): string => ($operation === 'create' && filled($get('email')))
+                                    ? 'এই Birth Certificate No. আগে থেকেই নিবন্ধিত — নতুন account তৈরি না করে এই বিদ্যমান email-এ তথ্য আপডেট হবে এবং password রিসেট হয়ে যাবে'
+                                    : 'এই ইমেইল সিস্টেম কর্তৃক স্বয়ংক্রিয়ভাবে তৈরি — পরিবর্তনযোগ্য নয়'),
 
                             TextInput::make('name')
                                 ->label('Full Name')
@@ -133,11 +136,23 @@ class StudentProfileForm
                                     'inputmode' => 'numeric',
                                     'pattern' => '[0-9]*',
                                 ])
-                                ->required()
-                                ->rules(fn (string $operation, $record): array => [
-                                    Rule::unique('student_profiles', 'birth_certificate_no')
-                                        ->ignore($operation === 'edit' ? $record?->id : null),
-                                ]),
+                                ->live(onBlur: true)
+                                ->afterStateUpdated(function (string $operation, Set $set, ?string $state): void {
+                                    if ($operation !== 'create') {
+                                        return;
+                                    }
+
+                                    $set('email', filled($state)
+                                        ? StudentProfile::where('birth_certificate_no', $state)->first()?->user?->email
+                                        : null);
+                                })
+                                // On edit, a genuine duplicate against a DIFFERENT profile is still an
+                                // error. On create, a match is handled specially (see afterStateUpdated
+                                // above and CreateStudentProfileAction) rather than rejected — so no
+                                // uniqueness rule applies there.
+                                ->rules(fn (string $operation, $record): array => $operation === 'edit'
+                                    ? [Rule::unique('student_profiles', 'birth_certificate_no')->ignore($record?->id)]
+                                    : []),
 
                             Select::make('blood_group')
                                 ->label('Blood Group')

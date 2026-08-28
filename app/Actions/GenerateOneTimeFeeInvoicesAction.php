@@ -7,12 +7,12 @@ use App\Enums\InvoiceStatus;
 use App\Models\FeeStructure;
 use App\Models\StudentFeeInvoice;
 use App\Models\StudentProfile;
-use App\Models\User;
-use App\Notifications\FeeInvoiceGeneratedNotification;
+use App\Notifications\Concerns\NotifiesStudentFeeInvoice;
 use InvalidArgumentException;
 
 class GenerateOneTimeFeeInvoicesAction
 {
+    use NotifiesStudentFeeInvoice;
     use ResolvesFeeDiscount;
 
     /**
@@ -35,6 +35,7 @@ class GenerateOneTimeFeeInvoicesAction
         $students = StudentProfile::with([
             'feeDiscounts:student_id,fee_type_id,session_year,discount_id',
             'feeDiscounts.discount:id,discount_type,discount_value',
+            'user',
         ])
             ->active()
             ->where('current_class_id', $structure->class_id)
@@ -54,9 +55,6 @@ class GenerateOneTimeFeeInvoicesAction
 
         $generated = 0;
         $skipped = 0;
-        $now = now();
-        $toInsert = [];
-        $notificationData = [];
 
         foreach ($students as $student) {
             if (isset($existingStudentIds[$student->id])) {
@@ -68,7 +66,7 @@ class GenerateOneTimeFeeInvoicesAction
             $discountAmount = $this->resolveDiscount($student, $structure->fee_type_id, (float) $structure->amount, $year);
             $netAmount = max(0, $structure->amount - $discountAmount);
 
-            $toInsert[] = [
+            $invoice = StudentFeeInvoice::create([
                 'student_id' => $student->id,
                 'fee_type_id' => $structure->fee_type_id,
                 'month' => null,
@@ -78,36 +76,12 @@ class GenerateOneTimeFeeInvoicesAction
                 'fine_amount' => 0,
                 'waiver_amount' => 0,
                 'net_amount' => $netAmount,
-                'status' => InvoiceStatus::Unpaid->value,
-                'created_at' => $now,
-                'updated_at' => $now,
-            ];
+                'status' => InvoiceStatus::Unpaid,
+            ]);
 
             $generated++;
 
-            if ($student->user_id) {
-                $notificationData[$student->user_id] ??= ['count' => 0, 'total' => 0.0];
-                $notificationData[$student->user_id]['count']++;
-                $notificationData[$student->user_id]['total'] += $netAmount;
-            }
-        }
-
-        foreach (array_chunk($toInsert, 500) as $chunk) {
-            StudentFeeInvoice::insert($chunk);
-        }
-
-        if ($notificationData) {
-            User::whereIn('id', array_keys($notificationData))
-                ->get(['id'])
-                ->each(function (User $user) use ($notificationData, $year) {
-                    $data = $notificationData[$user->id];
-                    $user->notify(new FeeInvoiceGeneratedNotification(
-                        count: $data['count'],
-                        totalAmount: $data['total'],
-                        month: null,
-                        year: $year,
-                    ));
-                });
+            $this->notifyFeeInvoiceGenerated($invoice, $student->user);
         }
 
         $this->logGeneration($structure, $generated, $skipped);

@@ -1,9 +1,14 @@
 @php
+    use App\Models\GradeScale;
     use App\Models\SchoolSetting;
     use Illuminate\Support\Facades\Storage;
 
     $student = $marksheet->student;
     $exam = $marksheet->exam;
+    $hasSections = $exam->class?->sections()->exists() ?? false;
+
+    $gradeScales = GradeScale::cached();
+    $formatMark = fn (float $mark): string => rtrim(rtrim(number_format($mark, 2), '0'), '.');
 
     $schoolName = SchoolSetting::get('school_name', '');
     $schoolAddress = SchoolSetting::get('school_address', '');
@@ -95,10 +100,26 @@
             border-radius: 8px;
         }
 
-        table.info {
+        table.top-section {
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 10px;
+        }
+
+        table.top-section td.info-col {
+            width: 62%;
+            vertical-align: top;
+            padding-right: 10px;
+        }
+
+        table.top-section td.grade-scale-col {
+            width: 38%;
+            vertical-align: top;
+        }
+
+        table.info {
+            width: 100%;
+            border-collapse: collapse;
         }
 
         table.info td {
@@ -109,6 +130,23 @@
         table.info td.label {
             font-weight: bold;
             width: 110px;
+        }
+
+        table.grade-scale {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        table.grade-scale th,
+        table.grade-scale td {
+            border: 1px solid #999;
+            padding: 3px 5px;
+            font-size: 10px;
+            text-align: center;
+        }
+
+        table.grade-scale th {
+            background: #f2f2f2;
         }
 
         table.subjects {
@@ -128,10 +166,18 @@
             background: #f2f2f2;
         }
 
+        .summary-heading {
+            margin-top: 14px;
+            font-size: 13px;
+            font-weight: bold;
+            text-align: center;
+            text-transform: uppercase;
+        }
+
         table.summary {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 12px;
+            margin-top: 6px;
         }
 
         table.summary td {
@@ -201,23 +247,63 @@
 
         <div class="title">Marksheet - {{ $exam->examType?->name }} {{ $exam->session_year }}</div>
 
-        <table class="info">
+        <table class="top-section">
             <tr>
-                <td class="label">Student Name</td>
-                <td colspan="3">{{ $student->user?->name }}</td>
+                <td class="info-col">
+                    <table class="info">
+                        <tr>
+                            <td class="label">Student Name</td>
+                            <td colspan="3">{{ $student->user?->name }}</td>
+                        </tr>
+                        <tr>
+                            <td class="label">Class</td>
+                            <td>{{ $student->class?->name }}</td>
+                        </tr>
+                        <tr>
+                            <td class="label">Roll No</td>
+                            <td>{{ sprintf('%02d', $student->roll_no) }}</td>
+                        </tr>
+                        @if ($student->group)
+                            <tr>
+                                <td class="label">Group</td>
+                                <td colspan="3">{{ $student->group?->name }}</td>
+                            </tr>
+                        @endif
+                        @if ($student->section)
+                            <tr>
+                                <td class="label">Section</td>
+                                <td colspan="3">{{ $student->section?->name }}</td>
+                            </tr>
+                        @endif
+                        <tr>
+                            <td class="label">Session</td>
+                            <td colspan="3">{{ $student->session_year }}</td>
+                        </tr>
+                    </table>
+                </td>
+                <td class="grade-scale-col">
+                    @if ($gradeScales->isNotEmpty())
+                        <table class="grade-scale">
+                            <thead>
+                                <tr>
+                                    <th>Letter Grade</th>
+                                    <th>Marks Interval</th>
+                                    <th>Grade Point</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($gradeScales as $scale)
+                                    <tr>
+                                        <td>{{ $scale->letter_grade }}</td>
+                                        <td>{{ $formatMark($scale->min_mark) }} - {{ $formatMark($scale->max_mark) }}</td>
+                                        <td>{{ number_format($scale->grade_point, 2) }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    @endif
+                </td>
             </tr>
-            <tr>
-                <td class="label">Class</td>
-                <td>{{ $student->class?->name }}</td>
-                <td class="label">Roll No</td>
-                <td>{{ sprintf('%02d', $student->roll_no) }}</td>
-            </tr>
-            @if ($student->section)
-                <tr>
-                    <td class="label">Section</td>
-                    <td colspan="3">{{ $student->section?->name }}</td>
-                </tr>
-            @endif
         </table>
 
         <table class="subjects">
@@ -261,6 +347,7 @@
             </tbody>
         </table>
 
+        <div class="summary-heading">Academic Transcript</div>
         <table class="summary">
             <tr>
                 <td class="summary-label">Total Marks</td>
@@ -270,9 +357,13 @@
             </tr>
             <tr>
                 <td class="summary-label">Class Rank</td>
-                <td>{{ $summary['class_rank'] ?? '-' }}</td>
-                <td class="summary-label">Section Rank</td>
-                <td>{{ $summary['section_rank'] ?? '-' }}</td>
+                @if ($hasSections)
+                    <td>{{ $summary['class_rank'] ?? '-' }}</td>
+                    <td class="summary-label">Section Rank</td>
+                    <td>{{ $summary['section_rank'] ?? '-' }}</td>
+                @else
+                    <td colspan="3">{{ $summary['class_rank'] ?? '-' }}</td>
+                @endif
             </tr>
             <tr>
                 <td class="summary-label">1st Position Total Marks</td>
@@ -285,6 +376,12 @@
                         -
                     @endif
                 </td>
+            </tr>
+            <tr>
+                <td class="summary-label">Working Days</td>
+                <td>{{ $summary['working_days'] }}</td>
+                <td class="summary-label">Present</td>
+                <td>{{ $summary['present_days'] }}</td>
             </tr>
         </table>
 

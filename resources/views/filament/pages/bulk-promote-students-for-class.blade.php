@@ -2,8 +2,9 @@
     @php
         $students = $this->getStudents();
         $targetClassOptions = $this->getTargetClassOptions();
-        $sourceSessionYear = $students->first()?->session_year;
         $statusCounts = collect($promotions)->countBy('status');
+        $showSectionColumn = $this->nextClassHasSections();
+        $showGroupColumn = $this->nextClassHasGroups();
     @endphp
 
     <div class="space-y-3">
@@ -14,11 +15,9 @@
                 <a href="{{ $this->getBackUrl() }}">
                     <x-filament::icon-button icon="heroicon-o-arrow-left" color="gray" size="sm" label="Back" />
                 </a>
-                @if ($sourceSessionYear)
-                    <x-filament::badge color="gray" icon="heroicon-o-calendar-days">
-                        Session {{ $sourceSessionYear }} &rarr; {{ $sourceSessionYear + 1 }}
-                    </x-filament::badge>
-                @endif
+                <x-filament::badge color="gray" icon="heroicon-o-calendar-days">
+                    Session {{ $year }} &rarr; {{ $year + 1 }}
+                </x-filament::badge>
                 <div class="ml-auto flex flex-wrap items-center gap-2">
                     @foreach (\App\Enums\PromotionStatus::cases() as $status)
                         <x-filament::badge :color="$status->getColor()">
@@ -31,7 +30,7 @@
 
         @if ($students->isEmpty())
             <x-filament::empty-state icon="heroicon-o-users">
-                <x-slot name="heading">এই ক্লাসে কোনো active student নেই।</x-slot>
+                <x-slot name="heading">এই ক্লাসে এই session-এ কোনো active student নেই।</x-slot>
             </x-filament::empty-state>
         @else
             @unless ($hasMainExamResults)
@@ -61,8 +60,12 @@
                                 <th class="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Student</th>
                                 <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Status</th>
                                 <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Target Class</th>
-                                <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Section</th>
-                                <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Group</th>
+                                @if ($showSectionColumn)
+                                    <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Section</th>
+                                @endif
+                                @if ($showGroupColumn)
+                                    <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Group</th>
+                                @endif
                                 <th class="w-24 px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">New Roll (Merit)</th>
                                 <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Remarks</th>
                             </tr>
@@ -106,29 +109,33 @@
                                         </select>
                                     </td>
 
-                                    <td class="px-3 py-1.5">
-                                        <select
-                                            wire:model="promotions.{{ $student->id }}.section_id"
-                                            @disabled($isLeaving || $sectionOptions->isEmpty())
-                                            class="w-32 rounded-lg border-gray-300 py-1.5 px-2 text-sm shadow-sm focus:border-primary-500 focus:ring-primary-500 disabled:cursor-not-allowed disabled:bg-gray-100 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:disabled:bg-gray-900">
-                                            <option value="">—</option>
-                                            @foreach ($sectionOptions as $id => $name)
-                                                <option value="{{ $id }}">{{ $name }}</option>
-                                            @endforeach
-                                        </select>
-                                    </td>
+                                    @if ($showSectionColumn)
+                                        <td class="px-3 py-1.5">
+                                            <select
+                                                wire:model="promotions.{{ $student->id }}.section_id"
+                                                @disabled($isLeaving || $sectionOptions->isEmpty())
+                                                class="w-32 rounded-lg border-gray-300 py-1.5 px-2 text-sm shadow-sm focus:border-primary-500 focus:ring-primary-500 disabled:cursor-not-allowed disabled:bg-gray-100 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:disabled:bg-gray-900">
+                                                <option value="">—</option>
+                                                @foreach ($sectionOptions as $id => $name)
+                                                    <option value="{{ $id }}">{{ $name }}</option>
+                                                @endforeach
+                                            </select>
+                                        </td>
+                                    @endif
 
-                                    <td class="px-3 py-1.5">
-                                        <select
-                                            wire:model="promotions.{{ $student->id }}.group_id"
-                                            @disabled($isLeaving || $groupOptions->isEmpty())
-                                            class="w-32 rounded-lg border-gray-300 py-1.5 px-2 text-sm shadow-sm focus:border-primary-500 focus:ring-primary-500 disabled:cursor-not-allowed disabled:bg-gray-100 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:disabled:bg-gray-900">
-                                            <option value="">—</option>
-                                            @foreach ($groupOptions as $id => $name)
-                                                <option value="{{ $id }}">{{ $name }}</option>
-                                            @endforeach
-                                        </select>
-                                    </td>
+                                    @if ($showGroupColumn)
+                                        <td class="px-3 py-1.5">
+                                            <select
+                                                wire:model="promotions.{{ $student->id }}.group_id"
+                                                @disabled($isLeaving || $groupOptions->isEmpty())
+                                                class="w-32 rounded-lg border-gray-300 py-1.5 px-2 text-sm shadow-sm focus:border-primary-500 focus:ring-primary-500 disabled:cursor-not-allowed disabled:bg-gray-100 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:disabled:bg-gray-900">
+                                                <option value="">—</option>
+                                                @foreach ($groupOptions as $id => $name)
+                                                    <option value="{{ $id }}">{{ $name }}</option>
+                                                @endforeach
+                                            </select>
+                                        </td>
+                                    @endif
 
                                     <td class="px-3 py-1.5">
                                         @if ($isLeaving)

@@ -47,7 +47,8 @@ class ManageClassFeePayments extends ListRecords
 
             CreateAction::make()
                 ->label('Collect Fee')
-                ->url(FeePaymentResource::getUrl('create')),
+                ->url(FeePaymentResource::getUrl('create'))
+                ->visible(fn (): bool => FeePaymentResource::canCreate()),
         ];
     }
 }

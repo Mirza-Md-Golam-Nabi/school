@@ -15,6 +15,16 @@ class CreateStudentProfileAction
     public function handle(array $data): StudentProfile
     {
         return DB::transaction(function () use ($data) {
+            $birthCertificateNo = $data['birth_certificate_no'] ?? null;
+
+            $existingProfile = filled($birthCertificateNo)
+                ? StudentProfile::where('birth_certificate_no', $birthCertificateNo)->first()
+                : null;
+
+            if ($existingProfile) {
+                return $this->replaceExistingProfile($existingProfile, $data);
+            }
+
             // Email depends on the student_profiles primary key, which only exists after
             // the profile row is inserted — so the user is created with a placeholder first.
             $user = User::create([
@@ -44,9 +54,37 @@ class CreateStudentProfileAction
         });
     }
 
+    /**
+     * A birth certificate number matching an existing profile means this is the
+     * same real student re-enrolling, not a new admission — update that profile
+     * (and its user's name) in place instead of creating a duplicate account,
+     * reusing the existing login email rather than generating a new one. The
+     * password is reset to the default and must be changed again on next
+     * login, the same as the "Reset Password" action on the edit page.
+     */
+    private function replaceExistingProfile(StudentProfile $existingProfile, array $data): StudentProfile
+    {
+        $existingProfile->user?->update([
+            'name' => $data['name'],
+            'password' => 'password',
+            'must_change_password' => true,
+            'pin' => null,
+        ]);
+        $existingProfile->update($this->profileData($data));
+
+        $this->saveAddresses($existingProfile, $data);
+
+        $existingProfile->setAttribute('generated_email', $existingProfile->user?->email);
+        $existingProfile->setAttribute('generated_password', 'password');
+
+        return $existingProfile;
+    }
+
     private function saveAddresses(StudentProfile $profile, array $data): void
     {
         $isSame = (bool) ($data['same_address'] ?? false);
+
+        $profile->addresses()->delete();
 
         if (filled($data['present_address'] ?? null)) {
             $profile->addresses()->create([

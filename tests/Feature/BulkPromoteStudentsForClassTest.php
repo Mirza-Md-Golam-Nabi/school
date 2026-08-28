@@ -4,13 +4,13 @@ use App\Enums\ExamConfigType;
 use App\Enums\Gender;
 use App\Enums\StudentStatus;
 use App\Enums\UserType;
-use App\Filament\Resources\StudentProfiles\Pages\PromoteStudents;
-use App\Filament\Resources\StudentProfiles\StudentProfileResource;
+use App\Filament\Pages\BulkPromoteStudentsForClass;
 use App\Models\Classes;
 use App\Models\Exam;
 use App\Models\ExamType;
 use App\Models\ExamTypeConfig;
 use App\Models\Group;
+use App\Models\Section;
 use App\Models\StudentMeritRanking;
 use App\Models\StudentProfile;
 use App\Models\User;
@@ -59,7 +59,7 @@ test('new roll defaults to the main exam merit rank, not the old roll number', f
     ]);
 
     $response = $this->actingAs(createAdminUser())->get(
-        StudentProfileResource::getUrl('promote-students', ['classId' => $class->id])
+        BulkPromoteStudentsForClass::getUrl(['classId' => $class->id, 'year' => 2026])
     );
 
     $response->assertOk();
@@ -71,7 +71,7 @@ test('new roll stays blank when the class has no main exam results', function ()
     createEnrolledStudent($class, rollNo: 9, sessionYear: 2026);
 
     $response = $this->actingAs(createAdminUser())->get(
-        StudentProfileResource::getUrl('promote-students', ['classId' => $class->id])
+        BulkPromoteStudentsForClass::getUrl(['classId' => $class->id, 'year' => 2026])
     );
 
     $response->assertOk();
@@ -90,7 +90,7 @@ test('the target class group defaults to the student\'s current group when it is
 
     $this->actingAs(createAdminUser());
 
-    Livewire::test(PromoteStudents::class, ['classId' => $fromClass->id])
+    Livewire::test(BulkPromoteStudentsForClass::class, ['classId' => $fromClass->id, 'year' => now()->year])
         ->assertSet("promotions.{$student->id}.class_id", $toClass->id)
         ->assertSet("promotions.{$student->id}.group_id", $group->id);
 });
@@ -106,12 +106,12 @@ test('the target class group stays blank when it does not offer the student\'s c
 
     $this->actingAs(createAdminUser());
 
-    Livewire::test(PromoteStudents::class, ['classId' => $fromClass->id])
+    Livewire::test(BulkPromoteStudentsForClass::class, ['classId' => $fromClass->id, 'year' => now()->year])
         ->assertSet("promotions.{$student->id}.class_id", $toClass->id)
         ->assertSet("promotions.{$student->id}.group_id", null);
 });
 
-test('only the not-yet-promoted (oldest session_year) cohort is listed when the class holds two cohorts', function () {
+test('only students from the selected session year are listed when the class holds two cohorts', function () {
     $class = Classes::create(['name' => 'Class 2', 'order' => 2]);
     Classes::create(['name' => 'Class 3', 'order' => 3]);
 
@@ -120,11 +120,83 @@ test('only the not-yet-promoted (oldest session_year) cohort is listed when the 
 
     $this->actingAs(createAdminUser());
 
-    $livewire = Livewire::test(PromoteStudents::class, ['classId' => $class->id]);
+    $livewire = Livewire::test(BulkPromoteStudentsForClass::class, ['classId' => $class->id, 'year' => 2026]);
 
     $livewire->assertSet("promotions.{$awaitingPromotion->id}.status", 'promoted')
         ->assertSet("promotions.{$alreadyPromotedIn->id}", null);
 
     expect($livewire->instance()->getStudents()->pluck('id')->all())
         ->toBe([$awaitingPromotion->id]);
+
+    $livewireForNextYear = Livewire::test(BulkPromoteStudentsForClass::class, ['classId' => $class->id, 'year' => 2027]);
+
+    expect($livewireForNextYear->instance()->getStudents()->pluck('id')->all())
+        ->toBe([$alreadyPromotedIn->id]);
+});
+
+test('aborts with 404 when classId or year is missing', function () {
+    $this->actingAs(createAdminUser());
+
+    $class = Classes::create(['name' => 'Class 5', 'order' => 1]);
+
+    Livewire::test(BulkPromoteStudentsForClass::class, ['classId' => $class->id, 'year' => 0])
+        ->assertNotFound();
+});
+
+test('shows the Section and Group selects when the next class offers them', function () {
+    $fromClass = Classes::create(['name' => 'Class 9', 'order' => 9, 'has_group' => true]);
+    $toClass = Classes::create(['name' => 'Class 10', 'order' => 10, 'has_group' => true]);
+    Section::create(['class_id' => $toClass->id, 'name' => 'A']);
+    $group = Group::create(['name' => 'Science', 'is_active' => true]);
+    $toClass->groups()->attach($group->id);
+
+    $student = createEnrolledStudent($fromClass, rollNo: 1, sessionYear: now()->year);
+
+    $response = $this->actingAs(createAdminUser())->get(
+        BulkPromoteStudentsForClass::getUrl(['classId' => $fromClass->id, 'year' => now()->year])
+    );
+
+    $response->assertOk()
+        ->assertSee("promotions.{$student->id}.section_id", false)
+        ->assertSee("promotions.{$student->id}.group_id", false);
+});
+
+test('hides the Section select when the next class has no sections', function () {
+    $fromClass = Classes::create(['name' => 'Class 9', 'order' => 9]);
+    Classes::create(['name' => 'Class 10', 'order' => 10]); // no sections created
+
+    $student = createEnrolledStudent($fromClass, rollNo: 1, sessionYear: now()->year);
+
+    $response = $this->actingAs(createAdminUser())->get(
+        BulkPromoteStudentsForClass::getUrl(['classId' => $fromClass->id, 'year' => now()->year])
+    );
+
+    $response->assertOk()->assertDontSee("promotions.{$student->id}.section_id", false);
+});
+
+test('hides the Group select when the next class does not use groups', function () {
+    $fromClass = Classes::create(['name' => 'Class 9', 'order' => 9]);
+    Classes::create(['name' => 'Class 10', 'order' => 10, 'has_group' => false]);
+
+    $student = createEnrolledStudent($fromClass, rollNo: 1, sessionYear: now()->year);
+
+    $response = $this->actingAs(createAdminUser())->get(
+        BulkPromoteStudentsForClass::getUrl(['classId' => $fromClass->id, 'year' => now()->year])
+    );
+
+    $response->assertOk()->assertDontSee("promotions.{$student->id}.group_id", false);
+});
+
+test('hides both selects when the class is terminal and students are graduating', function () {
+    $class = Classes::create(['name' => 'Class 10 Terminal', 'order' => 10]); // no class ahead
+
+    $student = createEnrolledStudent($class, rollNo: 1, sessionYear: now()->year);
+
+    $response = $this->actingAs(createAdminUser())->get(
+        BulkPromoteStudentsForClass::getUrl(['classId' => $class->id, 'year' => now()->year])
+    );
+
+    $response->assertOk()
+        ->assertDontSee("promotions.{$student->id}.section_id", false)
+        ->assertDontSee("promotions.{$student->id}.group_id", false);
 });

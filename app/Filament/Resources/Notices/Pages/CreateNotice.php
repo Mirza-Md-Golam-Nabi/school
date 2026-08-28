@@ -5,10 +5,13 @@ namespace App\Filament\Resources\Notices\Pages;
 use App\Actions\Notice\SyncNoticeTargetsAction;
 use App\Filament\Resources\Notices\NoticeResource;
 use App\Jobs\PublishNoticeJob;
+use App\Notifications\Concerns\NotifiesNoticeCreated;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreateNotice extends CreateRecord
 {
+    use NotifiesNoticeCreated;
+
     protected static string $resource = NoticeResource::class;
 
     protected function mutateFormDataBeforeCreate(array $data): array
@@ -31,6 +34,8 @@ class CreateNotice extends CreateRecord
         if ($this->record->isScheduled()) {
             PublishNoticeJob::dispatch($this->record->id)
                 ->delay($this->record->published_at);
+        } elseif ($this->record->isPublished()) {
+            $this->notifyNoticeCreated($this->record);
         }
     }
 }

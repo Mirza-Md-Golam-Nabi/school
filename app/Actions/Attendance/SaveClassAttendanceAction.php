@@ -11,6 +11,7 @@ use App\Models\Classes;
 use App\Models\StudentProfile;
 use App\Models\TeacherProfile;
 use App\Models\User;
+use App\Notifications\StudentAttendanceMarkedNotification;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Collection;
@@ -68,6 +69,13 @@ class SaveClassAttendanceAction
 
             if (! $existing || $attendance->isDirty()) {
                 $attendance->save();
+            }
+
+            // Only a genuine create or status flip is worth notifying the
+            // student about — not a resave that leaves their status unchanged
+            // (e.g. a different teacher re-marking the same status).
+            if (! $existing || $statusChanged) {
+                $student->user?->notify(new StudentAttendanceMarkedNotification($attendance));
             }
 
             // Any new entry or real status change on a non-today date must be

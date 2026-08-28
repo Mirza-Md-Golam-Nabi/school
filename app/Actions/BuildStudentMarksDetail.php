@@ -2,9 +2,12 @@
 
 namespace App\Actions;
 
-use App\Enums\Grade;
+use App\Enums\AttendanceStatus;
+use App\Models\Attendance;
 use App\Models\ExamSubjectConfig;
+use App\Models\GradeScale;
 use App\Models\StudentMeritRanking;
+use App\Models\StudentProfile;
 use App\Models\StudentResult;
 use Illuminate\Support\Collection;
 
@@ -48,7 +51,9 @@ class BuildStudentMarksDetail
             ];
         }
 
-        $rows = $myResults->map(function (StudentResult $result) use ($subjectConfigs, $subjectBestMap): array {
+        $gradeScales = GradeScale::cached();
+
+        $rows = $myResults->map(function (StudentResult $result) use ($subjectConfigs, $subjectBestMap, $gradeScales): array {
             $subjectId = $result->subject_id;
             $config = $subjectConfigs->get($subjectId);
             $ownTotal = $config?->total_marks ?: 100;
@@ -57,7 +62,7 @@ class BuildStudentMarksDetail
                 ? ($result->effective_marks / $fullMarks) * 100
                 : 0.0;
             $grade = (! $result->is_absent && $result->effective_marks > 0)
-                ? Grade::fromMarks($percentage)
+                ? GradeScale::fromMarks($percentage, $gradeScales)
                 : null;
             $best = $subjectBestMap[$subjectId] ?? null;
 
@@ -83,8 +88,8 @@ class BuildStudentMarksDetail
                 'written_marks' => $result->written_marks,
                 'practical_marks' => $result->practical_marks,
                 'total_marks' => $result->effective_marks,
-                'grade_label' => $grade?->getLabel(),
-                'grade_color' => $grade?->getColor(),
+                'grade_label' => $grade?->letter_grade,
+                'grade_color' => $grade?->color,
                 'is_top_scorer' => $best !== null
                     && ! $result->is_absent
                     && (float) $result->effective_marks === (float) $best['best_marks'],
@@ -94,7 +99,7 @@ class BuildStudentMarksDetail
             ];
         })->values();
 
-        $overallGrade = Grade::fromGpa((float) $ranking->gpa);
+        $overallGrade = GradeScale::fromGpa((float) $ranking->gpa, $gradeScales);
 
         // "1st position" means class_rank = 1 (the top exam performer), never roll_no = 1.
         $topRanking = StudentMeritRanking::where('exam_id', $ranking->exam_id)
@@ -102,18 +107,35 @@ class BuildStudentMarksDetail
             ->where('class_rank', 1)
             ->first();
 
-        $topRankGrade = $topRanking ? Grade::fromGpa((float) $topRanking->gpa) : null;
+        $topRankGrade = $topRanking ? GradeScale::fromGpa((float) $topRanking->gpa, $gradeScales) : null;
+
+        $sessionYear = $ranking->exam?->session_year;
+
+        $workingDays = Attendance::where('attendable_type', StudentProfile::class)
+            ->where('class_id', $ranking->class_id)
+            ->whereYear('date', $sessionYear)
+            ->distinct('date')
+            ->count('date');
+
+        $presentDays = Attendance::where('attendable_type', StudentProfile::class)
+            ->where('attendable_id', $ranking->student_id)
+            ->where('class_id', $ranking->class_id)
+            ->where('status', AttendanceStatus::Present)
+            ->whereYear('date', $sessionYear)
+            ->count();
 
         $summary = [
             'total_marks' => $ranking->total_marks,
             'class_rank' => $ranking->class_rank,
             'section_rank' => $ranking->section_rank,
             'gpa' => number_format((float) $ranking->gpa, 2),
-            'overall_grade_label' => $overallGrade->getLabel(),
-            'overall_grade_color' => $overallGrade->getColor(),
+            'overall_grade_label' => $overallGrade?->letter_grade,
+            'overall_grade_color' => $overallGrade?->color,
             'top_rank_total_marks' => $topRanking?->total_marks,
             'top_rank_gpa' => $topRanking ? number_format((float) $topRanking->gpa, 2) : null,
-            'top_rank_grade_label' => $topRankGrade?->getLabel(),
+            'top_rank_grade_label' => $topRankGrade?->letter_grade,
+            'working_days' => $workingDays,
+            'present_days' => $presentDays,
         ];
 
         return ['rows' => $rows, 'summary' => $summary];

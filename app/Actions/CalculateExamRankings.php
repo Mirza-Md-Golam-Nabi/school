@@ -2,11 +2,11 @@
 
 namespace App\Actions;
 
-use App\Enums\Grade;
 use App\Enums\SubjectType;
 use App\Models\ClassGroupSubject;
 use App\Models\Exam;
 use App\Models\ExamSubjectConfig;
+use App\Models\GradeScale;
 use App\Models\StudentMeritRanking;
 use App\Models\StudentProfile;
 use App\Models\StudentResult;
@@ -49,12 +49,15 @@ class CalculateExamRankings
             ->get()
             ->groupBy('subject_id');
 
+        $gradeScales = GradeScale::cached();
+
         $studentData = $this->buildStudentData(
             $results,
             $profiles,
             $subjectConfigs,
             $subjectTypeRecords,
-            $exam->class_id
+            $exam->class_id,
+            $gradeScales
         );
 
         $classRankMap = $this->calculateTieredRanks(collect($studentData));
@@ -110,7 +113,8 @@ class CalculateExamRankings
         Collection $profiles,
         Collection $subjectConfigs,
         Collection $subjectTypeRecords,
-        int $classId
+        int $classId,
+        Collection $gradeScales
     ): array {
         $studentData = [];
 
@@ -147,9 +151,10 @@ class CalculateExamRankings
                     ? ($result->effective_marks / $fullMarks) * 100
                     : 0.0;
 
-                $grade = Grade::fromMarks($percentage);
+                $grade = GradeScale::fromMarks($percentage, $gradeScales);
+                $isFailingGrade = $grade === null || $grade->grade_point <= 0.0;
 
-                if ($grade === Grade::F) {
+                if ($isFailingGrade) {
                     if ($subjectType === SubjectType::ExtraOptional) {
                         // Extra optional fail → exclude subject from GPA, no penalty
                         continue;
@@ -158,7 +163,7 @@ class CalculateExamRankings
                     $isOverallFail = true;
                 }
 
-                $includedGpas[] = $grade->gpa();
+                $includedGpas[] = $grade->grade_point ?? 0.0;
             }
 
             if ($isOverallFail || empty($includedGpas)) {

@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Filament\Student\Resources\FeeInvoices\FeeInvoiceResource;
 use App\Models\FeePayment;
+use App\Notifications\Channels\PerDeviceWebPushChannel;
 use Carbon\Carbon;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification as FilamentNotification;
@@ -21,7 +22,30 @@ class FeePaymentReceivedNotification extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return ['database'];
+        return ['database', PerDeviceWebPushChannel::class];
+    }
+
+    /**
+     * The raw webpush message template — PerDeviceWebPushChannel stamps a
+     * fresh delivery_token/tag onto a copy of this per device it sends to.
+     *
+     * @return array{title: string, icon: string, body: string, data: array<string, mixed>}
+     */
+    public function toWebPushPayload(object $notifiable): array
+    {
+        $invoice = $this->payment->invoice()->with('feeType')->first();
+
+        return [
+            'title' => 'Fee Payment Received',
+            'icon' => '/icons/192x192.png',
+            'body' => $this->buildBody($invoice),
+            'data' => [
+                'url' => $invoice ? FeeInvoiceResource::getUrl('index', [
+                    'tableAction' => 'view',
+                    'tableActionRecord' => $invoice->id,
+                ], panel: 'student') : FeeInvoiceResource::getUrl('index', panel: 'student'),
+            ],
+        ];
     }
 
     /**

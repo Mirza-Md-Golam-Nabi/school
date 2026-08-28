@@ -4,11 +4,11 @@ namespace App\Filament\Student\Pages;
 
 use App\Enums\AttendanceStatus;
 use App\Enums\ExamConfigType;
-use App\Enums\Grade;
 use App\Filament\Student\Resources\ExamResults\ExamResultResource;
 use App\Filament\Student\Resources\FeeInvoices\Pages\AcademicHistoryFees;
 use App\Models\Attendance;
 use App\Models\Exam;
+use App\Models\GradeScale;
 use App\Models\StudentClassHistory;
 use App\Models\StudentFeeInvoice;
 use App\Models\StudentMeritRanking;
@@ -145,7 +145,7 @@ class AcademicHistoryClass extends Page
         return [
             'classRank' => $ranking->class_rank,
             'gpa' => number_format((float) $ranking->gpa, 2),
-            'gradeLabel' => Grade::fromGpa((float) $ranking->gpa)->getLabel(),
+            'gradeLabel' => GradeScale::fromGpa((float) $ranking->gpa)?->letter_grade ?? '—',
             'url' => ExamResultResource::getUrl('view', ['record' => $mainExamId], panel: 'student'),
         ];
     }

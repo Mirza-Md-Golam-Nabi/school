@@ -13,6 +13,7 @@ use App\Models\ExamContributeRule;
 use App\Models\ExamSubjectConfig;
 use App\Models\ExamType;
 use App\Models\Marksheet;
+use App\Models\Section;
 use App\Models\StudentMeritRanking;
 use App\Models\StudentProfile;
 use App\Models\StudentResult;
@@ -454,4 +455,75 @@ it('bases 1st position on class_rank, not on roll_no 1', function () {
 
     expect($summary['top_rank_total_marks'])->toBe(90.0)
         ->and($summary['top_rank_gpa'])->toBe('5.00');
+});
+
+it('shows Section Rank on the marksheet when the class has sections', function () {
+    $class = Classes::create(['name' => 'Class One', 'order' => 1]);
+    Section::create(['name' => 'A', 'class_id' => $class->id, 'is_active' => true]);
+
+    $examType = ExamType::create(['name' => 'Half Yearly', 'is_active' => true]);
+    $exam = makeMarksheetJobTestExam($class->id, $examType);
+
+    $subject = Subject::create(['name' => 'Bangla', 'has_mcq' => false, 'has_written' => true, 'has_practical' => false, 'is_active' => true]);
+    $subject->classes()->attach($class->id, ['subject_type' => SubjectType::Compulsory->value]);
+
+    ExamSubjectConfig::create([
+        'exam_id' => $exam->id,
+        'subject_id' => $subject->id,
+        'written_total' => 100,
+        'total_marks' => 100,
+        'pass_mark' => 33,
+    ]);
+
+    $student = makeMarksheetJobTestStudent($class->id);
+    StudentResult::create(['exam_id' => $exam->id, 'subject_id' => $subject->id, 'class_id' => $class->id, 'student_id' => $student->id, 'written_marks' => 80]);
+    $ranking = StudentMeritRanking::create([
+        'exam_id' => $exam->id,
+        'student_id' => $student->id,
+        'class_id' => $class->id,
+        'total_marks' => 80,
+        'gpa' => 4.0,
+        'class_rank' => 1,
+        'section_rank' => 1,
+    ]);
+
+    $marksheet = Marksheet::create(['student_id' => $student->id, 'exam_id' => $exam->id]);
+    ['rows' => $rows, 'summary' => $summary] = app(BuildStudentMarksDetail::class)->handle($ranking);
+    $html = view('documents.marksheet', compact('marksheet', 'rows', 'summary'))->render();
+
+    expect($html)->toContain('Section Rank');
+});
+
+it('hides Section Rank on the marksheet when the class has no sections', function () {
+    $class = Classes::create(['name' => 'Class One', 'order' => 1]);
+    $examType = ExamType::create(['name' => 'Half Yearly', 'is_active' => true]);
+    $exam = makeMarksheetJobTestExam($class->id, $examType);
+
+    $subject = Subject::create(['name' => 'Bangla', 'has_mcq' => false, 'has_written' => true, 'has_practical' => false, 'is_active' => true]);
+    $subject->classes()->attach($class->id, ['subject_type' => SubjectType::Compulsory->value]);
+
+    ExamSubjectConfig::create([
+        'exam_id' => $exam->id,
+        'subject_id' => $subject->id,
+        'written_total' => 100,
+        'total_marks' => 100,
+        'pass_mark' => 33,
+    ]);
+
+    $student = makeMarksheetJobTestStudent($class->id);
+    StudentResult::create(['exam_id' => $exam->id, 'subject_id' => $subject->id, 'class_id' => $class->id, 'student_id' => $student->id, 'written_marks' => 80]);
+    $ranking = StudentMeritRanking::create([
+        'exam_id' => $exam->id,
+        'student_id' => $student->id,
+        'class_id' => $class->id,
+        'total_marks' => 80,
+        'gpa' => 4.0,
+        'class_rank' => 1,
+    ]);
+
+    $marksheet = Marksheet::create(['student_id' => $student->id, 'exam_id' => $exam->id]);
+    ['rows' => $rows, 'summary' => $summary] = app(BuildStudentMarksDetail::class)->handle($ranking);
+    $html = view('documents.marksheet', compact('marksheet', 'rows', 'summary'))->render();
+
+    expect($html)->not->toContain('Section Rank');
 });

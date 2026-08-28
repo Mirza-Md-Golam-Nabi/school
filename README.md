@@ -21,7 +21,7 @@ git clone https://github.com/Mirza-Md-Golam-Nabi/school.git .
 2. Goto project folder
 
 ```sh
-cd shotabdi
+cd school
 ```
 
 3. Install dependencies using Composer
@@ -51,6 +51,10 @@ cp .env.example .env
 
 ```sh
 php artisan key:generate
+```
+
+```sh
+php artisan webpush:vapid
 ```
 
 6. Create the database

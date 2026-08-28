@@ -45,6 +45,7 @@ class FeePaymentForm
                             ->options(fn () => StudentProfile::with('user')
                                 ->active()
                                 ->whereIn('current_class_id', self::currentTeacherClassIds())
+                                ->orderBy('roll_no')
                                 ->get()
                                 ->mapWithKeys(fn ($s) => [$s->id => $s->user->name.' (Roll: '.$s->roll_no.')']))
                             ->searchable()

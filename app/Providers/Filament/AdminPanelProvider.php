@@ -33,6 +33,7 @@ class AdminPanelProvider extends PanelProvider
             ->viteTheme('resources/css/filament/theme.css')
             ->databaseTransactions()
             ->databaseNotifications()
+            ->globalSearch(false)
             ->login(Login::class)
             ->registration(Register::class)
             ->passwordReset()
@@ -49,6 +50,10 @@ class AdminPanelProvider extends PanelProvider
             ->renderHook(
                 PanelsRenderHook::HEAD_END,
                 fn (): string => '<link rel="manifest" href="/manifest/admin.json">',
+            )
+            ->renderHook(
+                PanelsRenderHook::BODY_END,
+                fn (): string => auth()->check() ? view('filament.shared.webpush-subscribe')->render() : '',
             )
             ->navigationGroups([
                 'Academic Structure',

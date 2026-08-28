@@ -3,11 +3,14 @@
 namespace App\Filament\Resources\StudentFeeInvoices\Pages;
 
 use App\Filament\Resources\StudentFeeInvoices\StudentFeeInvoiceResource;
+use App\Notifications\Concerns\NotifiesStudentFeeInvoice;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
 
 class EditStudentFeeInvoice extends EditRecord
 {
+    use NotifiesStudentFeeInvoice;
+
     protected static string $resource = StudentFeeInvoiceResource::class;
 
     protected function mutateFormDataBeforeFill(array $data): array
@@ -26,5 +29,10 @@ class EditStudentFeeInvoice extends EditRecord
         return [
             DeleteAction::make(),
         ];
+    }
+
+    protected function afterSave(): void
+    {
+        $this->notifyFeeInvoiceUpdated($this->getRecord());
     }
 }

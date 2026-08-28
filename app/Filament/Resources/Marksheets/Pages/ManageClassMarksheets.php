@@ -6,6 +6,7 @@ use App\Actions\GenerateMarksheetsForExamAction;
 use App\Filament\Resources\Marksheets\MarksheetResource;
 use App\Models\Classes;
 use App\Models\Exam;
+use App\Models\Marksheet;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
@@ -106,9 +107,26 @@ class ManageClassMarksheets extends ListRecords
                 ->modalDescription('আগে থেকে generate করা সব marksheet একটা PDF-এ, প্রতি student আলাদা পেজে, combine করে download হবে।')
                 ->modalSubmitActionLabel('Download')
                 ->action(function (array $data) {
+                    $examId = (int) $data['exam_id'];
+
+                    $hasGeneratedMarksheets = Marksheet::where('exam_id', $examId)
+                        ->where('is_generated', true)
+                        ->whereHas('student', fn ($q) => $q->where('current_class_id', $this->classId))
+                        ->exists();
+
+                    if (! $hasGeneratedMarksheets) {
+                        Notification::make()
+                            ->title('কোনো Marksheet পাওয়া যায়নি')
+                            ->body('এই ক্লাস ও exam-এর জন্য এখনো কোনো marksheet generate হয়নি। আগে "Generate Marksheets" চালান এবং generation শেষ হওয়া পর্যন্ত অপেক্ষা করুন, তারপর আবার ডাউনলোড করুন।')
+                            ->danger()
+                            ->send();
+
+                        return;
+                    }
+
                     $this->redirect(route('marksheets.class.download', [
                         'class' => $this->classId,
-                        'exam' => $data['exam_id'],
+                        'exam' => $examId,
                     ]));
                 }),
         ];

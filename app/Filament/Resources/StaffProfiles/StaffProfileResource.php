@@ -30,6 +30,8 @@ class StaffProfileResource extends Resource
 
     protected static ?string $navigationLabel = 'Staff';
 
+    protected static ?int $navigationSort = 3;
+
     protected static ?string $recordTitleAttribute = 'id';
 
     public static function form(Schema $schema): Schema

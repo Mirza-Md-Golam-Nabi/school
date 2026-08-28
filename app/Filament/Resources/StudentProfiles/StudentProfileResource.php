@@ -5,7 +5,6 @@ namespace App\Filament\Resources\StudentProfiles;
 use App\Filament\Resources\StudentProfiles\Pages\CreateStudentProfile;
 use App\Filament\Resources\StudentProfiles\Pages\EditStudentProfile;
 use App\Filament\Resources\StudentProfiles\Pages\ListStudentProfiles;
-use App\Filament\Resources\StudentProfiles\Pages\PromoteStudents;
 use App\Filament\Resources\StudentProfiles\Pages\StudentsByClass;
 use App\Filament\Resources\StudentProfiles\Schemas\StudentProfileForm;
 use App\Filament\Resources\StudentProfiles\Tables\StudentProfilesTable;
@@ -32,6 +31,8 @@ class StudentProfileResource extends Resource
 
     protected static ?string $navigationLabel = 'Students';
 
+    protected static ?int $navigationSort = 1;
+
     protected static ?string $recordTitleAttribute = 'registration_no';
 
     public static function form(Schema $schema): Schema
@@ -55,7 +56,6 @@ class StudentProfileResource extends Resource
             'index' => ListStudentProfiles::route('/'),
             'create' => CreateStudentProfile::route('/create'),
             'students-by-class' => StudentsByClass::route('/class'),
-            'promote-students' => PromoteStudents::route('/class/promote'),
             'edit' => EditStudentProfile::route('/{record}/edit'),
         ];
     }

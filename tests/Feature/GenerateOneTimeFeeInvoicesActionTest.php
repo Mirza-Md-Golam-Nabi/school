@@ -11,7 +11,9 @@ use App\Models\FeeType;
 use App\Models\StudentFeeInvoice;
 use App\Models\StudentProfile;
 use App\Models\User;
+use App\Notifications\StudentFeeInvoiceGeneratedNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Notification;
 
 uses(RefreshDatabase::class);
 
@@ -30,6 +32,8 @@ function createOneTimeInvoiceTestStudent(int $classId): StudentProfile
 }
 
 it('generates a one-time invoice for every active student in the fee structure class', function () {
+    Notification::fake();
+
     $class = Classes::create(['name' => 'Class Six', 'order' => 6]);
     $feeType = FeeType::create(['name' => 'Admission Fee', 'is_monthly' => false, 'is_active' => true]);
 
@@ -57,6 +61,9 @@ it('generates a one-time invoice for every active student in the fee structure c
         ->and((float) $invoice1->net_amount)->toBe(2000.0)
         ->and($invoice1->status)->toBe(InvoiceStatus::Unpaid)
         ->and($invoice2)->not->toBeNull();
+
+    Notification::assertSentTo($student1->user, StudentFeeInvoiceGeneratedNotification::class);
+    Notification::assertSentTo($student2->user, StudentFeeInvoiceGeneratedNotification::class);
 });
 
 it('does not create duplicate one-time invoices when run twice', function () {

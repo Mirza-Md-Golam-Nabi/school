@@ -4,8 +4,11 @@ namespace App\Filament\Teacher\Resources\StudentFeeInvoices;
 
 use App\Enums\InvoiceStatus;
 use App\Filament\Teacher\Concerns\ScopesToClassTeacherStudents;
+use App\Filament\Teacher\Resources\StudentFeeInvoices\Pages\CreateStudentFeeInvoice;
+use App\Filament\Teacher\Resources\StudentFeeInvoices\Pages\EditStudentFeeInvoice;
 use App\Filament\Teacher\Resources\StudentFeeInvoices\Pages\ListStudentFeeInvoices;
 use App\Filament\Teacher\Resources\StudentFeeInvoices\Pages\ManageClassStudentFeeInvoices;
+use App\Filament\Teacher\Resources\StudentFeeInvoices\Schemas\StudentFeeInvoiceForm;
 use App\Models\StudentFeeInvoice;
 use App\Traits\Permissions\HasEntityPermissions;
 use BackedEnum;
@@ -15,6 +18,7 @@ use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
@@ -39,6 +43,11 @@ class StudentFeeInvoiceResource extends Resource
     {
         return parent::getEloquentQuery()
             ->whereHas('student', fn ($query) => $query->whereIn('current_class_id', static::currentTeacherClassIds()));
+    }
+
+    public static function form(Schema $schema): Schema
+    {
+        return StudentFeeInvoiceForm::configure($schema);
     }
 
     public static function table(Table $table): Table
@@ -129,6 +138,8 @@ class StudentFeeInvoiceResource extends Resource
         return [
             'index' => ListStudentFeeInvoices::route('/'),
             'class-invoices' => ManageClassStudentFeeInvoices::route('/class-invoices'),
+            'create' => CreateStudentFeeInvoice::route('/create'),
+            'edit' => EditStudentFeeInvoice::route('/{record}/edit'),
         ];
     }
 }
