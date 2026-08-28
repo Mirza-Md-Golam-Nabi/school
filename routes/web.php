@@ -6,6 +6,7 @@ use App\Http\Controllers\ClassAttendanceReportPdfController;
 use App\Http\Controllers\ClassMarksheetsPdfController;
 use App\Http\Controllers\ClassSeatPlanPdfController;
 use App\Http\Controllers\EmailVerificationController;
+use App\Http\Controllers\ExamSchedulePdfController;
 use App\Http\Controllers\FundTransactionAttachmentController;
 use App\Http\Controllers\MarksheetPdfController;
 use App\Http\Controllers\PushNotificationDeliveryController;
@@ -44,6 +45,10 @@ Route::get('/classes/{class}/attendance-report/{year}/{month}/download', ClassAt
     ->middleware('auth')
     ->whereNumber(['year', 'month'])
     ->name('attendance-report.class.download');
+
+Route::get('/exams/{exam}/schedule/download', ExamSchedulePdfController::class)
+    ->middleware('auth')
+    ->name('exams.schedule.download');
 
 // No 'auth' middleware here — this app has no generic named 'login' route (Filament panels
 // each have their own), so the default guest-redirect would throw RouteNotFoundException.
