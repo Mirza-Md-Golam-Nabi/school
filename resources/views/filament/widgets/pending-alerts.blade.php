@@ -10,13 +10,13 @@
     <div class="rounded-xl bg-white p-3 shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10 sm:p-4">
         <h2 class="mb-3 flex items-center gap-x-1.5 text-sm font-semibold text-gray-900 dark:text-white sm:text-base">
             <x-heroicon-o-bell-alert class="h-4 w-4 text-danger-500 sm:h-5 sm:w-5" />
-            জরুরি কাজ
+            {{ __('Urgent Tasks') }}
         </h2>
 
         @if (count($alerts) === 0)
             <div class="flex items-center gap-x-2 rounded-lg bg-success-50 p-3 text-xs text-success-700 dark:bg-success-950 dark:text-success-300 sm:text-sm">
                 <x-heroicon-o-check-circle class="h-5 w-5 shrink-0" />
-                <span>সব ঠিক আছে — এই মুহূর্তে কোনো জরুরি কাজ নেই।</span>
+                <span>{{ __('All good — there are no urgent tasks right now.') }}</span>
             </div>
         @else
             <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">

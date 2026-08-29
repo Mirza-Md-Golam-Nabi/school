@@ -44,7 +44,7 @@ class StudentLatestResultWidget extends Widget
         // promotion) — show the widget with zeroed-out values instead of hiding it.
         if (! $ranking) {
             return [
-                'examLabel' => 'Exam',
+                'examLabel' => __('Exam'),
                 'gpa' => 0,
                 'classRank' => null,
                 'totalStudents' => StudentProfile::where('current_class_id', $profile->current_class_id)
@@ -59,7 +59,7 @@ class StudentLatestResultWidget extends Widget
             ->count();
 
         return [
-            'examLabel' => $ranking->exam?->examType?->name ?? 'Exam',
+            'examLabel' => $ranking->exam?->examType?->name ?? __('Exam'),
             'gpa' => $ranking->gpa,
             'classRank' => $ranking->class_rank,
             'totalStudents' => $totalStudents,

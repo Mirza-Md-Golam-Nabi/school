@@ -129,6 +129,13 @@ it('renders the teacher dashboard with the quick-actions and class-attendance wi
     $response = $this->actingAs($teacher->user)->get(route('filament.teacher.pages.dashboard'));
 
     $response->assertOk()
+        ->assertSee('Quick Actions')
+        ->assertSee("Today's Attendance — My Classes");
+
+    $this->actingAs($teacher->user)
+        ->withSession(['locale' => 'bn'])
+        ->get(route('filament.teacher.pages.dashboard'))
+        ->assertOk()
         ->assertSee('দ্রুত কাজ')
         ->assertSee('আজকের উপস্থিতি — আমার ক্লাস');
 });

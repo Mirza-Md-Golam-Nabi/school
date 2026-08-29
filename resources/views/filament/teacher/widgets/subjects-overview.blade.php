@@ -11,16 +11,16 @@
             <div class="min-w-0">
                 <p class="text-sm font-bold tracking-tight text-gray-900 dark:text-white sm:text-2xl md:text-3xl">
                     {{ $classCount }}
-                    <span class="text-xs font-normal text-gray-500 dark:text-gray-400 sm:text-lg">{{ Str::plural('Class', $classCount) }}</span>
+                    <span class="text-xs font-normal text-gray-500 dark:text-gray-400 sm:text-lg">{{ trans_choice('Class|Classes', $classCount) }}</span>
                 </p>
-                <p class="text-xs text-gray-500 dark:text-gray-400 sm:text-sm">My Teaching Load</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 sm:text-sm">{{ __('My Teaching Load') }}</p>
             </div>
         </div>
 
         <div class="mt-3 flex items-center justify-between border-t border-gray-200 pt-3 dark:border-white/10 sm:mt-4 sm:pt-3">
             <div class="flex items-center gap-x-1.5">
                 <x-heroicon-o-rectangle-stack class="h-4 w-4 shrink-0 text-primary-600 dark:text-primary-400" />
-                <span class="text-xs text-gray-500 dark:text-gray-400 sm:text-sm">Subjects</span>
+                <span class="text-xs text-gray-500 dark:text-gray-400 sm:text-sm">{{ __('Subjects') }}</span>
             </div>
             <span class="text-xs font-bold text-primary-600 dark:text-primary-400 sm:text-2xl">
                 {{ $subjectCount }}

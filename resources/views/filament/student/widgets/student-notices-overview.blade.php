@@ -5,8 +5,8 @@
                 <x-heroicon-o-megaphone class="h-5 w-5 text-primary-600 dark:text-primary-400 sm:h-7 sm:w-7" />
             </div>
             <div class="min-w-0">
-                <p class="text-xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-2xl">Notices</p>
-                <p class="text-xs text-gray-500 dark:text-gray-400 sm:text-sm">Latest announcements</p>
+                <p class="text-xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-2xl">{{ __('Notices') }}</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 sm:text-sm">{{ __('Latest announcements') }}</p>
             </div>
         </div>
 
@@ -28,14 +28,14 @@
                     </x-filament::modal>
                 </div>
             @empty
-                <p class="py-3 text-center text-xs text-gray-400 dark:text-gray-500">No notices yet.</p>
+                <p class="py-3 text-center text-xs text-gray-400 dark:text-gray-500">{{ __('No notices yet.') }}</p>
             @endforelse
         </div>
 
         <div class="mt-3 sm:mt-4">
             <a href="{{ $url }}" class="block">
                 <x-filament::button color="gray" size="sm" class="w-full">
-                    See More
+                    {{ __('See More') }}
                 </x-filament::button>
             </a>
         </div>

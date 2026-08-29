@@ -10,7 +10,7 @@
             </div>
             <div class="min-w-0">
                 <p class="truncate text-xs font-bold tracking-tight text-gray-900 dark:text-white sm:text-lg">
-                    {{ $isToday ? "Today's Attendance" : 'Last Attendance' }}
+                    {{ $isToday ? __("Today's Attendance") : __('Last Attendance') }}
                 </p>
                 <p class="text-xs text-gray-500 dark:text-gray-400 sm:text-sm">{{ $date ?? '—' }}</p>
             </div>
@@ -24,7 +24,7 @@
 
                 <span class="text-xs font-bold text-gray-900 dark:text-white sm:text-2xl">{{ $time ?? '—' }}</span>
             @else
-                <x-filament::badge color="gray">No attendance recorded yet</x-filament::badge>
+                <x-filament::badge color="gray">{{ __('No attendance recorded yet') }}</x-filament::badge>
             @endif
         </div>
     </a>

@@ -10,14 +10,14 @@
             </div>
             <div class="min-w-0">
                 <p class="text-xs font-bold tracking-tight text-gray-900 dark:text-white sm:text-2xl md:text-3xl">GPA {{ number_format((float) $gpa, 2) }}</p>
-                <p class="truncate text-xs text-gray-500 dark:text-gray-400 sm:text-sm">সর্বশেষ ফলাফল — {{ $examLabel }}</p>
+                <p class="truncate text-xs text-gray-500 dark:text-gray-400 sm:text-sm">{{ __('Latest Result — :exam', ['exam' => $examLabel]) }}</p>
             </div>
         </div>
 
         <div class="mt-3 flex items-center justify-between border-t border-gray-200 pt-3 dark:border-white/10 sm:mt-4 sm:pt-3">
             <div class="flex items-center gap-x-1.5">
                 <x-heroicon-o-chart-bar class="h-4 w-4 shrink-0 text-primary-600 dark:text-primary-400" />
-                <span class="text-xs text-gray-500 dark:text-gray-400 sm:text-sm">ক্লাস অবস্থান</span>
+                <span class="text-xs text-gray-500 dark:text-gray-400 sm:text-sm">{{ __('Class Position') }}</span>
             </div>
             <span class="text-xs font-bold text-primary-600 dark:text-primary-400 sm:text-2xl">
                 {{ $classRank ? '#'.$classRank : '—' }}{{ $totalStudents ? ' / '.$totalStudents : '' }}

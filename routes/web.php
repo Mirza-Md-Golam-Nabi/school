@@ -8,6 +8,7 @@ use App\Http\Controllers\ClassSeatPlanPdfController;
 use App\Http\Controllers\EmailVerificationController;
 use App\Http\Controllers\ExamSchedulePdfController;
 use App\Http\Controllers\FundTransactionAttachmentController;
+use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\MarksheetPdfController;
 use App\Http\Controllers\PushNotificationDeliveryController;
 use App\Http\Controllers\PushSubscriptionController;
@@ -20,6 +21,9 @@ Route::get('/', function () {
 Route::get('/email/verify/{id}/{hash}', [EmailVerificationController::class, 'verify'])
     ->middleware('signed')
     ->name('verification.verify');
+
+Route::get('/locale/{locale}', [LocaleController::class, 'switch'])
+    ->name('locale.switch');
 
 Route::get('/admit-cards/{admitCard}/view', AdmitCardPdfController::class)
     ->middleware('auth')

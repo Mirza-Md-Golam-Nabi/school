@@ -10,16 +10,16 @@
             </div>
             <div class="min-w-0">
                 <p class="truncate text-xs font-bold tracking-tight text-gray-900 dark:text-white sm:text-lg">
-                    My Leave
+                    {{ __('My Leave') }}
                 </p>
-                <p class="text-xs text-gray-500 dark:text-gray-400 sm:text-sm">This year's quota</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 sm:text-sm">{{ __("This year's quota") }}</p>
             </div>
         </div>
 
         <div class="mt-3 flex items-center justify-between border-t border-gray-200 pt-3 dark:border-white/10 sm:mt-4 sm:pt-3">
             <div class="flex flex-wrap items-center gap-1.5">
-                <x-filament::badge color="gray">Allowed: {{ $totalAllowed }}</x-filament::badge>
-                <x-filament::badge color="danger">Taken: {{ $totalTaken }}</x-filament::badge>
+                <x-filament::badge color="gray">{{ __('Allowed') }}: {{ $totalAllowed }}</x-filament::badge>
+                <x-filament::badge color="danger">{{ __('Taken') }}: {{ $totalTaken }}</x-filament::badge>
             </div>
 
             <span class="text-xs font-bold text-success-600 dark:text-success-400 sm:text-2xl">{{ $totalRemaining }}</span>

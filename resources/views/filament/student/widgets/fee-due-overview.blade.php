@@ -13,15 +13,15 @@
             </div>
             <div class="min-w-0">
                 <p class="text-xs font-bold tracking-tight text-gray-900 dark:text-white sm:text-2xl md:text-3xl">৳{{ number_format($totalDue, 0) }}</p>
-                <p class="text-xs text-gray-500 dark:text-gray-400 sm:text-sm">Total Due</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 sm:text-sm">{{ __('Total Due') }}</p>
             </div>
         </div>
 
         <div class="mt-3 flex items-center justify-between gap-x-2 border-t border-gray-200 pt-3 text-xs dark:border-white/10 sm:mt-4 sm:pt-3 sm:text-sm">
-            <span class="truncate text-gray-500 dark:text-gray-400">{{ $pendingCount }} pending invoice{{ $pendingCount === 1 ? '' : 's' }}</span>
+            <span class="truncate text-gray-500 dark:text-gray-400">{{ trans_choice(':count pending invoice|:count pending invoices', $pendingCount, ['count' => $pendingCount]) }}</span>
 
             @if ($totalDiscount > 0)
-                <span class="shrink-0 font-semibold text-success-600 dark:text-success-400">৳{{ number_format($totalDiscount, 0) }} discount</span>
+                <span class="shrink-0 font-semibold text-success-600 dark:text-success-400">৳{{ number_format($totalDiscount, 0) }} {{ __('discount') }}</span>
             @endif
         </div>
     </a>

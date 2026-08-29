@@ -2,13 +2,13 @@
     <div class="rounded-xl bg-white p-3 shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10 sm:p-4">
         <h2 class="mb-3 flex items-center gap-x-1.5 text-sm font-semibold text-gray-900 dark:text-white sm:text-base">
             <x-heroicon-o-calendar-days class="h-4 w-4 text-primary-500 sm:h-5 sm:w-5" />
-            আসন্ন পরীক্ষার সময়সূচী
+            {{ __('Upcoming Exam Schedule') }}
         </h2>
 
         @if ($exams->isEmpty())
             <div class="flex items-center gap-x-2 rounded-lg bg-gray-50 p-3 text-xs text-gray-500 dark:bg-white/5 dark:text-gray-400 sm:text-sm">
                 <x-heroicon-o-calendar class="h-5 w-5 shrink-0" />
-                <span>আসন্ন কোনো পরীক্ষা নেই।</span>
+                <span>{{ __('No upcoming exams.') }}</span>
             </div>
         @else
             <div class="grid grid-cols-1 gap-1">
