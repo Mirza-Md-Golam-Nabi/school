@@ -9,6 +9,7 @@ use App\Models\Classes;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Contracts\Support\Htmlable;
 use Livewire\Attributes\Url;
@@ -62,6 +63,13 @@ class StudentsByClass extends ListRecords
 
             CreateAction::make()
                 ->url(fn (): string => StudentProfileResource::getUrl('create', $this->classId ? ['classId' => $this->classId] : [])),
+
+            Action::make('downloadStudentList')
+                ->label('Student List (PDF)')
+                ->icon(Heroicon::OutlinedArrowDownTray)
+                ->color('info')
+                ->visible(fn (): bool => $this->classId > 0)
+                ->url(fn (): string => route('student-list.class.download', ['class' => $this->classId])),
         ];
     }
 
