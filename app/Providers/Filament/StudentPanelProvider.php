@@ -8,6 +8,7 @@ use App\Filament\Student\Pages\Auth\Register;
 use App\Filament\Student\Pages\Auth\RequestPinPasswordReset;
 use App\Filament\Student\Pages\Dashboard;
 use App\Http\Middleware\EnsurePasswordIsChanged;
+use App\Http\Middleware\SetLocale;
 use Filament\Actions\Action;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -52,6 +53,10 @@ class StudentPanelProvider extends PanelProvider
                 PanelsRenderHook::BODY_END,
                 fn (): string => auth()->check() ? view('filament.shared.webpush-subscribe')->render() : '',
             )
+            ->renderHook(
+                PanelsRenderHook::USER_MENU_PROFILE_AFTER,
+                fn (): string => view('filament.shared.locale-switcher')->render(),
+            )
             ->navigationGroups([
                 'Results',
                 'Fees',
@@ -73,6 +78,7 @@ class StudentPanelProvider extends PanelProvider
                 StartSession::class,
                 AuthenticateSession::class,
                 ShareErrorsFromSession::class,
+                SetLocale::class,
                 PreventRequestForgery::class,
                 SubstituteBindings::class,
                 DisableBladeIconComponents::class,

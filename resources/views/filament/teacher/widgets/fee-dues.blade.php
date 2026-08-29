@@ -9,13 +9,13 @@
             </div>
             <div class="min-w-0">
                 <p class="text-lg font-bold tracking-tight text-warning-600 dark:text-warning-400 sm:text-2xl">৳ {{ number_format($totalDue) }}</p>
-                <p class="truncate text-xs text-gray-500 dark:text-gray-400 sm:text-sm">আমার ক্লাসের বকেয়া ফি</p>
+                <p class="truncate text-xs text-gray-500 dark:text-gray-400 sm:text-sm">{{ __("My Classes' Due Fee") }}</p>
             </div>
         </div>
 
         <div class="mt-3 flex items-center gap-x-1 border-t border-gray-200 pt-3 text-xs text-gray-500 dark:border-white/10 dark:text-gray-400 sm:text-sm">
             <x-heroicon-o-users class="h-4 w-4 shrink-0" />
-            <span>{{ $studentsWithDues }} জন শিক্ষার্থীর বকেয়া আছে</span>
+            <span>{{ __(':count students have dues', ['count' => $studentsWithDues]) }}</span>
         </div>
     </a>
 </x-filament-widgets::widget>

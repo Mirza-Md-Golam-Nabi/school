@@ -2,13 +2,13 @@
     <div class="rounded-xl bg-white p-3 shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10 sm:p-4">
         <h2 class="mb-3 flex items-center gap-x-1.5 text-sm font-semibold text-gray-900 dark:text-white sm:text-base">
             <x-heroicon-o-pencil-square class="h-4 w-4 text-info-500 sm:h-5 sm:w-5" />
-            মার্কস এন্ট্রি বাকি
+            {{ __('Marks Entry Pending') }}
         </h2>
 
         @if (count($pending) === 0)
             <div class="flex items-center gap-x-2 rounded-lg bg-success-50 p-3 text-xs text-success-700 dark:bg-success-950 dark:text-success-300 sm:text-sm">
                 <x-heroicon-o-check-circle class="h-5 w-5 shrink-0" />
-                <span>তোমার সব বিষয়ের মার্কস এন্ট্রি সম্পন্ন।</span>
+                <span>{{ __('All your subjects\' marks entry is complete.') }}</span>
             </div>
         @else
             <div class="grid grid-cols-1 gap-1">

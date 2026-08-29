@@ -75,7 +75,7 @@ class TeacherMarksPendingWidget extends Widget
                 }
 
                 $pending[] = [
-                    'label' => ($exam->examType?->name ?? 'Exam').' — '.($subjectNames[$subjectId] ?? 'Subject'),
+                    'label' => ($exam->examType?->name ?? __('Exam')).' — '.($subjectNames[$subjectId] ?? __('Subject')),
                     'sublabel' => $exam->class?->name,
                     'url' => route('filament.teacher.pages.enter-student-marks').'?'.http_build_query([
                         'examId' => $exam->id,

@@ -29,7 +29,7 @@ class TeacherQuickActionsWidget extends Widget
 
         if (StudentAttendance::canAccess()) {
             $actions[] = [
-                'label' => 'উপস্থিতি নাও',
+                'label' => __('Take Attendance'),
                 'icon' => 'heroicon-o-clipboard-document-check',
                 'url' => StudentAttendance::getUrl(panel: 'teacher'),
                 'color' => 'primary',
@@ -38,7 +38,7 @@ class TeacherQuickActionsWidget extends Widget
 
         if (FeePaymentResource::canViewAny()) {
             $actions[] = [
-                'label' => 'ফি সংগ্রহ',
+                'label' => __('Fee Collection'),
                 'icon' => 'heroicon-o-banknotes',
                 'url' => FeePaymentResource::getUrl('index', panel: 'teacher'),
                 'color' => 'success',
@@ -47,7 +47,7 @@ class TeacherQuickActionsWidget extends Widget
 
         if (ExamResource::canViewAny()) {
             $actions[] = [
-                'label' => 'পরীক্ষা ও মার্কস',
+                'label' => __('Exam & Marks'),
                 'icon' => 'heroicon-o-pencil-square',
                 'url' => ExamResource::getUrl('index', panel: 'teacher'),
                 'color' => 'info',

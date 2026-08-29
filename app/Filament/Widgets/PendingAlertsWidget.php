@@ -50,8 +50,8 @@ class PendingAlertsWidget extends Widget
 
         if ($unpublishedExams > 0) {
             $alerts[] = [
-                'label' => 'পরীক্ষা শেষ, Result publish হয়নি',
-                'count' => $unpublishedExams.' টি',
+                'label' => __('Exam Finished, Result Not Published'),
+                'count' => $this->formatCount($unpublishedExams),
                 'icon' => 'heroicon-o-clipboard-document-check',
                 'color' => 'warning',
                 'url' => ExamResource::getUrl('index'),
@@ -60,8 +60,8 @@ class PendingAlertsWidget extends Widget
 
         if ($pendingLeaves > 0) {
             $alerts[] = [
-                'label' => 'Leave application pending',
-                'count' => $pendingLeaves.' টি',
+                'label' => __('Leave Application Pending'),
+                'count' => $this->formatCount($pendingLeaves),
                 'icon' => 'heroicon-o-envelope-open',
                 'color' => 'info',
                 'url' => LeaveApplicationResource::getUrl('index'),
@@ -70,7 +70,7 @@ class PendingAlertsWidget extends Widget
 
         if ($overdueInvoices > 0) {
             $alerts[] = [
-                'label' => 'Fee বকেয়া ('.$overdueInvoices.' invoice)',
+                'label' => __('Due Fee (:count invoices)', ['count' => $this->localizeNumber($overdueInvoices)]),
                 'count' => '৳ '.number_format($totalDue),
                 'icon' => 'heroicon-o-banknotes',
                 'color' => 'danger',
@@ -79,5 +79,19 @@ class PendingAlertsWidget extends Widget
         }
 
         return ['alerts' => $alerts];
+    }
+
+    protected function formatCount(int $count): string
+    {
+        return app()->isLocale('bn')
+            ? $this->localizeNumber($count).' টি'
+            : (string) $count;
+    }
+
+    protected function localizeNumber(int $number): string
+    {
+        return app()->isLocale('bn')
+            ? convertEnglishToBengali((string) $number)
+            : (string) $number;
     }
 }

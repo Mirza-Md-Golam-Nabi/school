@@ -28,31 +28,31 @@ class AcademicQuickActionsWidget extends Widget
         return [
             'actions' => [
                 [
-                    'label' => 'পরীক্ষা তৈরি',
+                    'label' => __('Create Exam'),
                     'icon' => 'heroicon-o-plus-circle',
                     'url' => ExamResource::getUrl('create'),
                     'color' => 'primary',
                 ],
                 [
-                    'label' => 'Result Publish',
+                    'label' => __('Result Publish'),
                     'icon' => 'heroicon-o-check-badge',
                     'url' => ExamResource::getUrl('index'),
                     'color' => 'success',
                 ],
                 [
-                    'label' => 'Marksheet',
+                    'label' => __('Marksheet'),
                     'icon' => 'heroicon-o-document-text',
                     'url' => MarksheetResource::getUrl('index'),
                     'color' => 'info',
                 ],
                 [
-                    'label' => 'Admit Card',
+                    'label' => __('Admit Card'),
                     'icon' => 'heroicon-o-identification',
                     'url' => AdmitCardResource::getUrl('index'),
                     'color' => 'warning',
                 ],
                 [
-                    'label' => 'Class ম্যানেজ',
+                    'label' => __('Manage Class'),
                     'icon' => 'heroicon-o-building-library',
                     'url' => ClassesResource::getUrl('index'),
                     'color' => 'gray',

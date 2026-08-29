@@ -8,8 +8,6 @@ use Filament\Widgets\ChartWidget;
 
 class IncomeExpenseChartWidget extends ChartWidget
 {
-    protected ?string $heading = 'আয় বনাম ব্যয় (৩ মাস)';
-
     protected static ?int $sort = 9;
 
     protected int|string|array $columnSpan = [
@@ -19,6 +17,11 @@ class IncomeExpenseChartWidget extends ChartWidget
     protected ?string $maxHeight = '280px';
 
     protected static bool $isLazy = false;
+
+    public function getHeading(): string
+    {
+        return __('Income vs Expense (Last 3 Months)');
+    }
 
     protected function getType(): string
     {
@@ -54,13 +57,13 @@ class IncomeExpenseChartWidget extends ChartWidget
         return [
             'datasets' => [
                 [
-                    'label' => 'আয়',
+                    'label' => __('Income'),
                     'data' => $income,
                     'backgroundColor' => 'rgba(16, 185, 129, 0.7)',
                     'borderColor' => 'rgb(16, 185, 129)',
                 ],
                 [
-                    'label' => 'ব্যয়',
+                    'label' => __('Expense'),
                     'data' => $expense,
                     'backgroundColor' => 'rgba(239, 68, 68, 0.7)',
                     'borderColor' => 'rgb(239, 68, 68)',

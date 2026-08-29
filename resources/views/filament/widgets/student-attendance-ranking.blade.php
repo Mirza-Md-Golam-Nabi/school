@@ -9,12 +9,14 @@
             </div>
             <div class="min-w-0">
                 <p class="text-xl font-bold tracking-tight text-gray-900 dark:text-white md:text-3xl">{{ $workingDays }}</p>
-                <p class="text-xs text-gray-500 dark:text-gray-400 sm:text-sm">Working Days ({{ $year }})</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 sm:text-sm">
+                    {{ __('Working Days (:year)', ['year' => app()->isLocale('bn') ? convertEnglishToBengali((string) $year) : $year]) }}
+                </p>
             </div>
         </div>
 
         <div class="mt-3 border-t border-gray-200 pt-3 dark:border-white/10 sm:mt-4 sm:pt-3">
-            <p class="mb-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">Top Attendance</p>
+            <p class="mb-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">{{ __('Top Attendance') }}</p>
 
             @forelse ($topStudents as $student)
                 <div class="flex items-center justify-between gap-x-2 py-0.5 text-xs sm:text-sm">
@@ -25,7 +27,7 @@
                     <span class="shrink-0 font-semibold text-success-600 dark:text-success-400">{{ $student['present_count'] }}</span>
                 </div>
             @empty
-                <p class="text-xs text-gray-400 dark:text-gray-500">No attendance recorded yet.</p>
+                <p class="text-xs text-gray-400 dark:text-gray-500">{{ __('No attendance recorded yet.') }}</p>
             @endforelse
         </div>
     </a>

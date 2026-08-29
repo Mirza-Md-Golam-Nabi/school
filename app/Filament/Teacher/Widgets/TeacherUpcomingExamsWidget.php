@@ -40,7 +40,7 @@ class TeacherUpcomingExamsWidget extends Widget
             ->limit(6)
             ->get()
             ->map(fn (Exam $exam): array => [
-                'label' => ($exam->examType?->name ?? 'Exam').' — '.($exam->class?->name ?? ''),
+                'label' => ($exam->examType?->name ?? __('Exam')).' — '.($exam->class?->name ?? ''),
                 'date' => $exam->start_date?->format('d M, Y'),
                 'isPublished' => $exam->is_published,
                 'url' => ExamResource::getUrl('view', ['record' => $exam->id], panel: 'teacher'),

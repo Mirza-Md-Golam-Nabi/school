@@ -6,6 +6,7 @@ use App\Filament\Teacher\Pages\Auth\EditProfile;
 use App\Filament\Teacher\Pages\Auth\Login;
 use App\Filament\Teacher\Pages\Auth\Register;
 use App\Filament\Teacher\Pages\Dashboard;
+use App\Http\Middleware\SetLocale;
 use Filament\Actions\Action;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -51,6 +52,10 @@ class TeacherPanelProvider extends PanelProvider
                 PanelsRenderHook::BODY_END,
                 fn (): string => auth()->check() ? view('filament.shared.webpush-subscribe')->render() : '',
             )
+            ->renderHook(
+                PanelsRenderHook::USER_MENU_PROFILE_AFTER,
+                fn (): string => view('filament.shared.locale-switcher')->render(),
+            )
             ->discoverResources(in: app_path('Filament/Teacher/Resources'), for: 'App\Filament\Teacher\Resources')
             ->discoverPages(in: app_path('Filament/Teacher/Pages'), for: 'App\Filament\Teacher\Pages')
             ->pages([
@@ -66,6 +71,7 @@ class TeacherPanelProvider extends PanelProvider
                 StartSession::class,
                 AuthenticateSession::class,
                 ShareErrorsFromSession::class,
+                SetLocale::class,
                 PreventRequestForgery::class,
                 SubstituteBindings::class,
                 DisableBladeIconComponents::class,

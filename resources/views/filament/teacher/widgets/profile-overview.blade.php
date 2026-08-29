@@ -24,7 +24,7 @@
                 @if ($hasDepartment)
                     <div class="flex items-center gap-x-1 text-xs sm:text-sm">
                         <x-heroicon-o-building-office-2 class="h-4 w-4 shrink-0 text-primary-600 dark:text-primary-400" />
-                        <span class="truncate text-gray-500 dark:text-gray-400">Dept :</span>
+                        <span class="truncate text-gray-500 dark:text-gray-400">{{ __('Dept') }} :</span>
                         <span class="font-semibold text-gray-900 dark:text-white">{{ $department }}</span>
                     </div>
                 @endif
@@ -32,7 +32,7 @@
                 @if ($hasStatus)
                     <div class="flex items-center gap-x-1 text-xs sm:text-sm">
                         <x-heroicon-o-check-badge class="h-4 w-4 shrink-0 text-primary-600 dark:text-primary-400" />
-                        <span class="truncate text-gray-500 dark:text-gray-400">Status :</span>
+                        <span class="truncate text-gray-500 dark:text-gray-400">{{ __('Status') }} :</span>
                         <span class="font-semibold text-gray-900 dark:text-white">{{ $status->getLabel() }}</span>
                     </div>
                 @endif

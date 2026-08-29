@@ -9,19 +9,19 @@
             </div>
             <div class="min-w-0">
                 <p class="text-xl font-bold tracking-tight text-gray-900 dark:text-white md:text-3xl">{{ $totalTeachers }}</p>
-                <p class="text-xs text-gray-500 dark:text-gray-400 sm:text-sm">Total Teachers</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 sm:text-sm">{{ __('Total Teachers') }}</p>
             </div>
         </div>
 
         <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 sm:divide-x divide-gray-200 border-t border-gray-200 pt-3 dark:divide-white/10 dark:border-white/10 sm:mt-4 sm:pt-3">
             <div class="flex items-center gap-x-1 text-xs sm:text-sm pb-2 sm:pb-0">
                 <x-heroicon-o-check-circle class="h-4 w-4 shrink-0 text-success-600 dark:text-success-400" />
-                <span class="truncate text-gray-500 dark:text-gray-400">Present :</span>
+                <span class="truncate text-gray-500 dark:text-gray-400">{{ __('Present') }} :</span>
                 <span class="font-semibold text-success-600 dark:text-success-400">{{ $presentToday }}</span>
             </div>
             <div class="flex items-center sm:justify-end gap-x-1 sm:pl-2 text-xs sm:text-sm">
                 <x-heroicon-o-x-circle class="h-4 w-4 shrink-0 text-danger-600 dark:text-danger-400" />
-                <span class="truncate text-gray-500 dark:text-gray-400">Absent :</span>
+                <span class="truncate text-gray-500 dark:text-gray-400">{{ __('Absent') }} :</span>
                 <span class="font-semibold text-danger-600 dark:text-danger-400">{{ $absentToday }}</span>
             </div>
         </div>

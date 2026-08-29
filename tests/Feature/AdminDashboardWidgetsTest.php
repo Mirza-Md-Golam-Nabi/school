@@ -43,6 +43,11 @@ it('renders every academic and finance dashboard widget', function () {
 
 it('shows the all-clear message when there are no pending tasks', function () {
     Livewire::test(PendingAlertsWidget::class)
+        ->assertSee('All good');
+
+    app()->setLocale('bn');
+
+    Livewire::test(PendingAlertsWidget::class)
         ->assertSee('সব ঠিক আছে');
 });
 

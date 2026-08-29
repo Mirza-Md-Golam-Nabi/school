@@ -39,7 +39,7 @@ class StudentUpcomingExamWidget extends Widget
             ->limit(5)
             ->get()
             ->map(fn (Exam $exam): array => [
-                'label' => $exam->examType?->name ?? 'Exam',
+                'label' => $exam->examType?->name ?? __('Exam'),
                 'startDate' => $exam->start_date?->format('d M, Y'),
                 'endDate' => $exam->end_date?->format('d M, Y'),
             ]);

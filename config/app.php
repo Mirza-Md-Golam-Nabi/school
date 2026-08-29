@@ -86,6 +86,22 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Available Locales
+    |--------------------------------------------------------------------------
+    |
+    | The locales that users may switch the application into via the panel
+    | user menu language switcher. Keys are locale codes, values are the
+    | labels shown in the switcher.
+    |
+    */
+
+    'available_locales' => [
+        'en' => 'English',
+        'bn' => 'বাংলা',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Encryption Key
     |--------------------------------------------------------------------------
     |

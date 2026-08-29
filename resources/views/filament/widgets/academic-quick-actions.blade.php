@@ -10,7 +10,7 @@
 
 <x-filament-widgets::widget>
     <div class="rounded-xl bg-white p-3 shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10 sm:p-4">
-        <h2 class="mb-3 text-sm font-semibold text-gray-900 dark:text-white sm:text-base">দ্রুত কাজ</h2>
+        <h2 class="mb-3 text-sm font-semibold text-gray-900 dark:text-white sm:text-base">{{ __('Quick Actions') }}</h2>
 
         <div class="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-5">
             @foreach ($actions as $action)
