@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Actions\BuildClassStudentListPdfAction;
 use App\Models\Classes;
 use App\Support\Concerns\SanitizesFilenames;
+use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
 class ClassStudentListPdfController extends Controller
@@ -14,11 +15,14 @@ class ClassStudentListPdfController extends Controller
     /**
      * Stream a PDF listing every student currently enrolled in this class as a download.
      */
-    public function __invoke(Classes $class, BuildClassStudentListPdfAction $action): Response
+    public function __invoke(Classes $class, BuildClassStudentListPdfAction $action, Request $request): Response
     {
         $sessionYear = now()->year;
 
-        $pdf = $action->handle($class, $sessionYear);
+        $columns = (array) $request->query('columns', []);
+        $orientation = (string) $request->query('orientation', 'P');
+
+        $pdf = $action->handle($class, $sessionYear, $columns, $orientation);
 
         $filename = "student-list-{$this->sanitizeFilenameSegment($class->name)}-{$sessionYear}.pdf";
 

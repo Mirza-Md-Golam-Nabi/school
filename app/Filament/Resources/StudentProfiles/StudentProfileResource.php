@@ -69,6 +69,6 @@ class StudentProfileResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
-            ->with(['user', 'class', 'section']);
+            ->with(['user', 'class', 'section', 'group']);
     }
 }

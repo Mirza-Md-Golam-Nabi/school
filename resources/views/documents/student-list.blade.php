@@ -102,27 +102,19 @@
             <tr>
                 <th class="roll">Roll</th>
                 <th>Name</th>
-                @if ($hasSection)
-                    <th>Section</th>
-                @endif
-                @if ($hasGroup)
-                    <th>Group</th>
-                @endif
-                <th>Email</th>
+                @foreach ($columns as $column)
+                    <th>{{ $column->getLabel() }}</th>
+                @endforeach
             </tr>
         </thead>
         <tbody>
-            @foreach ($students as $student)
+            @foreach ($rows as $row)
                 <tr>
-                    <td class="roll">{{ sprintf('%02d', $student->roll_no) }}</td>
-                    <td>{{ $student->user?->name }}</td>
-                    @if ($hasSection)
-                        <td>{{ $student->section?->name ?? '-' }}</td>
-                    @endif
-                    @if ($hasGroup)
-                        <td>{{ $student->group?->name ?? '-' }}</td>
-                    @endif
-                    <td>{{ $student->user?->email }}</td>
+                    <td class="roll">{{ $row['roll'] }}</td>
+                    <td>{{ $row['name'] }}</td>
+                    @foreach ($row['values'] as $value)
+                        <td>{{ $value }}</td>
+                    @endforeach
                 </tr>
             @endforeach
         </tbody>

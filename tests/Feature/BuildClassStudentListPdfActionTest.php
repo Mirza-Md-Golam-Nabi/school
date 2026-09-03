@@ -2,6 +2,7 @@
 
 use App\Actions\BuildClassStudentListPdfAction;
 use App\Enums\Gender;
+use App\Enums\StudentListColumn;
 use App\Enums\StudentStatus;
 use App\Enums\UserType;
 use App\Models\Classes;
@@ -71,27 +72,17 @@ it('aborts with 404 when the class has no students for that session', function (
         ->toThrow(NotFoundHttpException::class);
 });
 
-it('only shows the section and group columns when at least one student has them', function () {
+it('only includes the selected columns in the pdf', function () {
     $class = Classes::create(['name' => 'Student List Plain Class', 'order' => 1]);
 
     makeStudentListTestStudent($class->id, 1, now()->year);
 
-    $rendered = view('documents.student-list', [
-        'class' => $class,
-        'sessionYear' => now()->year,
-        'students' => StudentProfile::where('current_class_id', $class->id)->get(),
-        'hasSection' => false,
-        'hasGroup' => false,
-    ])->render();
+    $pdf = app(BuildClassStudentListPdfAction::class)->handle($class, now()->year, ['email']);
 
-    expect($rendered)
-        ->toContain('Roll')
-        ->toContain('Email')
-        ->not->toContain('Section')
-        ->not->toContain('Group');
+    expect($pdf)->toStartWith('%PDF');
 });
 
-it('shows the section and group columns when students have them', function () {
+it('shows the section and group columns when explicitly selected', function () {
     $class = Classes::create(['name' => 'Student List Extra Fields Class', 'order' => 1]);
     $group = Group::create(['name' => 'Science']);
     $section = Section::create(['class_id' => $class->id, 'name' => 'A']);
@@ -101,9 +92,14 @@ it('shows the section and group columns when students have them', function () {
     $rendered = view('documents.student-list', [
         'class' => $class,
         'sessionYear' => now()->year,
-        'students' => StudentProfile::with(['user', 'section', 'group'])->where('current_class_id', $class->id)->get(),
-        'hasSection' => true,
-        'hasGroup' => true,
+        'columns' => collect([StudentListColumn::Section, StudentListColumn::Group]),
+        'rows' => [
+            [
+                'roll' => '01',
+                'name' => 'Student Roll 1',
+                'values' => ['A', 'Science'],
+            ],
+        ],
     ])->render();
 
     expect($rendered)
@@ -111,6 +107,26 @@ it('shows the section and group columns when students have them', function () {
         ->toContain('Group')
         ->toContain('Science')
         ->toContain('A');
+});
+
+it('falls back to the default columns when none are selected', function () {
+    $class = Classes::create(['name' => 'Student List Default Columns Class', 'order' => 1]);
+
+    makeStudentListTestStudent($class->id, 1, now()->year);
+
+    $pdf = app(BuildClassStudentListPdfAction::class)->handle($class, now()->year, []);
+
+    expect($pdf)->toStartWith('%PDF');
+});
+
+it('builds a landscape pdf when requested', function () {
+    $class = Classes::create(['name' => 'Student List Landscape Class', 'order' => 1]);
+
+    makeStudentListTestStudent($class->id, 1, now()->year);
+
+    $pdf = app(BuildClassStudentListPdfAction::class)->handle($class, now()->year, ['email'], 'L');
+
+    expect($pdf)->toStartWith('%PDF');
 });
 
 it('streams the student list pdf as a download through the http route', function () {
