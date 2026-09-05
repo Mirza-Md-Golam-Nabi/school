@@ -74,7 +74,7 @@ class StudentProfileForm
 
                             Select::make('current_class_id')
                                 ->label('Class')
-                                ->options(fn () => Classes::pluck('name', 'id'))
+                                ->options(fn () => Classes::orderBy('order')->pluck('name', 'id'))
                                 ->searchable()
                                 ->live()
                                 ->required()
@@ -103,6 +103,7 @@ class StudentProfileForm
 
                                     return Classes::find($classId)
                                         ?->groups()
+                                        ->orderBy('groups.name')
                                         ->pluck('groups.name', 'groups.id')
                                         ->toArray() ?? [];
                                 })
