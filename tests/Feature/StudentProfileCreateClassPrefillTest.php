@@ -290,3 +290,39 @@ it('never touches the email when editing an existing student profile and changin
 
     expect($user->fresh()->email)->toBe('existing.student@example.com');
 });
+
+it('saves the guardian phone number on create and lets it be updated on edit', function () {
+    Role::firstOrCreate(['name' => 'student', 'guard_name' => 'web']);
+
+    $admin = grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]));
+    $this->actingAs($admin);
+
+    $class = Classes::create(['name' => 'Class 5', 'order' => 5]);
+
+    Livewire::test(CreateStudentProfile::class)
+        ->fillForm([
+            'name' => 'Guardian Phone Student',
+            'roll_no' => 40,
+            'birth_certificate_no' => '6666666666',
+            'session_year' => now()->year,
+            'current_class_id' => $class->id,
+            'gender' => 'male',
+            'nationality' => 'Bangladeshi',
+            'status' => 'active',
+            'guardian_phone' => '01712345678',
+        ])
+        ->call('create')
+        ->assertHasNoFormErrors();
+
+    $profile = StudentProfile::where('birth_certificate_no', '6666666666')->firstOrFail();
+
+    expect($profile->guardian_phone)->toBe('01712345678');
+
+    Livewire::test(EditStudentProfile::class, ['record' => $profile->id])
+        ->assertFormSet(['guardian_phone' => '01712345678'])
+        ->fillForm(['guardian_phone' => '01898765432'])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    expect($profile->fresh()->guardian_phone)->toBe('01898765432');
+});

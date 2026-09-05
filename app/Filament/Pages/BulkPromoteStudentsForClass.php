@@ -3,9 +3,11 @@
 namespace App\Filament\Pages;
 
 use App\Actions\PromoteStudentsAction;
+use App\Actions\ResolveDefaultPromotionOptionalSubjects;
 use App\Enums\ExamConfigType;
 use App\Enums\PromotionStatus;
 use App\Models\Classes;
+use App\Models\ClassGroupSubject;
 use App\Models\Exam;
 use App\Models\Section;
 use App\Models\StudentMeritRanking;
@@ -52,11 +54,16 @@ class BulkPromoteStudentsForClass extends Page
         $this->hasMainExamResults = $this->meritRanks->isNotEmpty();
 
         foreach ($students as $student) {
+            $groupId = $this->resolveDefaultGroupId($student, $nextClass?->id);
+            $optionalDefaults = $this->resolveDefaultOptionalSubjects($student, $nextClass?->id, $groupId);
+
             $this->promotions[$student->id] = [
                 'status' => $defaultStatus->value,
                 'class_id' => $nextClass?->id,
                 'section_id' => null,
-                'group_id' => $this->resolveDefaultGroupId($student, $nextClass?->id),
+                'group_id' => $groupId,
+                'main_optional_subject_id' => $optionalDefaults['main_optional_subject_id'],
+                'extra_optional_subject_id' => $optionalDefaults['extra_optional_subject_id'],
                 'roll_no' => $defaultStatus === PromotionStatus::Promoted ? $this->meritRanks->get($student->id) : null,
                 'remarks' => null,
             ];
@@ -89,6 +96,14 @@ class BulkPromoteStudentsForClass extends Page
     }
 
     /**
+     * @return array{main_optional_subject_id: ?int, extra_optional_subject_id: ?int}
+     */
+    private function resolveDefaultOptionalSubjects(StudentProfile $student, ?int $classId, ?int $groupId): array
+    {
+        return app(ResolveDefaultPromotionOptionalSubjects::class)->execute($student, $classId, $groupId);
+    }
+
+    /**
      * New roll = the student's class rank in this class's Main exam for the
      * given session year. Empty when no Main exam (or no ranking) exists —
      * the old roll number is never used as a fallback.
@@ -109,16 +124,34 @@ class BulkPromoteStudentsForClass extends Page
 
     public function updated(string $name): void
     {
-        if (! Str::is('promotions.*.class_id', $name)) {
+        if (Str::is('promotions.*.class_id', $name)) {
+            $studentId = (int) explode('.', $name)[1];
+            $classId = $this->promotions[$studentId]['class_id'] ?? null;
+            $student = StudentProfile::find($studentId);
+            $groupId = $student ? $this->resolveDefaultGroupId($student, $classId) : null;
+
+            $this->promotions[$studentId]['section_id'] = null;
+            $this->promotions[$studentId]['group_id'] = $groupId;
+
+            $optionalDefaults = $student ? $this->resolveDefaultOptionalSubjects($student, $classId, $groupId) : ['main_optional_subject_id' => null, 'extra_optional_subject_id' => null];
+            $this->promotions[$studentId]['main_optional_subject_id'] = $optionalDefaults['main_optional_subject_id'];
+            $this->promotions[$studentId]['extra_optional_subject_id'] = $optionalDefaults['extra_optional_subject_id'];
+
             return;
         }
 
-        $studentId = (int) explode('.', $name)[1];
-        $classId = $this->promotions[$studentId]['class_id'] ?? null;
-        $student = StudentProfile::find($studentId);
+        // Group ম্যানুয়ালি বদলালে আগের main/extra optional choice আর প্রযোজ্য নয়
+        // (ভিন্ন group-এর ভিন্ন optional subject pool) — নতুন করে বেছে নিতে হবে।
+        if (Str::is('promotions.*.group_id', $name)) {
+            $studentId = (int) explode('.', $name)[1];
+            $classId = $this->promotions[$studentId]['class_id'] ?? null;
+            $groupId = $this->promotions[$studentId]['group_id'] ?? null;
+            $student = StudentProfile::find($studentId);
 
-        $this->promotions[$studentId]['section_id'] = null;
-        $this->promotions[$studentId]['group_id'] = $student ? $this->resolveDefaultGroupId($student, $classId) : null;
+            $optionalDefaults = $student ? $this->resolveDefaultOptionalSubjects($student, $classId, $groupId) : ['main_optional_subject_id' => null, 'extra_optional_subject_id' => null];
+            $this->promotions[$studentId]['main_optional_subject_id'] = $optionalDefaults['main_optional_subject_id'];
+            $this->promotions[$studentId]['extra_optional_subject_id'] = $optionalDefaults['extra_optional_subject_id'];
+        }
     }
 
     public function getTitle(): string|Htmlable
@@ -195,6 +228,22 @@ class BulkPromoteStudentsForClass extends Page
     }
 
     /**
+     * main_optional শুধু নির্বাচিত group-এর নিজস্ব optional subject থেকে বাছা যায়।
+     */
+    public function getMainOptionalSubjectOptions(?int $classId, ?int $groupId): Collection
+    {
+        return ClassGroupSubject::optionalSubjectOptions($classId, $groupId, includeAllGroups: false);
+    }
+
+    /**
+     * extra_optional-এর জন্য group-এর optional subject + "All Groups" optional subject।
+     */
+    public function getExtraOptionalSubjectOptions(?int $classId, ?int $groupId): Collection
+    {
+        return ClassGroupSubject::optionalSubjectOptions($classId, $groupId);
+    }
+
+    /**
      * Whether to show the Section column at all — based on the default target
      * class every student in this bulk batch promotes into, not each row's
      * individually-edited target, so the column doesn't flicker in and out
@@ -225,6 +274,17 @@ class BulkPromoteStudentsForClass extends Page
                 Notification::make()
                     ->danger()
                     ->title('Promoted/Repeated সব student-এর জন্য Target Class ও New Roll পূরণ করা আবশ্যক')
+                    ->send();
+
+                return;
+            }
+
+            if (filled($row['main_optional_subject_id'] ?? null)
+                && filled($row['extra_optional_subject_id'] ?? null)
+                && $row['main_optional_subject_id'] === $row['extra_optional_subject_id']) {
+                Notification::make()
+                    ->danger()
+                    ->title('Main Optional ও Extra Optional Subject একই হতে পারবে না')
                     ->send();
 
                 return;

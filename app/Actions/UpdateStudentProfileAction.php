@@ -3,6 +3,7 @@
 namespace App\Actions;
 
 use App\Enums\AddressType;
+use App\Enums\OptionalSubjectRole;
 use App\Models\StudentProfile;
 
 class UpdateStudentProfileAction
@@ -42,6 +43,7 @@ class UpdateStudentProfileAction
             'guardian_name' => $data['guardian_name'] ?? null,
             'guardian_relation' => $data['guardian_relation'] ?? null,
             'guardian_occupation' => $data['guardian_occupation'] ?? null,
+            'guardian_phone' => $data['guardian_phone'] ?? null,
             'guardian_photo' => $data['guardian_photo'] ?? null,
             'admission_date' => $data['admission_date'] ?? null,
             'status' => $data['status'] ?? null,
@@ -67,6 +69,49 @@ class UpdateStudentProfileAction
             ]);
         }
 
+        $this->saveOptionalSubjects($profile, $data);
+
         return $profile;
+    }
+
+    /**
+     * Persist this student's main/extra optional subject choice for their
+     * current class. Group ছাড়া বা group সিলেক্ট না থাকলে আগের কোনো
+     * selection থাকলে মুছে ফেলা হয় (আর প্রযোজ্য নয়)।
+     */
+    private function saveOptionalSubjects(StudentProfile $profile, array $data): void
+    {
+        $classId = $data['current_class_id'] ?? null;
+        $groupId = $data['current_group_id'] ?? null;
+
+        if (! $classId || ! $groupId) {
+            $profile->optionalSubjects()->delete();
+
+            return;
+        }
+
+        // অন্য কোনো (আগের) ক্লাসের জন্য নয়, শুধু বর্তমান ক্লাসের selection রাখা হবে
+        $profile->optionalSubjects()->where('class_id', '!=', $classId)->delete();
+
+        $roleSubjects = [
+            OptionalSubjectRole::MainOptional->value => $data['main_optional_subject_id'] ?? null,
+            OptionalSubjectRole::ExtraOptional->value => $data['extra_optional_subject_id'] ?? null,
+        ];
+
+        foreach ($roleSubjects as $role => $subjectId) {
+            if (! $subjectId) {
+                $profile->optionalSubjects()
+                    ->where('class_id', $classId)
+                    ->where('role', $role)
+                    ->delete();
+
+                continue;
+            }
+
+            $profile->optionalSubjects()->updateOrCreate(
+                ['class_id' => $classId, 'role' => $role],
+                ['group_id' => $groupId, 'subject_id' => $subjectId]
+            );
+        }
     }
 }

@@ -92,7 +92,7 @@ class SubjectsRelationManager extends RelationManager
                         if (is_null($pivot->group_id)) {
                             return match ($pivot->subject_type) {
                                 SubjectType::Compulsory => 'General',
-                                SubjectType::ExtraOptional => 'For All',
+                                SubjectType::Optional => 'Optional (All Groups)',
                                 default => 'General',
                             };
                         }
@@ -102,7 +102,7 @@ class SubjectsRelationManager extends RelationManager
                     ->badge()
                     ->color(fn ($state) => match ($state) {
                         'General' => 'danger',
-                        'For All' => 'primary',
+                        'Optional (All Groups)' => 'warning',
                         default => 'info', // গ্রুপগুলোর নাম থাকলে নীল দেখাবে
                     }),
                 TextColumn::make('created_at')

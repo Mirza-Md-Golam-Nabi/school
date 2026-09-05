@@ -10,6 +10,7 @@ enum StudentListColumn: string implements HasLabel
     case Section = 'section';
     case Group = 'group';
     case RegistrationNo = 'registration_no';
+    case BirthCertificateNo = 'birth_certificate_no';
     case Gender = 'gender';
     case DateOfBirth = 'date_of_birth';
     case BloodGroup = 'blood_group';
@@ -21,6 +22,7 @@ enum StudentListColumn: string implements HasLabel
     case GuardianName = 'guardian_name';
     case GuardianRelation = 'guardian_relation';
     case GuardianOccupation = 'guardian_occupation';
+    case GuardianPhone = 'guardian_phone';
 
     public function getLabel(): string
     {
@@ -29,6 +31,7 @@ enum StudentListColumn: string implements HasLabel
             self::Section => 'Section',
             self::Group => 'Group',
             self::RegistrationNo => 'Registration No',
+            self::BirthCertificateNo => 'Birth Certificate No',
             self::Gender => 'Gender',
             self::DateOfBirth => 'Date of Birth',
             self::BloodGroup => 'Blood Group',
@@ -40,6 +43,7 @@ enum StudentListColumn: string implements HasLabel
             self::GuardianName => "Guardian's Name",
             self::GuardianRelation => "Guardian's Relation",
             self::GuardianOccupation => "Guardian's Occupation",
+            self::GuardianPhone => "Guardian's Phone",
         };
     }
 

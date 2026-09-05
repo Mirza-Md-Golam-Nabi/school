@@ -2,12 +2,14 @@
 
 namespace App\Actions;
 
+use App\Enums\OptionalSubjectRole;
 use App\Enums\SubjectType;
 use App\Models\ClassGroupSubject;
 use App\Models\Exam;
 use App\Models\ExamSubjectConfig;
 use App\Models\GradeScale;
 use App\Models\StudentMeritRanking;
+use App\Models\StudentOptionalSubject;
 use App\Models\StudentProfile;
 use App\Models\StudentResult;
 use Illuminate\Support\Collection;
@@ -49,6 +51,12 @@ class CalculateExamRankings
             ->get()
             ->groupBy('subject_id');
 
+        // student_id → Collection of the student's chosen optional-subject roles for this class
+        $optionalSelections = StudentOptionalSubject::where('class_id', $exam->class_id)
+            ->whereIn('student_id', $studentIds)
+            ->get()
+            ->groupBy('student_id');
+
         $gradeScales = GradeScale::cached();
 
         $studentData = $this->buildStudentData(
@@ -56,6 +64,7 @@ class CalculateExamRankings
             $profiles,
             $subjectConfigs,
             $subjectTypeRecords,
+            $optionalSelections,
             $exam->class_id,
             $gradeScales
         );
@@ -107,12 +116,14 @@ class CalculateExamRankings
      * @param  Collection<int, Collection<int, StudentResult>>  $results
      * @param  Collection<int, ExamSubjectConfig>  $subjectConfigs
      * @param  Collection<int, Collection<int, ClassGroupSubject>>  $subjectTypeRecords
+     * @param  Collection<int, Collection<int, StudentOptionalSubject>>  $optionalSelections
      */
     private function buildStudentData(
         Collection $results,
         Collection $profiles,
         Collection $subjectConfigs,
         Collection $subjectTypeRecords,
+        Collection $optionalSelections,
         int $classId,
         Collection $gradeScales
     ): array {
@@ -123,6 +134,7 @@ class CalculateExamRankings
             $studentGroupId = $profile?->current_group_id
                 ? (int) $profile->current_group_id
                 : null;
+            $studentOptionalSelections = $optionalSelections->get((int) $studentId);
 
             $totalMarks = $studentResults->sum(fn (StudentResult $r) => $r->effective_marks);
 
@@ -130,15 +142,16 @@ class CalculateExamRankings
             $includedGpas = [];
 
             foreach ($studentResults as $result) {
-                $subjectType = $this->resolveSubjectType(
+                $isExtraOptional = $this->resolveIsExtraOptional(
                     $subjectTypeRecords,
+                    $studentOptionalSelections,
                     (int) $result->subject_id,
                     $studentGroupId
                 );
 
                 if ($result->is_absent) {
                     // Absent counts as F; extra_optional absence is excluded entirely
-                    if ($subjectType !== SubjectType::ExtraOptional) {
+                    if (! $isExtraOptional) {
                         $isOverallFail = true;
                     }
 
@@ -155,7 +168,7 @@ class CalculateExamRankings
                 $isFailingGrade = $grade === null || $grade->grade_point <= 0.0;
 
                 if ($isFailingGrade) {
-                    if ($subjectType === SubjectType::ExtraOptional) {
+                    if ($isExtraOptional) {
                         // Extra optional fail → exclude subject from GPA, no penalty
                         continue;
                     }
@@ -186,26 +199,36 @@ class CalculateExamRankings
     }
 
     /**
-     * Resolve subject type for a student, preferring their specific group,
-     * falling back to the "all groups" record (group_id = null).
+     * A subject only behaves as "extra optional" (bonus marks, excluded from GPA
+     * on failure) when two things line up: the class/group curriculum lists it as
+     * an optional subject (not compulsory), AND this specific student chose it as
+     * their extra_optional pick (as opposed to main_optional, which behaves like
+     * a compulsory subject for GPA purposes). Compulsory subjects, and optional
+     * subjects the student hasn't recorded a choice for, are never extra optional.
      *
      * @param  Collection<int, Collection<int, ClassGroupSubject>>  $subjectTypeRecords
+     * @param  ?Collection<int, StudentOptionalSubject>  $studentOptionalSelections
      */
-    private function resolveSubjectType(
+    private function resolveIsExtraOptional(
         Collection $subjectTypeRecords,
+        ?Collection $studentOptionalSelections,
         int $subjectId,
         ?int $groupId
-    ): SubjectType {
+    ): bool {
         $records = $subjectTypeRecords->get($subjectId);
 
-        if (! $records || $records->isEmpty()) {
-            return SubjectType::Compulsory;
+        $classSubject = $records
+            ? ($records->first(fn (ClassGroupSubject $r) => $r->group_id !== null && $r->group_id === $groupId)
+                ?? $records->first(fn (ClassGroupSubject $r) => $r->group_id === null))
+            : null;
+
+        if (! $classSubject || $classSubject->subject_type !== SubjectType::Optional) {
+            return false;
         }
 
-        $match = $records->first(fn (ClassGroupSubject $r) => $r->group_id !== null && $r->group_id === $groupId)
-            ?? $records->first(fn (ClassGroupSubject $r) => $r->group_id === null);
+        $selection = $studentOptionalSelections?->firstWhere('subject_id', $subjectId);
 
-        return $match?->subject_type ?? SubjectType::Compulsory;
+        return $selection?->role === OptionalSubjectRole::ExtraOptional;
     }
 
     /**

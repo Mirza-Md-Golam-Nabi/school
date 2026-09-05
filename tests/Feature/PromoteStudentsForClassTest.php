@@ -2,8 +2,10 @@
 
 use App\Enums\ExamConfigType;
 use App\Enums\Gender;
+use App\Enums\OptionalSubjectRole;
 use App\Enums\PromotionStatus;
 use App\Enums\StudentStatus;
+use App\Enums\SubjectType;
 use App\Enums\UserType;
 use App\Filament\Pages\BulkPromoteStudentsForClass;
 use App\Filament\Pages\PromoteStudentsForClass;
@@ -15,7 +17,9 @@ use App\Models\Group;
 use App\Models\Section;
 use App\Models\StudentClassHistory;
 use App\Models\StudentMeritRanking;
+use App\Models\StudentOptionalSubject;
 use App\Models\StudentProfile;
+use App\Models\Subject;
 use App\Models\User;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -302,4 +306,130 @@ it("leaves the group blank when the target class does not offer the student's cu
             'class_id' => $toClass->id,
             'group_id' => null,
         ]);
+});
+
+function makePromoteGroupSubjectTestClasses(): array
+{
+    $fromClass = Classes::create(['name' => 'Optional Subject Class 9', 'order' => 9, 'has_group' => true]);
+    $toClass = Classes::create(['name' => 'Optional Subject Class 10', 'order' => 10, 'has_group' => true]);
+    $group = Group::create(['name' => 'Science', 'is_active' => true]);
+    $fromClass->groups()->attach($group->id);
+    $toClass->groups()->attach($group->id);
+
+    $biology = Subject::create(['name' => 'Biology', 'has_written' => true, 'is_active' => true]);
+    $higherMath = Subject::create(['name' => 'Higher Math', 'has_written' => true, 'is_active' => true]);
+
+    foreach ([$fromClass, $toClass] as $class) {
+        $biology->classes()->attach($class->id, ['group_id' => $group->id, 'subject_type' => SubjectType::Optional->value]);
+        $higherMath->classes()->attach($class->id, ['group_id' => $group->id, 'subject_type' => SubjectType::Optional->value]);
+    }
+
+    return [$fromClass, $toClass, $group, $biology, $higherMath];
+}
+
+it("defaults main/extra optional subject to the student's current choice when the group carries over unchanged", function () {
+    $admin = grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]));
+    [$fromClass, $toClass, $group, $biology, $higherMath] = makePromoteGroupSubjectTestClasses();
+    $year = now()->year;
+
+    $student = makePromoteClassListTestStudent($fromClass, 5, $year);
+    $student->update(['current_group_id' => $group->id]);
+
+    StudentOptionalSubject::create([
+        'student_id' => $student->id,
+        'class_id' => $fromClass->id,
+        'group_id' => $group->id,
+        'subject_id' => $biology->id,
+        'role' => OptionalSubjectRole::MainOptional,
+    ]);
+    StudentOptionalSubject::create([
+        'student_id' => $student->id,
+        'class_id' => $fromClass->id,
+        'group_id' => $group->id,
+        'subject_id' => $higherMath->id,
+        'role' => OptionalSubjectRole::ExtraOptional,
+    ]);
+
+    test()->actingAs($admin);
+
+    Livewire::test(PromoteStudentsForClass::class, ['classId' => $fromClass->id, 'year' => $year])
+        ->mountAction(TestAction::make('promote')->table($student))
+        ->assertSchemaStateSet([
+            'class_id' => $toClass->id,
+            'group_id' => $group->id,
+            'main_optional_subject_id' => $biology->id,
+            'extra_optional_subject_id' => $higherMath->id,
+        ]);
+});
+
+it('leaves main/extra optional subject blank when the group does not carry over', function () {
+    $admin = grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]));
+    [$fromClass, $toClass, $group, $biology, $higherMath] = makePromoteGroupSubjectTestClasses();
+    // Target class no longer offers this group at all.
+    $toClass->groups()->detach($group->id);
+    $year = now()->year;
+
+    $student = makePromoteClassListTestStudent($fromClass, 5, $year);
+    $student->update(['current_group_id' => $group->id]);
+
+    StudentOptionalSubject::create([
+        'student_id' => $student->id,
+        'class_id' => $fromClass->id,
+        'group_id' => $group->id,
+        'subject_id' => $biology->id,
+        'role' => OptionalSubjectRole::MainOptional,
+    ]);
+
+    test()->actingAs($admin);
+
+    Livewire::test(PromoteStudentsForClass::class, ['classId' => $fromClass->id, 'year' => $year])
+        ->mountAction(TestAction::make('promote')->table($student))
+        ->assertSchemaStateSet([
+            'class_id' => $toClass->id,
+            'group_id' => null,
+            'main_optional_subject_id' => null,
+            'extra_optional_subject_id' => null,
+        ]);
+});
+
+it('allows confirming the carried-forward optional subjects as-is and saves them for the new class', function () {
+    $admin = grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]));
+    [$fromClass, $toClass, $group, $biology, $higherMath] = makePromoteGroupSubjectTestClasses();
+    $year = now()->year;
+
+    $student = makePromoteClassListTestStudent($fromClass, 5, $year);
+    $student->update(['current_group_id' => $group->id]);
+
+    StudentOptionalSubject::create([
+        'student_id' => $student->id,
+        'class_id' => $fromClass->id,
+        'group_id' => $group->id,
+        'subject_id' => $biology->id,
+        'role' => OptionalSubjectRole::MainOptional,
+    ]);
+    StudentOptionalSubject::create([
+        'student_id' => $student->id,
+        'class_id' => $fromClass->id,
+        'group_id' => $group->id,
+        'subject_id' => $higherMath->id,
+        'role' => OptionalSubjectRole::ExtraOptional,
+    ]);
+
+    test()->actingAs($admin);
+
+    // Admin just confirms the promote modal without touching the pre-filled defaults.
+    Livewire::test(PromoteStudentsForClass::class, ['classId' => $fromClass->id, 'year' => $year])
+        ->mountAction(TestAction::make('promote')->table($student))
+        ->fillForm(['roll_no' => 1])
+        ->callMountedAction();
+
+    expect(StudentOptionalSubject::where('student_id', $student->id)
+        ->where('class_id', $toClass->id)
+        ->where('role', OptionalSubjectRole::MainOptional)
+        ->value('subject_id'))->toBe($biology->id);
+
+    expect(StudentOptionalSubject::where('student_id', $student->id)
+        ->where('class_id', $toClass->id)
+        ->where('role', OptionalSubjectRole::ExtraOptional)
+        ->value('subject_id'))->toBe($higherMath->id);
 });

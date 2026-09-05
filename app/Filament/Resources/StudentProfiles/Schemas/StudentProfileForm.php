@@ -7,6 +7,7 @@ use App\Enums\Gender;
 use App\Enums\Religion;
 use App\Enums\StudentStatus;
 use App\Models\Classes;
+use App\Models\ClassGroupSubject;
 use App\Models\Section as SectionModel;
 use App\Models\StudentProfile;
 use Filament\Forms\Components\DatePicker;
@@ -20,6 +21,7 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
+use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 
 class StudentProfileForm
@@ -79,6 +81,8 @@ class StudentProfileForm
                                 ->afterStateUpdated(function (Set $set) {
                                     $set('current_section_id', null);
                                     $set('current_group_id', null);
+                                    $set('main_optional_subject_id', null);
+                                    $set('extra_optional_subject_id', null);
                                 }),
 
                             Select::make('current_section_id')
@@ -103,7 +107,31 @@ class StudentProfileForm
                                         ->toArray() ?? [];
                                 })
                                 ->searchable()
-                                ->placeholder('No group'),
+                                ->placeholder('No group')
+                                ->live()
+                                ->afterStateUpdated(function (Set $set) {
+                                    $set('main_optional_subject_id', null);
+                                    $set('extra_optional_subject_id', null);
+                                }),
+
+                            Select::make('main_optional_subject_id')
+                                ->label('Main Optional Subject')
+                                ->options(fn (Get $get) => self::mainOptionalSubjectOptions($get))
+                                ->visible(fn (Get $get): bool => self::mainOptionalSubjectOptions($get)->isNotEmpty())
+                                ->searchable()
+                                ->live()
+                                ->placeholder('Select main optional subject'),
+
+                            Select::make('extra_optional_subject_id')
+                                ->label('Extra Optional Subject')
+                                ->options(fn (Get $get) => self::extraOptionalSubjectOptions($get))
+                                ->visible(fn (Get $get): bool => self::extraOptionalSubjectOptions($get)->isNotEmpty())
+                                ->searchable()
+                                ->placeholder('Select extra optional subject')
+                                ->rules(fn (Get $get): array => [Rule::notIn(array_filter([$get('main_optional_subject_id')]))])
+                                ->validationMessages([
+                                    'not_in' => 'Extra optional subject must be different from the main optional subject.',
+                                ]),
 
                             DatePicker::make('admission_date')
                                 ->label('Admission Date'),
@@ -212,14 +240,22 @@ class StudentProfileForm
                             TextInput::make('guardian_occupation')
                                 ->label('Guardian\'s Occupation'),
 
+                            TextInput::make('guardian_phone')
+                                ->label('Guardian\'s Phone')
+                                ->tel()
+                                ->maxLength(15)
+                                ->extraInputAttributes([
+                                    'inputmode' => 'numeric',
+                                    'pattern' => '[0-9]*',
+                                ]),
+
                             FileUpload::make('guardian_photo')
                                 ->label('Guardian\'s Photo')
                                 ->image()
                                 ->disk('public')
                                 ->directory('student-profiles/parents')
                                 ->visibility('public')
-                                ->imageEditor()
-                                ->columnSpanFull(),
+                                ->imageEditor(),
                         ]),
                     ]),
 
@@ -244,5 +280,28 @@ class StudentProfileForm
                             ->columnSpanFull(),
                     ]),
             ]);
+    }
+
+    /**
+     * main_optional শুধু নির্বাচিত group-এর নিজস্ব optional subject থেকে বাছা
+     * যায় (যেমন Science সিলেক্ট করলে শুধু Science-এর optional subject-ই এখানে
+     * আসবে) — "All Groups" optional subject এখানে দেখানো হয় না।
+     *
+     * @return Collection<int, string>
+     */
+    private static function mainOptionalSubjectOptions(Get $get): Collection
+    {
+        return ClassGroupSubject::optionalSubjectOptions($get('current_class_id'), $get('current_group_id'), includeAllGroups: false);
+    }
+
+    /**
+     * extra_optional-এর জন্য নির্বাচিত group-এর optional subject-এর পাশাপাশি
+     * "All Groups" (group_id = null) optional subject-ও দেখানো হয়।
+     *
+     * @return Collection<int, string>
+     */
+    private static function extraOptionalSubjectOptions(Get $get): Collection
+    {
+        return ClassGroupSubject::optionalSubjectOptions($get('current_class_id'), $get('current_group_id'), includeAllGroups: true);
     }
 }

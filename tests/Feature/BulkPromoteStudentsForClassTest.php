@@ -2,7 +2,9 @@
 
 use App\Enums\ExamConfigType;
 use App\Enums\Gender;
+use App\Enums\OptionalSubjectRole;
 use App\Enums\StudentStatus;
+use App\Enums\SubjectType;
 use App\Enums\UserType;
 use App\Filament\Pages\BulkPromoteStudentsForClass;
 use App\Models\Classes;
@@ -12,7 +14,9 @@ use App\Models\ExamTypeConfig;
 use App\Models\Group;
 use App\Models\Section;
 use App\Models\StudentMeritRanking;
+use App\Models\StudentOptionalSubject;
 use App\Models\StudentProfile;
+use App\Models\Subject;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -185,6 +189,112 @@ test('hides the Group select when the next class does not use groups', function 
     );
 
     $response->assertOk()->assertDontSee("promotions.{$student->id}.group_id", false);
+});
+
+function makeBulkPromoteGroupSubjectTestClasses(): array
+{
+    $fromClass = Classes::create(['name' => 'Bulk Optional Class 9', 'order' => 9, 'has_group' => true]);
+    $toClass = Classes::create(['name' => 'Bulk Optional Class 10', 'order' => 10, 'has_group' => true]);
+    $group = Group::create(['name' => 'Science', 'is_active' => true]);
+    $fromClass->groups()->attach($group->id);
+    $toClass->groups()->attach($group->id);
+
+    $biology = Subject::create(['name' => 'Biology', 'has_written' => true, 'is_active' => true]);
+    $higherMath = Subject::create(['name' => 'Higher Math', 'has_written' => true, 'is_active' => true]);
+
+    foreach ([$fromClass, $toClass] as $class) {
+        $biology->classes()->attach($class->id, ['group_id' => $group->id, 'subject_type' => SubjectType::Optional->value]);
+        $higherMath->classes()->attach($class->id, ['group_id' => $group->id, 'subject_type' => SubjectType::Optional->value]);
+    }
+
+    return [$fromClass, $toClass, $group, $biology, $higherMath];
+}
+
+test('main/extra optional subject defaults to the current choice when the group carries over', function () {
+    [$fromClass, $toClass, $group, $biology, $higherMath] = makeBulkPromoteGroupSubjectTestClasses();
+
+    $student = createEnrolledStudent($fromClass, rollNo: 5, sessionYear: now()->year);
+    $student->update(['current_group_id' => $group->id]);
+
+    StudentOptionalSubject::create([
+        'student_id' => $student->id,
+        'class_id' => $fromClass->id,
+        'group_id' => $group->id,
+        'subject_id' => $biology->id,
+        'role' => OptionalSubjectRole::MainOptional,
+    ]);
+    StudentOptionalSubject::create([
+        'student_id' => $student->id,
+        'class_id' => $fromClass->id,
+        'group_id' => $group->id,
+        'subject_id' => $higherMath->id,
+        'role' => OptionalSubjectRole::ExtraOptional,
+    ]);
+
+    $this->actingAs(createAdminUser());
+
+    Livewire::test(BulkPromoteStudentsForClass::class, ['classId' => $fromClass->id, 'year' => now()->year])
+        ->assertSet("promotions.{$student->id}.main_optional_subject_id", $biology->id)
+        ->assertSet("promotions.{$student->id}.extra_optional_subject_id", $higherMath->id);
+});
+
+test('confirming the bulk promotion as-is saves the carried-forward optional subjects for the new class', function () {
+    [$fromClass, $toClass, $group, $biology, $higherMath] = makeBulkPromoteGroupSubjectTestClasses();
+
+    $student = createEnrolledStudent($fromClass, rollNo: 5, sessionYear: now()->year);
+    $student->update(['current_group_id' => $group->id]);
+
+    StudentOptionalSubject::create([
+        'student_id' => $student->id,
+        'class_id' => $fromClass->id,
+        'group_id' => $group->id,
+        'subject_id' => $biology->id,
+        'role' => OptionalSubjectRole::MainOptional,
+    ]);
+    StudentOptionalSubject::create([
+        'student_id' => $student->id,
+        'class_id' => $fromClass->id,
+        'group_id' => $group->id,
+        'subject_id' => $higherMath->id,
+        'role' => OptionalSubjectRole::ExtraOptional,
+    ]);
+
+    $this->actingAs(createAdminUser());
+
+    Livewire::test(BulkPromoteStudentsForClass::class, ['classId' => $fromClass->id, 'year' => now()->year])
+        ->set("promotions.{$student->id}.roll_no", 1)
+        ->call('promote');
+
+    expect(StudentOptionalSubject::where('student_id', $student->id)
+        ->where('class_id', $toClass->id)
+        ->where('role', OptionalSubjectRole::MainOptional)
+        ->value('subject_id'))->toBe($biology->id);
+
+    expect(StudentOptionalSubject::where('student_id', $student->id)
+        ->where('class_id', $toClass->id)
+        ->where('role', OptionalSubjectRole::ExtraOptional)
+        ->value('subject_id'))->toBe($higherMath->id);
+});
+
+test('bulk promote refuses to save when main and extra optional subject are the same for a row', function () {
+    [$fromClass, $toClass, $group, $biology] = makeBulkPromoteGroupSubjectTestClasses();
+
+    $student = createEnrolledStudent($fromClass, rollNo: 5, sessionYear: now()->year);
+    $student->update(['current_group_id' => $group->id]);
+
+    $this->actingAs(createAdminUser());
+
+    Livewire::test(BulkPromoteStudentsForClass::class, ['classId' => $fromClass->id, 'year' => now()->year])
+        ->set("promotions.{$student->id}.roll_no", 1)
+        ->set("promotions.{$student->id}.main_optional_subject_id", $biology->id)
+        ->set("promotions.{$student->id}.extra_optional_subject_id", $biology->id)
+        ->call('promote');
+
+    $student->refresh();
+
+    // Nothing changed — the student was not actually promoted.
+    expect($student->current_class_id)->toBe($fromClass->id);
+    expect(StudentOptionalSubject::where('student_id', $student->id)->where('class_id', $toClass->id)->count())->toBe(0);
 });
 
 test('hides both selects when the class is terminal and students are graduating', function () {

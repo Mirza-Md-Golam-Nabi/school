@@ -65,6 +65,8 @@
                                 @endif
                                 @if ($showGroupColumn)
                                     <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Group</th>
+                                    <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Main Optional</th>
+                                    <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Extra Optional</th>
                                 @endif
                                 <th class="w-24 px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">New Roll (Merit)</th>
                                 <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Remarks</th>
@@ -77,6 +79,8 @@
                                     $isLeaving = in_array($row['status'] ?? null, ['graduated', 'transferred', 'dropped'], true);
                                     $sectionOptions = $this->getSectionOptions($row['class_id'] ?? null);
                                     $groupOptions = $this->getGroupOptions($row['class_id'] ?? null);
+                                    $mainOptionalSubjectOptions = $this->getMainOptionalSubjectOptions($row['class_id'] ?? null, $row['group_id'] ?? null);
+                                    $extraOptionalSubjectOptions = $this->getExtraOptionalSubjectOptions($row['class_id'] ?? null, $row['group_id'] ?? null);
                                 @endphp
                                 <tr class="border-b border-gray-100 transition-colors hover:bg-gray-50 last:border-0 dark:border-gray-800 dark:hover:bg-gray-800/30 {{ $isLeaving ? 'bg-danger-50/30 dark:bg-danger-900/10' : '' }}"
                                     wire:key="student-{{ $student->id }}">
@@ -126,11 +130,37 @@
                                     @if ($showGroupColumn)
                                         <td class="px-3 py-1.5">
                                             <select
-                                                wire:model="promotions.{{ $student->id }}.group_id"
+                                                wire:model.live="promotions.{{ $student->id }}.group_id"
                                                 @disabled($isLeaving || $groupOptions->isEmpty())
                                                 class="w-32 rounded-lg border-gray-300 py-1.5 px-2 text-sm shadow-sm focus:border-primary-500 focus:ring-primary-500 disabled:cursor-not-allowed disabled:bg-gray-100 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:disabled:bg-gray-900">
                                                 <option value="">—</option>
                                                 @foreach ($groupOptions as $id => $name)
+                                                    <option value="{{ $id }}">{{ $name }}</option>
+                                                @endforeach
+                                            </select>
+                                        </td>
+
+                                        <td class="px-3 py-1.5">
+                                            <select
+                                                wire:model="promotions.{{ $student->id }}.main_optional_subject_id"
+                                                @disabled($isLeaving || $mainOptionalSubjectOptions->isEmpty())
+                                                title="সাধারণত আগের ক্লাসের subject-ই বহাল থাকে — শুধু এই group-এর নিজস্ব optional subject দেখাচ্ছে"
+                                                class="w-36 rounded-lg border-gray-300 py-1.5 px-2 text-sm shadow-sm focus:border-primary-500 focus:ring-primary-500 disabled:cursor-not-allowed disabled:bg-gray-100 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:disabled:bg-gray-900">
+                                                <option value="">—</option>
+                                                @foreach ($mainOptionalSubjectOptions as $id => $name)
+                                                    <option value="{{ $id }}">{{ $name }}</option>
+                                                @endforeach
+                                            </select>
+                                        </td>
+
+                                        <td class="px-3 py-1.5">
+                                            <select
+                                                wire:model="promotions.{{ $student->id }}.extra_optional_subject_id"
+                                                @disabled($isLeaving || $extraOptionalSubjectOptions->isEmpty())
+                                                title="সাধারণত আগের ক্লাসের subject-ই বহাল থাকে — এই group-এর + All Groups optional subject দেখাচ্ছে"
+                                                class="w-36 rounded-lg border-gray-300 py-1.5 px-2 text-sm shadow-sm focus:border-primary-500 focus:ring-primary-500 disabled:cursor-not-allowed disabled:bg-gray-100 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:disabled:bg-gray-900">
+                                                <option value="">—</option>
+                                                @foreach ($extraOptionalSubjectOptions as $id => $name)
                                                     <option value="{{ $id }}">{{ $name }}</option>
                                                 @endforeach
                                             </select>

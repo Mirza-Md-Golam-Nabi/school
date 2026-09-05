@@ -109,6 +109,34 @@ it('shows the section and group columns when explicitly selected', function () {
         ->toContain('A');
 });
 
+it('shows the birth certificate no column when explicitly selected', function () {
+    $class = Classes::create(['name' => 'Student List Birth Cert Class', 'order' => 1]);
+
+    $student = makeStudentListTestStudent($class->id, 1, now()->year);
+    $student->update(['birth_certificate_no' => '1234567890']);
+
+    $pdf = app(BuildClassStudentListPdfAction::class)->handle($class, now()->year, ['birth_certificate_no']);
+
+    expect($pdf)->toStartWith('%PDF');
+
+    $rendered = view('documents.student-list', [
+        'class' => $class,
+        'sessionYear' => now()->year,
+        'columns' => collect([StudentListColumn::BirthCertificateNo]),
+        'rows' => [
+            [
+                'roll' => '01',
+                'name' => 'Student Roll 1',
+                'values' => ['1234567890'],
+            ],
+        ],
+    ])->render();
+
+    expect($rendered)
+        ->toContain('Birth Certificate No')
+        ->toContain('1234567890');
+});
+
 it('falls back to the default columns when none are selected', function () {
     $class = Classes::create(['name' => 'Student List Default Columns Class', 'order' => 1]);
 

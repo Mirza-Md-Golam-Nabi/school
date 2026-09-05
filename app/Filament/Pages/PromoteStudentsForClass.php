@@ -3,9 +3,11 @@
 namespace App\Filament\Pages;
 
 use App\Actions\PromoteStudentsAction;
+use App\Actions\ResolveDefaultPromotionOptionalSubjects;
 use App\Enums\ExamConfigType;
 use App\Enums\PromotionStatus;
 use App\Models\Classes;
+use App\Models\ClassGroupSubject;
 use App\Models\Exam;
 use App\Models\Section;
 use App\Models\StudentMeritRanking;
@@ -25,6 +27,7 @@ use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Url;
 
 class PromoteStudentsForClass extends Page implements HasTable
@@ -135,12 +138,16 @@ class PromoteStudentsForClass extends Page implements HasTable
             ->fillForm(function (StudentProfile $record): array {
                 $nextClassId = $this->resolveNextClassId($record);
                 $status = $nextClassId ? PromotionStatus::Promoted : PromotionStatus::Graduated;
+                $groupId = $this->resolveDefaultGroupId($record, $nextClassId);
+                $optionalDefaults = $this->resolveDefaultOptionalSubjects($record, $nextClassId, $groupId);
 
                 return [
                     'status' => $status->value,
                     'class_id' => $nextClassId,
                     'section_id' => null,
-                    'group_id' => $this->resolveDefaultGroupId($record, $nextClassId),
+                    'group_id' => $groupId,
+                    'main_optional_subject_id' => $optionalDefaults['main_optional_subject_id'],
+                    'extra_optional_subject_id' => $optionalDefaults['extra_optional_subject_id'],
                     'roll_no' => $status === PromotionStatus::Promoted
                         ? ($this->resolveMeritRoll($record) ?? $record->roll_no)
                         : null,
@@ -164,9 +171,13 @@ class PromoteStudentsForClass extends Page implements HasTable
                     ->disabled(fn (Get $get): bool => in_array($this->statusValue($get), self::LEAVING_STATUSES, true))
                     ->afterStateUpdated(function (Set $set, Get $get, StudentProfile $record): void {
                         $classId = $get('class_id') ? (int) $get('class_id') : null;
+                        $groupId = $this->resolveDefaultGroupId($record, $classId);
+                        $optionalDefaults = $this->resolveDefaultOptionalSubjects($record, $classId, $groupId);
 
                         $set('section_id', null);
-                        $set('group_id', $this->resolveDefaultGroupId($record, $classId));
+                        $set('group_id', $groupId);
+                        $set('main_optional_subject_id', $optionalDefaults['main_optional_subject_id']);
+                        $set('extra_optional_subject_id', $optionalDefaults['extra_optional_subject_id']);
                     }),
 
                 Select::make('section_id')
@@ -197,9 +208,39 @@ class PromoteStudentsForClass extends Page implements HasTable
                         return $class->groups()->where('groups.is_active', true)->pluck('groups.name', 'groups.id')->toArray();
                     })
                     ->searchable()
+                    ->live()
                     ->visible(fn (Get $get): bool => ! in_array($this->statusValue($get), self::LEAVING_STATUSES, true)
                         && $get('class_id')
-                        && Classes::find($get('class_id'))?->has_group),
+                        && Classes::find($get('class_id'))?->has_group)
+                    ->afterStateUpdated(function (Set $set, Get $get, StudentProfile $record): void {
+                        $classId = $get('class_id') ? (int) $get('class_id') : null;
+                        $groupId = $get('group_id') ? (int) $get('group_id') : null;
+                        $optionalDefaults = $this->resolveDefaultOptionalSubjects($record, $classId, $groupId);
+
+                        $set('main_optional_subject_id', $optionalDefaults['main_optional_subject_id']);
+                        $set('extra_optional_subject_id', $optionalDefaults['extra_optional_subject_id']);
+                    }),
+
+                Select::make('main_optional_subject_id')
+                    ->label('Main Optional Subject')
+                    ->helperText('সাধারণত আগের ক্লাসের subject-ই বহাল থাকে — group বা subject বদলে গেলে নতুন করে বেছে নিন। শুধু নির্বাচিত group-এর নিজস্ব optional subject')
+                    ->options(fn (Get $get) => ClassGroupSubject::optionalSubjectOptions($get('class_id'), $get('group_id'), includeAllGroups: false))
+                    ->visible(fn (Get $get): bool => ClassGroupSubject::optionalSubjectOptions($get('class_id'), $get('group_id'), includeAllGroups: false)->isNotEmpty())
+                    ->searchable()
+                    ->live()
+                    ->placeholder('Select main optional subject'),
+
+                Select::make('extra_optional_subject_id')
+                    ->label('Extra Optional Subject')
+                    ->helperText('সাধারণত আগের ক্লাসের subject-ই বহাল থাকে — group বা subject বদলে গেলে নতুন করে বেছে নিন। নির্বাচিত group-এর optional subject + All Groups optional subject')
+                    ->options(fn (Get $get) => ClassGroupSubject::optionalSubjectOptions($get('class_id'), $get('group_id')))
+                    ->visible(fn (Get $get): bool => ClassGroupSubject::optionalSubjectOptions($get('class_id'), $get('group_id'))->isNotEmpty())
+                    ->searchable()
+                    ->placeholder('Select extra optional subject')
+                    ->rules(fn (Get $get): array => [Rule::notIn(array_filter([$get('main_optional_subject_id')]))])
+                    ->validationMessages([
+                        'not_in' => 'Extra optional subject must be different from the main optional subject.',
+                    ]),
 
                 TextInput::make('roll_no')
                     ->label('New Roll (Merit)')
@@ -243,6 +284,8 @@ class PromoteStudentsForClass extends Page implements HasTable
                         'group_id' => $data['group_id'] ?? null,
                         'roll_no' => $data['roll_no'] ?? null,
                         'remarks' => $data['remarks'] ?? null,
+                        'main_optional_subject_id' => $data['main_optional_subject_id'] ?? null,
+                        'extra_optional_subject_id' => $data['extra_optional_subject_id'] ?? null,
                     ],
                 ], Auth::id());
             });
@@ -301,6 +344,14 @@ class PromoteStudentsForClass extends Page implements HasTable
             ->exists();
 
         return $hasSameGroup ? $record->current_group_id : null;
+    }
+
+    /**
+     * @return array{main_optional_subject_id: ?int, extra_optional_subject_id: ?int}
+     */
+    private function resolveDefaultOptionalSubjects(StudentProfile $record, ?int $classId, ?int $groupId): array
+    {
+        return app(ResolveDefaultPromotionOptionalSubjects::class)->execute($record, $classId, $groupId);
     }
 
     private function resolveMeritRoll(StudentProfile $record): ?int

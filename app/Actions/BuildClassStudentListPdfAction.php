@@ -78,6 +78,7 @@ class BuildClassStudentListPdfAction
             StudentListColumn::Section => $student->section?->name ?? '-',
             StudentListColumn::Group => $student->group?->name ?? '-',
             StudentListColumn::RegistrationNo => $student->registration_no ?? '-',
+            StudentListColumn::BirthCertificateNo => $student->birth_certificate_no ?? '-',
             StudentListColumn::Gender => $student->gender?->getLabel() ?? '-',
             StudentListColumn::DateOfBirth => $student->date_of_birth?->format('d/m/Y') ?? '-',
             StudentListColumn::BloodGroup => $student->blood_group?->getLabel() ?? '-',
@@ -89,6 +90,7 @@ class BuildClassStudentListPdfAction
             StudentListColumn::GuardianName => $student->guardian_name ?? '-',
             StudentListColumn::GuardianRelation => $student->guardian_relation ?? '-',
             StudentListColumn::GuardianOccupation => $student->guardian_occupation ?? '-',
+            StudentListColumn::GuardianPhone => $student->guardian_phone ?? '-',
         };
     }
 }
