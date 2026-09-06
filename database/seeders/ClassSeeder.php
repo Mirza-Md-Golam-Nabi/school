@@ -2,11 +2,11 @@
 
 namespace Database\Seeders;
 
-use App\Enums\ClassLevel;
 use App\Models\Classes;
 use App\Models\Group;
 use App\Models\Section;
 use App\Models\TeacherProfile;
+use App\Support\ClassDefinitions;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Seeder;
 
@@ -17,41 +17,35 @@ class ClassSeeder extends Seeder
         // Class 1–5: Primary, no section, no group
         // Class 6–8: Secondary, has section, no group
         // Class 9–10: Secondary, has section, has group
-
         $classConfigs = [
-            ['number' => 1,  'level' => ClassLevel::Primary,   'has_section' => false, 'has_group' => false],
-            ['number' => 2,  'level' => ClassLevel::Primary,   'has_section' => false, 'has_group' => false],
-            ['number' => 3,  'level' => ClassLevel::Primary,   'has_section' => false, 'has_group' => false],
-            ['number' => 4,  'level' => ClassLevel::Primary,   'has_section' => false, 'has_group' => false],
-            ['number' => 5,  'level' => ClassLevel::Primary,   'has_section' => false, 'has_group' => false],
-            ['number' => 6,  'level' => ClassLevel::Secondary, 'has_section' => true,  'has_group' => false],
-            ['number' => 7,  'level' => ClassLevel::Secondary, 'has_section' => true,  'has_group' => false],
-            ['number' => 8,  'level' => ClassLevel::Secondary, 'has_section' => true,  'has_group' => false],
-            ['number' => 9,  'level' => ClassLevel::Secondary, 'has_section' => true,  'has_group' => true],
-            ['number' => 10, 'level' => ClassLevel::Secondary, 'has_section' => true,  'has_group' => true],
+            ...ClassDefinitions::primary(),
+            ...ClassDefinitions::secondary(),
         ];
 
         $groups = $this->createGroups();
         $teachers = TeacherProfile::inRandomOrder()->get();
 
         foreach ($classConfigs as $index => $config) {
+            $hasSection = $config['has_section'] ?? false;
+            $hasGroup = $config['has_group'] ?? false;
+
             $class = Classes::firstOrCreate(
-                ['name' => 'Class '.$config['number']],
+                ['name' => $config['name']],
                 [
                     'level' => $config['level'],
-                    'order' => $config['number'],
+                    'order' => $config['order'],
                     'class_teacher_id' => $teachers->get($index)?->id,
-                    'has_section' => $config['has_section'],
-                    'has_group' => $config['has_group'],
+                    'has_section' => $hasSection,
+                    'has_group' => $hasGroup,
                     'is_active' => true,
                 ]
             );
 
-            if ($config['has_section']) {
+            if ($hasSection) {
                 $this->createSections($class);
             }
 
-            if ($config['has_group']) {
+            if ($hasGroup) {
                 $class->groups()->sync($groups->pluck('id'));
             }
         }
