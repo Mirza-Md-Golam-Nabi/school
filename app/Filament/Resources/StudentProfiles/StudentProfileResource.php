@@ -6,7 +6,9 @@ use App\Filament\Resources\StudentProfiles\Pages\CreateStudentProfile;
 use App\Filament\Resources\StudentProfiles\Pages\EditStudentProfile;
 use App\Filament\Resources\StudentProfiles\Pages\ListStudentProfiles;
 use App\Filament\Resources\StudentProfiles\Pages\StudentsByClass;
+use App\Filament\Resources\StudentProfiles\Pages\ViewStudentProfile;
 use App\Filament\Resources\StudentProfiles\Schemas\StudentProfileForm;
+use App\Filament\Resources\StudentProfiles\Schemas\StudentProfileInfolist;
 use App\Filament\Resources\StudentProfiles\Tables\StudentProfilesTable;
 use App\Models\StudentProfile;
 use App\Traits\Permissions\HasEntityPermissions;
@@ -40,6 +42,11 @@ class StudentProfileResource extends Resource
         return StudentProfileForm::configure($schema);
     }
 
+    public static function infolist(Schema $schema): Schema
+    {
+        return StudentProfileInfolist::configure($schema);
+    }
+
     public static function table(Table $table): Table
     {
         return StudentProfilesTable::configure($table);
@@ -56,6 +63,7 @@ class StudentProfileResource extends Resource
             'index' => ListStudentProfiles::route('/'),
             'create' => CreateStudentProfile::route('/create'),
             'students-by-class' => StudentsByClass::route('/class'),
+            'view' => ViewStudentProfile::route('/{record}'),
             'edit' => EditStudentProfile::route('/{record}/edit'),
         ];
     }

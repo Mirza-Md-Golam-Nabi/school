@@ -8,6 +8,7 @@ use App\Models\StudentFeeInvoice;
 use App\Models\StudentProfile;
 use App\Notifications\FeePaymentReceivedNotification;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class ProcessFeePaymentAction
 {
@@ -32,8 +33,9 @@ class ProcessFeePaymentAction
         $firstPayment = null;
         $payments = [];
         $paymentIndex = 0;
+        $batchId = (string) Str::uuid();
 
-        DB::transaction(function () use ($invoices, $data, &$remaining, &$firstPayment, &$payments, &$paymentIndex) {
+        DB::transaction(function () use ($invoices, $data, $batchId, &$remaining, &$firstPayment, &$payments, &$paymentIndex) {
             foreach ($invoices as $invoice) {
                 if ($remaining <= 0) {
                     break;
@@ -55,6 +57,7 @@ class ProcessFeePaymentAction
 
                 $payment = FeePayment::create([
                     'receipt_no' => $receiptNo,
+                    'payment_batch_id' => $batchId,
                     'student_id' => $data['student_id'],
                     'invoice_id' => $invoice->id,
                     'amount_paid' => $payAmount,

@@ -3,7 +3,9 @@
 namespace App\Filament\Resources\StudentFeeInvoices\Tables;
 
 use App\Enums\InvoiceStatus;
+use App\Filament\Resources\FeePayments\FeePaymentResource as AdminFeePaymentResource;
 use App\Filament\Resources\StudentFeeInvoices\StudentFeeInvoiceResource as AdminStudentFeeInvoiceResource;
+use App\Filament\Teacher\Resources\FeePayments\FeePaymentResource as TeacherFeePaymentResource;
 use App\Filament\Teacher\Resources\StudentFeeInvoices\StudentFeeInvoiceResource as TeacherStudentFeeInvoiceResource;
 use App\Models\StudentFeeInvoice;
 use App\Models\StudentProfile;
@@ -62,6 +64,17 @@ class ClassInvoicesByStudentTable
                     ->color(fn (float $state) => $state > 0 ? 'danger' : 'success'),
             ])
             ->recordActions([
+                Action::make('collectPayment')
+                    ->label('Collect Payment')
+                    ->iconButton()
+                    ->icon(Heroicon::OutlinedCreditCard)
+                    ->color('success')
+                    ->url(fn (StudentProfile $record): string => self::feePaymentResourceForCurrentPanel()::getUrl('create', [
+                        'class_id' => $record->current_class_id,
+                        'student_id' => $record->id,
+                    ]))
+                    ->visible(fn (): bool => self::feePaymentResourceForCurrentPanel()::canCreate()),
+
                 Action::make('viewPending')
                     ->label('View')
                     ->iconButton()
@@ -113,6 +126,16 @@ class ClassInvoicesByStudentTable
         return Filament::getCurrentPanel()?->getId() === 'admin'
             ? AdminStudentFeeInvoiceResource::class
             : TeacherStudentFeeInvoiceResource::class;
+    }
+
+    /**
+     * @return class-string<AdminFeePaymentResource>|class-string<TeacherFeePaymentResource>
+     */
+    private static function feePaymentResourceForCurrentPanel(): string
+    {
+        return Filament::getCurrentPanel()?->getId() === 'admin'
+            ? AdminFeePaymentResource::class
+            : TeacherFeePaymentResource::class;
     }
 
     private static function totalDue(StudentProfile $record): float

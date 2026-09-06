@@ -5,7 +5,9 @@ namespace App\Filament\Teacher\Resources\FeePayments\Pages;
 use App\Actions\ProcessFeePaymentAction;
 use App\Filament\Teacher\Concerns\ScopesToClassTeacherStudents;
 use App\Filament\Teacher\Resources\FeePayments\FeePaymentResource;
+use App\Models\FeePayment;
 use App\Models\StudentProfile;
+use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
 use Filament\Support\Exceptions\Halt;
@@ -16,6 +18,15 @@ class CreateFeePayment extends CreateRecord
     use ScopesToClassTeacherStudents;
 
     protected static string $resource = FeePaymentResource::class;
+
+    protected function fillForm(): void
+    {
+        parent::fillForm();
+
+        if ($studentId = request()->integer('student_id')) {
+            $this->data['student_id'] = $studentId;
+        }
+    }
 
     /**
      * Defends against a tampered request submitting a student_id outside the
@@ -44,5 +55,22 @@ class CreateFeePayment extends CreateRecord
     protected function getRedirectUrl(): string
     {
         return $this->getResource()::getUrl('index');
+    }
+
+    protected function getCreatedNotification(): ?Notification
+    {
+        /** @var FeePayment $record */
+        $record = $this->record;
+
+        return Notification::make()
+            ->success()
+            ->title('Payment recorded successfully')
+            ->actions([
+                Action::make('downloadSlip')
+                    ->label('Download Payment Slip')
+                    ->url(route('fee-payments.slip.download', $record->payment_batch_id))
+                    ->openUrlInNewTab()
+                    ->button(),
+            ]);
     }
 }

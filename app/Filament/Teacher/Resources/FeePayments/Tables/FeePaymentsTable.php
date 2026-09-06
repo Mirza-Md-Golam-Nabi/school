@@ -5,8 +5,10 @@ namespace App\Filament\Teacher\Resources\FeePayments\Tables;
 use App\Enums\PaymentMethod;
 use App\Filament\Teacher\Resources\FeePayments\FeePaymentResource;
 use App\Models\FeePayment;
+use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -42,6 +44,13 @@ class FeePaymentsTable
                     ->options(PaymentMethod::class),
             ])
             ->recordActions([
+                Action::make('printSlip')
+                    ->label('Print Slip')
+                    ->icon(Heroicon::OutlinedPrinter)
+                    ->iconButton()
+                    ->url(fn (FeePayment $record): string => route('fee-payments.slip.download', $record->payment_batch_id))
+                    ->openUrlInNewTab()
+                    ->visible(fn (FeePayment $record): bool => filled($record->payment_batch_id)),
                 EditAction::make()
                     ->iconButton()
                     ->visible(fn (FeePayment $record): bool => FeePaymentResource::canEdit($record)),

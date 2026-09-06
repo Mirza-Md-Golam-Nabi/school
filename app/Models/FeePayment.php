@@ -21,6 +21,7 @@ class FeePayment extends Model
 
     protected $fillable = [
         'receipt_no',
+        'payment_batch_id',
         'student_id',
         'invoice_id',
         'amount_paid',
