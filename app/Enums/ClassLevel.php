@@ -7,6 +7,7 @@ use Filament\Support\Contracts\HasLabel;
 
 enum ClassLevel: string implements HasColor, HasLabel
 {
+    case PrePrimary = 'pre_primary';
     case Primary = 'primary';
     case Secondary = 'secondary';
     case College = 'college';
@@ -14,6 +15,7 @@ enum ClassLevel: string implements HasColor, HasLabel
     public function getLabel(): string
     {
         return match ($this) {
+            self::PrePrimary => 'Pre-Primary',
             self::Primary => 'Primary',
             self::Secondary => 'Secondary',
             self::College => 'College',
@@ -23,6 +25,7 @@ enum ClassLevel: string implements HasColor, HasLabel
     public function getColor(): string
     {
         return match ($this) {
+            self::PrePrimary => 'gray',
             self::Primary => 'primary',
             self::Secondary => 'info',
             self::College => 'success',

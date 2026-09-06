@@ -25,9 +25,14 @@ class UserSeeder extends Seeder
 
         foreach ($user_types as $user_type) {
             $is_super_admin = $user_type === UserType::SuperAdmin;
-            $email = $user_type->value.'@example.com';
+            $email = $user_type->value.'@school.com';
 
-            $user = User::where('email', $email)->first();
+            $user = User::factory()->create([
+                'email' => $user_type->value.'@school.com',
+                'user_type' => $user_type,
+                'is_super_admin' => $is_super_admin,
+                'is_active' => true,
+            ]);
 
             if (! $user) {
                 $user = User::factory()->create([
@@ -50,7 +55,7 @@ class UserSeeder extends Seeder
     private function seedSuperAdmin(): void
     {
         $user = User::updateOrCreate(
-            ['email' => UserType::SuperAdmin->value.'@example.com'],
+            ['email' => UserType::SuperAdmin->value.'@school.com'],
             [
                 'name' => 'Super Admin',
                 'password' => Hash::make('password'),

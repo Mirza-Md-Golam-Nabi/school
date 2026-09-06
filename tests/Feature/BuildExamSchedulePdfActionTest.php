@@ -60,6 +60,18 @@ it('builds a valid schedule pdf listing every scheduled subject', function () {
     expect($pdf)->toStartWith('%PDF');
 });
 
+it('builds a valid schedule pdf on A5 page size', function () {
+    $class = Classes::create(['name' => 'Class Six', 'order' => 6, 'is_active' => true]);
+    $exam = createExamSchedulePdfTestExam($class);
+    $bangla = createExamSchedulePdfTestSubject($class, 'Bangla');
+
+    ExamSchedule::create(['exam_id' => $exam->id, 'subject_id' => $bangla->id, 'exam_date' => '2026-03-05']);
+
+    $pdf = app(BuildExamSchedulePdfAction::class)->handle($exam, 'A5');
+
+    expect($pdf)->toStartWith('%PDF');
+});
+
 it('aborts with 404 when the exam has no schedule set yet', function () {
     $class = Classes::create(['name' => 'Class Six', 'order' => 6, 'is_active' => true]);
     $exam = createExamSchedulePdfTestExam($class);

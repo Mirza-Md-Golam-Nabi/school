@@ -2,13 +2,19 @@
 
 namespace App\Filament\Resources\StudentProfiles\Pages;
 
+use App\Enums\StudentListColumn;
 use App\Filament\Resources\StudentProfiles\Concerns\HasStudentCredentialsModal;
 use App\Filament\Resources\StudentProfiles\StudentProfileResource;
 use App\Filament\Resources\StudentProfiles\Tables\StudentProfilesTable;
 use App\Models\Classes;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
+use Filament\Forms\Components\CheckboxList;
+use Filament\Forms\Components\Radio;
 use Filament\Resources\Pages\ListRecords;
+use Filament\Schemas\Components\Section;
+use Filament\Support\Enums\GridDirection;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Contracts\Support\Htmlable;
 use Livewire\Attributes\Url;
@@ -62,6 +68,44 @@ class StudentsByClass extends ListRecords
 
             CreateAction::make()
                 ->url(fn (): string => StudentProfileResource::getUrl('create', $this->classId ? ['classId' => $this->classId] : [])),
+
+            Action::make('downloadStudentList')
+                ->label('Student List (PDF)')
+                ->icon(Heroicon::OutlinedArrowDownTray)
+                ->color('info')
+                ->visible(fn (): bool => $this->classId > 0)
+                ->schema([
+                    Section::make('Columns')
+                        ->schema([
+                            CheckboxList::make('columns')
+                                ->hiddenLabel()
+                                ->options(StudentListColumn::options())
+                                ->default(StudentListColumn::defaults())
+                                ->columns(['default' => 2, 'md' => 3, 'lg' => 4])
+                                ->gridDirection(GridDirection::Row)
+                                ->bulkToggleable(),
+                        ]),
+                    Section::make('Orientation')
+                        ->schema([
+                            Radio::make('orientation')
+                                ->hiddenLabel()
+                                ->options([
+                                    'P' => 'Portrait',
+                                    'L' => 'Landscape',
+                                ])
+                                ->default('P')
+                                ->inline()
+                                ->inlineLabel(false)
+                                ->required(),
+                        ]),
+                ])
+                ->modalHeading('Download Student List (PDF)')
+                ->modalSubmitActionLabel('Download')
+                ->action(fn (array $data) => $this->redirect(route('student-list.class.download', [
+                    'class' => $this->classId,
+                    'columns' => $data['columns'] ?? [],
+                    'orientation' => $data['orientation'] ?? 'P',
+                ]))),
         ];
     }
 
@@ -71,7 +115,7 @@ class StudentsByClass extends ListRecords
             ->where('current_class_id', $this->classId)
             ->where('session_year', now()->year);
 
-        return StudentProfilesTable::configure($table->query($query));
+        return StudentProfilesTable::configure($table->query($query), $this->resolveClass());
     }
 
     private function resolveClass(): ?Classes

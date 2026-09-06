@@ -49,7 +49,7 @@ class StaffSeeder extends Seeder
         )->id;
 
         DB::transaction(function () {
-            $email = UserType::Staff->value.'@example.com';
+            $email = UserType::Staff->value.'@school.com';
             $user = User::where('email', $email)->first();
             $user->staffProfile()->firstOrCreate([], [
                 'gender' => Gender::Male,
@@ -123,7 +123,7 @@ class StaffSeeder extends Seeder
             ->lower()
             ->replace(' ', '.');
 
-        return $local.'@example.com';
+        return $local.'@school.com';
     }
 
     private function randomAddress(): string

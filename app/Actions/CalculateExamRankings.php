@@ -2,12 +2,12 @@
 
 namespace App\Actions;
 
-use App\Enums\SubjectType;
 use App\Models\ClassGroupSubject;
 use App\Models\Exam;
 use App\Models\ExamSubjectConfig;
 use App\Models\GradeScale;
 use App\Models\StudentMeritRanking;
+use App\Models\StudentOptionalSubject;
 use App\Models\StudentProfile;
 use App\Models\StudentResult;
 use Illuminate\Support\Collection;
@@ -16,6 +16,7 @@ class CalculateExamRankings
 {
     public function __construct(
         private readonly ApplyExamSubjectContributions $applyExamSubjectContributions,
+        private readonly ResolveIsExtraOptionalSubject $resolveIsExtraOptionalSubject,
     ) {}
 
     public function execute(Exam $exam): int
@@ -49,6 +50,12 @@ class CalculateExamRankings
             ->get()
             ->groupBy('subject_id');
 
+        // student_id → Collection of the student's chosen optional-subject roles for this class
+        $optionalSelections = StudentOptionalSubject::where('class_id', $exam->class_id)
+            ->whereIn('student_id', $studentIds)
+            ->get()
+            ->groupBy('student_id');
+
         $gradeScales = GradeScale::cached();
 
         $studentData = $this->buildStudentData(
@@ -56,6 +63,7 @@ class CalculateExamRankings
             $profiles,
             $subjectConfigs,
             $subjectTypeRecords,
+            $optionalSelections,
             $exam->class_id,
             $gradeScales
         );
@@ -107,12 +115,14 @@ class CalculateExamRankings
      * @param  Collection<int, Collection<int, StudentResult>>  $results
      * @param  Collection<int, ExamSubjectConfig>  $subjectConfigs
      * @param  Collection<int, Collection<int, ClassGroupSubject>>  $subjectTypeRecords
+     * @param  Collection<int, Collection<int, StudentOptionalSubject>>  $optionalSelections
      */
     private function buildStudentData(
         Collection $results,
         Collection $profiles,
         Collection $subjectConfigs,
         Collection $subjectTypeRecords,
+        Collection $optionalSelections,
         int $classId,
         Collection $gradeScales
     ): array {
@@ -123,6 +133,7 @@ class CalculateExamRankings
             $studentGroupId = $profile?->current_group_id
                 ? (int) $profile->current_group_id
                 : null;
+            $studentOptionalSelections = $optionalSelections->get((int) $studentId);
 
             $totalMarks = $studentResults->sum(fn (StudentResult $r) => $r->effective_marks);
 
@@ -130,15 +141,16 @@ class CalculateExamRankings
             $includedGpas = [];
 
             foreach ($studentResults as $result) {
-                $subjectType = $this->resolveSubjectType(
+                $isExtraOptional = $this->resolveIsExtraOptionalSubject->execute(
                     $subjectTypeRecords,
+                    $studentOptionalSelections,
                     (int) $result->subject_id,
                     $studentGroupId
                 );
 
                 if ($result->is_absent) {
                     // Absent counts as F; extra_optional absence is excluded entirely
-                    if ($subjectType !== SubjectType::ExtraOptional) {
+                    if (! $isExtraOptional) {
                         $isOverallFail = true;
                     }
 
@@ -155,7 +167,7 @@ class CalculateExamRankings
                 $isFailingGrade = $grade === null || $grade->grade_point <= 0.0;
 
                 if ($isFailingGrade) {
-                    if ($subjectType === SubjectType::ExtraOptional) {
+                    if ($isExtraOptional) {
                         // Extra optional fail → exclude subject from GPA, no penalty
                         continue;
                     }
@@ -183,29 +195,6 @@ class CalculateExamRankings
         }
 
         return $studentData;
-    }
-
-    /**
-     * Resolve subject type for a student, preferring their specific group,
-     * falling back to the "all groups" record (group_id = null).
-     *
-     * @param  Collection<int, Collection<int, ClassGroupSubject>>  $subjectTypeRecords
-     */
-    private function resolveSubjectType(
-        Collection $subjectTypeRecords,
-        int $subjectId,
-        ?int $groupId
-    ): SubjectType {
-        $records = $subjectTypeRecords->get($subjectId);
-
-        if (! $records || $records->isEmpty()) {
-            return SubjectType::Compulsory;
-        }
-
-        $match = $records->first(fn (ClassGroupSubject $r) => $r->group_id !== null && $r->group_id === $groupId)
-            ?? $records->first(fn (ClassGroupSubject $r) => $r->group_id === null);
-
-        return $match?->subject_type ?? SubjectType::Compulsory;
     }
 
     /**

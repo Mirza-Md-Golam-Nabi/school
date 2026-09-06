@@ -8,15 +8,13 @@ use Filament\Support\Contracts\HasLabel;
 enum SubjectType: string implements HasColor, HasLabel
 {
     case Compulsory = 'compulsory';
-    case MainOptional = 'main_optional';
-    case ExtraOptional = 'extra_optional';
+    case Optional = 'optional';
 
     public function getLabel(): string
     {
         return match ($this) {
             self::Compulsory => 'Compulsory',
-            self::MainOptional => 'Main Optional',
-            self::ExtraOptional => 'Extra Optional',
+            self::Optional => 'Optional',
         };
     }
 
@@ -24,8 +22,7 @@ enum SubjectType: string implements HasColor, HasLabel
     {
         return match ($this) {
             self::Compulsory => 'danger',
-            self::MainOptional => 'warning',
-            self::ExtraOptional => 'success',
+            self::Optional => 'warning',
         };
     }
 }

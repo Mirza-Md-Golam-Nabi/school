@@ -58,14 +58,9 @@ class ClassGroupSubject extends Pivot
         return $this->subject_type === SubjectType::Compulsory;
     }
 
-    public function isMainOptional(): bool
+    public function isOptional(): bool
     {
-        return $this->subject_type === SubjectType::MainOptional;
-    }
-
-    public function isExtraOptional(): bool
-    {
-        return $this->subject_type === SubjectType::ExtraOptional;
+        return $this->subject_type === SubjectType::Optional;
     }
 
     public static function dropdownOptionsByClass(int $classId): Collection
@@ -77,6 +72,40 @@ class ClassGroupSubject extends Pivot
             ->pluck('subject.name', 'subject_id')
             ->unique()
             ->filter();
+    }
+
+    /**
+     * A class+group's optional subject pool (subject_type = optional) — the
+     * list a student picks their main_optional/extra_optional from. Shared by
+     * the student profile form and the promotion pages so both resolve the
+     * same pool the same way.
+     *
+     * main_optional শুধু ওই group-এর নিজস্ব optional subject থেকে বাছা যায়
+     * ($includeAllGroups = false), কিন্তু extra_optional-এর জন্য group-specific
+     * subject-এর পাশাপাশি "All Groups" (group_id = null) optional subject-ও
+     * দেখানো হয় ($includeAllGroups = true, ডিফল্ট)।
+     *
+     * @return Collection<int, string>
+     */
+    public static function optionalSubjectOptions(?int $classId, ?int $groupId, bool $includeAllGroups = true): Collection
+    {
+        if (! $classId || ! $groupId) {
+            return collect();
+        }
+
+        return static::query()
+            ->where('class_id', $classId)
+            ->where('subject_type', SubjectType::Optional)
+            ->where(function ($query) use ($groupId, $includeAllGroups) {
+                $query->where('group_id', $groupId);
+
+                if ($includeAllGroups) {
+                    $query->orWhereNull('group_id');
+                }
+            })
+            ->with('subject')
+            ->get()
+            ->pluck('subject.name', 'subject_id');
     }
 
     public function getActivitylogOptions(): LogOptions

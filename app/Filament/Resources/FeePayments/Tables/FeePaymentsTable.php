@@ -5,6 +5,7 @@ namespace App\Filament\Resources\FeePayments\Tables;
 use App\Enums\PaymentMethod;
 use App\Models\FeePayment;
 use Carbon\Carbon;
+use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -13,6 +14,7 @@ use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Support\Enums\IconPosition;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -122,6 +124,14 @@ class FeePaymentsTable
                     ])
                     ->modalSubmitAction(false)
                     ->modalCancelActionLabel('Close'),
+
+                Action::make('printSlip')
+                    ->label('Print Slip')
+                    ->icon(Heroicon::OutlinedPrinter)
+                    ->iconButton()
+                    ->url(fn (FeePayment $record): string => route('fee-payments.slip.download', $record->payment_batch_id))
+                    ->openUrlInNewTab()
+                    ->visible(fn (FeePayment $record): bool => filled($record->payment_batch_id)),
 
                 EditAction::make()->iconButton(),
             ])

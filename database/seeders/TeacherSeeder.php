@@ -61,7 +61,7 @@ class TeacherSeeder extends Seeder
         )->id;
 
         DB::transaction(function () {
-            $email = UserType::Teacher->value.'@example.com';
+            $email = UserType::Teacher->value.'@school.com';
             $user = User::where('email', $email)->first();
             $user->teacherProfile()->firstOrCreate([], [
                 'gender' => Gender::Male,
@@ -139,7 +139,7 @@ class TeacherSeeder extends Seeder
             ->lower()
             ->replace(' ', '.');
 
-        return $local.'@example.com';
+        return $local.'@school.com';
     }
 
     private function randomAddress(): string

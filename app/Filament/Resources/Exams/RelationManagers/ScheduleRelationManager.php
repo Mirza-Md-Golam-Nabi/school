@@ -9,8 +9,10 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Select;
 use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Enums\Width;
 use Filament\Support\Icons\Heroicon;
@@ -80,7 +82,27 @@ class ScheduleRelationManager extends RelationManager
                     ->icon(Heroicon::OutlinedArrowDownTray)
                     ->color('info')
                     ->visible(fn (): bool => $this->getOwnerRecord()->schedules()->exists())
-                    ->url(fn (): string => route('exams.schedule.download', $this->getOwnerRecord())),
+                    ->schema([
+                        Section::make('Page Size')
+                            ->schema([
+                                Radio::make('pageSize')
+                                    ->hiddenLabel()
+                                    ->options([
+                                        'A5' => 'A5',
+                                        'A4' => 'A4',
+                                    ])
+                                    ->default('A5')
+                                    ->inline()
+                                    ->inlineLabel(false)
+                                    ->required(),
+                            ]),
+                    ])
+                    ->modalHeading('Download Schedule (PDF)')
+                    ->modalSubmitActionLabel('Download')
+                    ->action(fn (array $data) => $this->redirect(route('exams.schedule.download', [
+                        'exam' => $this->getOwnerRecord(),
+                        'pageSize' => $data['pageSize'] ?? 'A5',
+                    ]))),
 
                 CreateAction::make()
                     ->modalWidth(Width::Medium),

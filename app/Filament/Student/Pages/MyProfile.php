@@ -156,8 +156,9 @@ class MyProfile extends Page
                     TextEntry::make('guardian_name')->label('Name')->placeholder('—'),
                     TextEntry::make('guardian_relation')->label('Relation')->placeholder('—'),
                     TextEntry::make('guardian_occupation')->label('Occupation')->placeholder('—'),
+                    TextEntry::make('guardian_phone')->label('Phone')->placeholder('—'),
                 ])
-                ->columns(4),
+                ->columns(5),
         ];
     }
 

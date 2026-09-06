@@ -56,7 +56,7 @@ class StudentSeeder extends Seeder
                 ->orderBy('order')
                 ->get();
 
-            $email = UserType::Student->value.'@example.com';
+            $email = UserType::Student->value.'@school.com';
             $user = User::where('email', $email)->first();
 
             if ($user) {
@@ -96,7 +96,7 @@ class StudentSeeder extends Seeder
             ? fake()->randomElement($this->maleNames)
             : fake()->randomElement($this->femaleNames);
 
-        $email = sprintf('class_%02d_%02d@example.com', $class->order, $rollNo);
+        $email = sprintf('class_%02d_%02d@school.com', $class->order, $rollNo);
 
         $user = User::firstOrCreate(
             ['email' => $email],

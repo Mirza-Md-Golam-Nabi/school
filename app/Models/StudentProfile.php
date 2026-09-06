@@ -45,6 +45,7 @@ class StudentProfile extends Model
         'guardian_name',
         'guardian_relation',
         'guardian_occupation',
+        'guardian_phone',
         'guardian_photo',
         'admission_date',
         'status',
@@ -108,6 +109,11 @@ class StudentProfile extends Model
     public function classHistories(): HasMany
     {
         return $this->hasMany(StudentClassHistory::class, 'student_id');
+    }
+
+    public function optionalSubjects(): HasMany
+    {
+        return $this->hasMany(StudentOptionalSubject::class, 'student_id');
     }
 
     public function scopeActive(Builder $query): void

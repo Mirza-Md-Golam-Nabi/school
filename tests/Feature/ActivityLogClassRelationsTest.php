@@ -137,7 +137,7 @@ it('logs attach, pivot update, and detach of a subject on a class', function () 
             'subject_id_label' => 'Chemistry',
         ]);
 
-    $class->subjects()->updateExistingPivot($subject->id, ['subject_type' => SubjectType::MainOptional]);
+    $class->subjects()->updateExistingPivot($subject->id, ['subject_type' => SubjectType::Optional]);
 
     expect(Activity::where('log_name', 'class_subject')->where('event', 'updated')->first())
         ->not->toBeNull()

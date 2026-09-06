@@ -5,8 +5,10 @@ use App\Http\Controllers\ClassAdmitCardsPdfController;
 use App\Http\Controllers\ClassAttendanceReportPdfController;
 use App\Http\Controllers\ClassMarksheetsPdfController;
 use App\Http\Controllers\ClassSeatPlanPdfController;
+use App\Http\Controllers\ClassStudentListPdfController;
 use App\Http\Controllers\EmailVerificationController;
 use App\Http\Controllers\ExamSchedulePdfController;
+use App\Http\Controllers\FeePaymentSlipPdfController;
 use App\Http\Controllers\FundTransactionAttachmentController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\MarksheetPdfController;
@@ -45,6 +47,10 @@ Route::get('/classes/{class}/seat-plan/download', ClassSeatPlanPdfController::cl
     ->middleware('auth')
     ->name('seat-plan.class.download');
 
+Route::get('/classes/{class}/student-list/download', ClassStudentListPdfController::class)
+    ->middleware('auth')
+    ->name('student-list.class.download');
+
 Route::get('/classes/{class}/attendance-report/{year}/{month}/download', ClassAttendanceReportPdfController::class)
     ->middleware('auth')
     ->whereNumber(['year', 'month'])
@@ -53,6 +59,10 @@ Route::get('/classes/{class}/attendance-report/{year}/{month}/download', ClassAt
 Route::get('/exams/{exam}/schedule/download', ExamSchedulePdfController::class)
     ->middleware('auth')
     ->name('exams.schedule.download');
+
+Route::get('/fee-payments/{batchId}/slip', FeePaymentSlipPdfController::class)
+    ->middleware('auth')
+    ->name('fee-payments.slip.download');
 
 // No 'auth' middleware here — this app has no generic named 'login' route (Filament panels
 // each have their own), so the default guest-redirect would throw RouteNotFoundException.

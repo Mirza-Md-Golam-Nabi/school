@@ -2,12 +2,17 @@
 
 use App\Actions\PromoteStudentsAction;
 use App\Enums\Gender;
+use App\Enums\OptionalSubjectRole;
 use App\Enums\PromotionStatus;
 use App\Enums\StudentStatus;
+use App\Enums\SubjectType;
 use App\Models\Classes;
+use App\Models\Group;
 use App\Models\Section;
 use App\Models\StudentClassHistory;
+use App\Models\StudentOptionalSubject;
 use App\Models\StudentProfile;
+use App\Models\Subject;
 use App\Models\User;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -122,6 +127,58 @@ test('graduating a student from the terminal class keeps their class history but
         ->and($student->roll_no)->toBe(2)
         ->and($student->session_year)->toBe(2026)
         ->and($student->status)->toBe(StudentStatus::Graduated);
+});
+
+test('promoting into a new group class saves the main/extra optional subject choice for the new class', function () {
+    $fromClass = Classes::create(['name' => 'Class 9', 'order' => 9, 'has_group' => true]);
+    $toClass = Classes::create(['name' => 'Class 10', 'order' => 10, 'has_group' => true]);
+    $group = Group::create(['name' => 'Science', 'is_active' => true]);
+    $fromClass->groups()->attach($group->id);
+    $toClass->groups()->attach($group->id);
+
+    $biology = Subject::create(['name' => 'Biology', 'has_written' => true, 'is_active' => true]);
+    $higherMath = Subject::create(['name' => 'Higher Math', 'has_written' => true, 'is_active' => true]);
+    $biology->classes()->attach($toClass->id, ['group_id' => $group->id, 'subject_type' => SubjectType::Optional->value]);
+    $higherMath->classes()->attach($toClass->id, ['group_id' => $group->id, 'subject_type' => SubjectType::Optional->value]);
+
+    $admin = User::factory()->create();
+    $student = createStudentForPromotion($fromClass, rollNo: 5, sessionYear: 2026);
+    $student->update(['current_group_id' => $group->id]);
+
+    // The student's class 9 choice — should stay untouched as history.
+    StudentOptionalSubject::create([
+        'student_id' => $student->id,
+        'class_id' => $fromClass->id,
+        'group_id' => $group->id,
+        'subject_id' => $biology->id,
+        'role' => OptionalSubjectRole::MainOptional,
+    ]);
+
+    app(PromoteStudentsAction::class)->handle([
+        $student->id => [
+            'status' => 'promoted',
+            'class_id' => $toClass->id,
+            'section_id' => null,
+            'group_id' => $group->id,
+            'roll_no' => 3,
+            'remarks' => null,
+            'main_optional_subject_id' => $biology->id,
+            'extra_optional_subject_id' => $higherMath->id,
+        ],
+    ], $admin->id);
+
+    // Old class 9 selection is untouched.
+    expect(StudentOptionalSubject::where('student_id', $student->id)->where('class_id', $fromClass->id)->count())->toBe(1);
+
+    expect(StudentOptionalSubject::where('student_id', $student->id)
+        ->where('class_id', $toClass->id)
+        ->where('role', OptionalSubjectRole::MainOptional)
+        ->value('subject_id'))->toBe($biology->id);
+
+    expect(StudentOptionalSubject::where('student_id', $student->id)
+        ->where('class_id', $toClass->id)
+        ->where('role', OptionalSubjectRole::ExtraOptional)
+        ->value('subject_id'))->toBe($higherMath->id);
 });
 
 test('a student cannot have two history rows for the same session year', function () {

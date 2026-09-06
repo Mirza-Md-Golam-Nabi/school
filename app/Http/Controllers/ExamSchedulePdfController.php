@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Actions\BuildExamSchedulePdfAction;
 use App\Models\Exam;
 use App\Support\Concerns\SanitizesFilenames;
+use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
 class ExamSchedulePdfController extends Controller
@@ -14,11 +15,13 @@ class ExamSchedulePdfController extends Controller
     /**
      * Stream this exam's subject-wise schedule PDF as a download.
      */
-    public function __invoke(Exam $exam, BuildExamSchedulePdfAction $action): Response
+    public function __invoke(Exam $exam, BuildExamSchedulePdfAction $action, Request $request): Response
     {
         $exam->loadMissing(['examType', 'class']);
 
-        $pdf = $action->handle($exam);
+        $pageSize = (string) $request->query('pageSize', 'A4');
+
+        $pdf = $action->handle($exam, $pageSize);
 
         $filename = "exam-schedule-{$this->sanitizeFilenameSegment($exam->class?->name ?? 'Class')}-{$this->sanitizeFilenameSegment($exam->examType?->name ?? 'Exam')}-{$exam->session_year}.pdf";
 
