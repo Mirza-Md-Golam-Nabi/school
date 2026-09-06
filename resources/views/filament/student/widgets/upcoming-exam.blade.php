@@ -13,15 +13,37 @@
         @else
             <div class="grid grid-cols-1 gap-1">
                 @foreach ($exams as $exam)
-                    <div class="flex items-center gap-x-2 rounded-lg border border-gray-200 p-2.5 dark:border-white/10 sm:p-3">
-                        <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-50 text-primary-600 dark:bg-primary-950 dark:text-primary-400">
-                            <x-heroicon-o-calendar-days class="h-5 w-5" />
-                        </span>
-                        <div class="min-w-0">
-                            <p class="truncate text-xs font-semibold text-gray-900 dark:text-white sm:text-sm">{{ $exam['label'] }}</p>
-                            <p class="text-xs text-gray-500 dark:text-gray-400">{{ $exam['startDate'] }} — {{ $exam['endDate'] }}</p>
-                        </div>
-                    </div>
+                    <x-filament::modal width="md">
+                        <x-slot name="trigger">
+                            <button
+                                type="button"
+                                class="flex w-full items-center gap-x-2 rounded-lg border border-gray-200 p-2.5 text-left transition hover:bg-gray-50 dark:border-white/10 dark:hover:bg-white/5 sm:p-3"
+                            >
+                                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-50 text-primary-600 dark:bg-primary-950 dark:text-primary-400">
+                                    <x-heroicon-o-calendar-days class="h-5 w-5" />
+                                </span>
+                                <div class="min-w-0">
+                                    <p class="truncate text-xs font-semibold text-gray-900 dark:text-white sm:text-sm">{{ $exam['label'] }}</p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">{{ $exam['startDate'] }} — {{ $exam['endDate'] }}</p>
+                                </div>
+                            </button>
+                        </x-slot>
+
+                        <x-slot name="heading">{{ $exam['label'] }}</x-slot>
+
+                        @if ($exam['schedules']->isEmpty())
+                            <p class="py-3 text-center text-xs text-gray-400 dark:text-gray-500 sm:text-sm">{{ __('No subject-wise schedule set yet.') }}</p>
+                        @else
+                            <div class="divide-y divide-gray-100 dark:divide-gray-800">
+                                @foreach ($exam['schedules'] as $schedule)
+                                    <div class="flex items-center justify-between gap-x-3 py-2 text-xs sm:text-sm">
+                                        <span class="font-medium text-gray-900 dark:text-white">{{ $schedule['subject'] }}</span>
+                                        <span class="text-gray-500 dark:text-gray-400">{{ $schedule['date'] }}</span>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
+                    </x-filament::modal>
                 @endforeach
             </div>
         @endif

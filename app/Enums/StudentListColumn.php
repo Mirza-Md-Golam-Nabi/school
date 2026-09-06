@@ -23,6 +23,8 @@ enum StudentListColumn: string implements HasLabel
     case GuardianRelation = 'guardian_relation';
     case GuardianOccupation = 'guardian_occupation';
     case GuardianPhone = 'guardian_phone';
+    case MainSubject = 'main_subject';
+    case AdditionalSubject = 'additional_subject';
 
     public function getLabel(): string
     {
@@ -44,6 +46,8 @@ enum StudentListColumn: string implements HasLabel
             self::GuardianRelation => "Guardian's Relation",
             self::GuardianOccupation => "Guardian's Occupation",
             self::GuardianPhone => "Guardian's Phone",
+            self::MainSubject => 'Main Subject',
+            self::AdditionalSubject => 'Additional Subject',
         };
     }
 

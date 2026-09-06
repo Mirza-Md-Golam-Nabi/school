@@ -4,14 +4,12 @@
     $avatarUrl = $user?->getFilamentAvatarUrl();
     $initial = $user?->name ? mb_strtoupper(mb_substr($user->name, 0, 1)) : '?';
 
-    // One of 5 gradients, picked per student so the color stays stable across
+    // One of 3 gradients, picked per student so the color stays stable across
     // page loads instead of flipping every time the page is viewed.
     $gradients = [
         'from-primary-600 to-primary-400 dark:from-primary-700 dark:to-primary-500',
         'from-success-600 to-success-400 dark:from-success-700 dark:to-success-500',
-        // 'from-warning-600 to-warning-400 dark:from-warning-700 dark:to-warning-500',
         'from-danger-600 to-danger-400 dark:from-danger-700 dark:to-danger-500',
-        // 'from-info-600 to-info-400 dark:from-info-700 dark:to-info-500',
     ];
     $gradient = $gradients[$student->id % count($gradients)];
 @endphp

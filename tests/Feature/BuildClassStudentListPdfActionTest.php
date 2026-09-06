@@ -2,13 +2,17 @@
 
 use App\Actions\BuildClassStudentListPdfAction;
 use App\Enums\Gender;
+use App\Enums\OptionalSubjectRole;
 use App\Enums\StudentListColumn;
 use App\Enums\StudentStatus;
+use App\Enums\SubjectType;
 use App\Enums\UserType;
 use App\Models\Classes;
 use App\Models\Group;
 use App\Models\Section;
+use App\Models\StudentOptionalSubject;
 use App\Models\StudentProfile;
+use App\Models\Subject;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Symfony\Component\HttpFoundation\Response;
@@ -153,6 +157,56 @@ it('builds a landscape pdf when requested', function () {
     makeStudentListTestStudent($class->id, 1, now()->year);
 
     $pdf = app(BuildClassStudentListPdfAction::class)->handle($class, now()->year, ['email'], 'L');
+
+    expect($pdf)->toStartWith('%PDF');
+});
+
+it('shows the main subject and additional subject columns when explicitly selected', function () {
+    $class = Classes::create(['name' => 'Student List Optional Subjects Class', 'order' => 9, 'has_group' => true]);
+    $group = Group::create(['name' => 'Science']);
+    $class->groups()->attach($group->id);
+
+    $biology = Subject::create(['name' => 'Biology', 'has_mcq' => false, 'has_written' => true, 'has_practical' => false, 'is_active' => true]);
+    $biology->classes()->attach($class->id, ['group_id' => $group->id, 'subject_type' => SubjectType::Optional->value]);
+
+    $higherMath = Subject::create(['name' => 'Higher Math', 'has_mcq' => false, 'has_written' => true, 'has_practical' => false, 'is_active' => true]);
+    $higherMath->classes()->attach($class->id, ['group_id' => $group->id, 'subject_type' => SubjectType::Optional->value]);
+
+    $student = makeStudentListTestStudent($class->id, 1, now()->year, $group->id);
+
+    StudentOptionalSubject::create(['student_id' => $student->id, 'class_id' => $class->id, 'group_id' => $group->id, 'subject_id' => $biology->id, 'role' => OptionalSubjectRole::MainOptional]);
+    StudentOptionalSubject::create(['student_id' => $student->id, 'class_id' => $class->id, 'group_id' => $group->id, 'subject_id' => $higherMath->id, 'role' => OptionalSubjectRole::ExtraOptional]);
+
+    $pdf = app(BuildClassStudentListPdfAction::class)->handle($class, now()->year, ['main_subject', 'additional_subject']);
+
+    expect($pdf)->toStartWith('%PDF');
+
+    $rendered = view('documents.student-list', [
+        'class' => $class,
+        'sessionYear' => now()->year,
+        'columns' => collect([StudentListColumn::MainSubject, StudentListColumn::AdditionalSubject]),
+        'rows' => [
+            [
+                'roll' => '01',
+                'name' => 'Student Roll 1',
+                'values' => ['Biology', 'Higher Math'],
+            ],
+        ],
+    ])->render();
+
+    expect($rendered)
+        ->toContain('Main Subject')
+        ->toContain('Additional Subject')
+        ->toContain('Biology')
+        ->toContain('Higher Math');
+});
+
+it('shows "-" for main subject and additional subject when the student has no optional subject choice', function () {
+    $class = Classes::create(['name' => 'Student List No Optional Subjects Class', 'order' => 6]);
+
+    makeStudentListTestStudent($class->id, 1, now()->year);
+
+    $pdf = app(BuildClassStudentListPdfAction::class)->handle($class, now()->year, ['main_subject', 'additional_subject']);
 
     expect($pdf)->toStartWith('%PDF');
 });

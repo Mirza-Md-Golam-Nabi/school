@@ -4,15 +4,21 @@ namespace App\Actions;
 
 use App\Enums\AttendanceStatus;
 use App\Models\Attendance;
+use App\Models\ClassGroupSubject;
 use App\Models\ExamSubjectConfig;
 use App\Models\GradeScale;
 use App\Models\StudentMeritRanking;
+use App\Models\StudentOptionalSubject;
 use App\Models\StudentProfile;
 use App\Models\StudentResult;
 use Illuminate\Support\Collection;
 
 class BuildStudentMarksDetail
 {
+    public function __construct(
+        private readonly ResolveIsExtraOptionalSubject $resolveIsExtraOptionalSubject,
+    ) {}
+
     /**
      * Build the per-subject marks rows (own/contributed/final, grade, top-scorer)
      * and the overall summary for a student's ranking in one exam. Shared between
@@ -53,7 +59,19 @@ class BuildStudentMarksDetail
 
         $gradeScales = GradeScale::cached();
 
-        $rows = $myResults->map(function (StudentResult $result) use ($subjectConfigs, $subjectBestMap, $gradeScales): array {
+        $groupId = $ranking->student?->current_group_id
+            ? (int) $ranking->student->current_group_id
+            : null;
+
+        $subjectTypeRecords = ClassGroupSubject::where('class_id', $ranking->class_id)
+            ->get()
+            ->groupBy('subject_id');
+
+        $studentOptionalSelections = StudentOptionalSubject::where('class_id', $ranking->class_id)
+            ->where('student_id', $ranking->student_id)
+            ->get();
+
+        $rows = $myResults->map(function (StudentResult $result) use ($subjectConfigs, $subjectBestMap, $gradeScales, $subjectTypeRecords, $studentOptionalSelections, $groupId): array {
             $subjectId = $result->subject_id;
             $config = $subjectConfigs->get($subjectId);
             $ownTotal = $config?->total_marks ?: 100;
@@ -65,6 +83,19 @@ class BuildStudentMarksDetail
                 ? GradeScale::fromMarks($percentage, $gradeScales)
                 : null;
             $best = $subjectBestMap[$subjectId] ?? null;
+
+            $isExtraOptional = $this->resolveIsExtraOptionalSubject->execute(
+                $subjectTypeRecords,
+                $studentOptionalSelections,
+                (int) $subjectId,
+                $groupId
+            );
+
+            $subjectName = $result->subject?->name ?? '—';
+
+            if ($isExtraOptional) {
+                $subjectName .= ' (Additional)';
+            }
 
             $contribution = null;
 
@@ -82,7 +113,7 @@ class BuildStudentMarksDetail
             }
 
             return [
-                'subject_name' => $result->subject?->name ?? '—',
+                'subject_name' => $subjectName,
                 'is_absent' => $result->is_absent,
                 'mcq_marks' => $result->mcq_marks,
                 'written_marks' => $result->written_marks,

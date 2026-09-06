@@ -106,6 +106,36 @@ it('rejects scheduling the same subject twice for one exam', function () {
     expect(ExamSchedule::where('exam_id', $exam->id)->count())->toBe(1);
 });
 
+it('defaults to A4 page size when downloading the schedule', function () {
+    $admin = User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]);
+    test()->actingAs($admin);
+
+    $class = Classes::create(['name' => 'Class Six', 'order' => 6, 'is_active' => true]);
+    $exam = createExamScheduleTestExam($class);
+    $subject = createExamScheduleTestSubject($class);
+
+    ExamSchedule::create(['exam_id' => $exam->id, 'subject_id' => $subject->id, 'exam_date' => '2026-03-05']);
+
+    Livewire::test(ScheduleRelationManager::class, ['ownerRecord' => $exam, 'pageClass' => EditExam::class])
+        ->callAction(TestAction::make('downloadSchedule')->table())
+        ->assertRedirect(route('exams.schedule.download', ['exam' => $exam, 'pageSize' => 'A4']));
+});
+
+it('redirects to the schedule download route with the selected page size', function () {
+    $admin = User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]);
+    test()->actingAs($admin);
+
+    $class = Classes::create(['name' => 'Class Six', 'order' => 6, 'is_active' => true]);
+    $exam = createExamScheduleTestExam($class);
+    $subject = createExamScheduleTestSubject($class);
+
+    ExamSchedule::create(['exam_id' => $exam->id, 'subject_id' => $subject->id, 'exam_date' => '2026-03-05']);
+
+    Livewire::test(ScheduleRelationManager::class, ['ownerRecord' => $exam, 'pageClass' => EditExam::class])
+        ->callAction(TestAction::make('downloadSchedule')->table(), ['pageSize' => 'A5'])
+        ->assertRedirect(route('exams.schedule.download', ['exam' => $exam, 'pageSize' => 'A5']));
+});
+
 it('only offers subjects assigned to the exam class', function () {
     $admin = User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]);
     test()->actingAs($admin);

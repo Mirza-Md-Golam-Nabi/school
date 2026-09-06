@@ -2,6 +2,7 @@
 
 namespace App\Actions;
 
+use App\Enums\OptionalSubjectRole;
 use App\Enums\StudentListColumn;
 use App\Models\Classes;
 use App\Models\StudentProfile;
@@ -20,7 +21,12 @@ class BuildClassStudentListPdfAction
      */
     public function handle(Classes $class, int $sessionYear, array $columns = [], string $orientation = 'P'): string
     {
-        $students = StudentProfile::with(['user', 'section', 'group'])
+        $students = StudentProfile::with([
+            'user',
+            'section',
+            'group',
+            'optionalSubjects' => fn ($query) => $query->where('class_id', $class->id)->with('subject'),
+        ])
             ->where('current_class_id', $class->id)
             ->where('session_year', $sessionYear)
             ->orderBy('roll_no')
@@ -91,6 +97,10 @@ class BuildClassStudentListPdfAction
             StudentListColumn::GuardianRelation => $student->guardian_relation ?? '-',
             StudentListColumn::GuardianOccupation => $student->guardian_occupation ?? '-',
             StudentListColumn::GuardianPhone => $student->guardian_phone ?? '-',
+            StudentListColumn::MainSubject => $student->optionalSubjects
+                ->firstWhere('role', OptionalSubjectRole::MainOptional)?->subject?->name ?? '-',
+            StudentListColumn::AdditionalSubject => $student->optionalSubjects
+                ->firstWhere('role', OptionalSubjectRole::ExtraOptional)?->subject?->name ?? '-',
         };
     }
 }

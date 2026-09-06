@@ -2,17 +2,20 @@
 
 use App\Enums\Gender;
 use App\Enums\StudentStatus;
+use App\Enums\SubjectType;
 use App\Enums\UserType;
 use App\Filament\Student\Widgets\StudentFeeDueOverview;
 use App\Filament\Student\Widgets\StudentLatestResultWidget;
 use App\Filament\Student\Widgets\StudentUpcomingExamWidget;
 use App\Models\Classes;
 use App\Models\Exam;
+use App\Models\ExamSchedule;
 use App\Models\ExamType;
 use App\Models\FeeType;
 use App\Models\StudentFeeInvoice;
 use App\Models\StudentMeritRanking;
 use App\Models\StudentProfile;
+use App\Models\Subject;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -58,6 +61,84 @@ it('only lists exams that have not started yet for the student\'s class', functi
 
     expect(StudentUpcomingExamWidget::canView())->toBeTrue()
         ->and((new StudentUpcomingExamWidget)->getViewData()['exams'])->toHaveCount(1);
+});
+
+it('includes the subject-wise schedule for each upcoming exam, sorted by date', function () {
+    $class = Classes::create(['name' => 'Class Eight Schedule', 'order' => 8]);
+    $student = makeDashboardStudent($class);
+    $examType = ExamType::create(['name' => 'Final']);
+
+    $exam = Exam::create([
+        'exam_type_id' => $examType->id,
+        'class_id' => $class->id,
+        'session_year' => now()->year,
+        'start_date' => today()->addDays(5)->toDateString(),
+        'end_date' => today()->addDays(7)->toDateString(),
+        'is_published' => false,
+    ]);
+
+    $bangla = Subject::create(['name' => 'Bangla', 'has_mcq' => false, 'has_written' => true, 'has_practical' => false, 'is_active' => true]);
+    $bangla->classes()->attach($class->id, ['subject_type' => SubjectType::Compulsory->value]);
+    $english = Subject::create(['name' => 'English', 'has_mcq' => false, 'has_written' => true, 'has_practical' => false, 'is_active' => true]);
+    $english->classes()->attach($class->id, ['subject_type' => SubjectType::Compulsory->value]);
+
+    // Created out of date order to prove the widget sorts by exam_date.
+    ExamSchedule::create(['exam_id' => $exam->id, 'subject_id' => $english->id, 'exam_date' => today()->addDays(7)->toDateString()]);
+    ExamSchedule::create(['exam_id' => $exam->id, 'subject_id' => $bangla->id, 'exam_date' => today()->addDays(5)->toDateString()]);
+
+    $this->actingAs($student->user);
+
+    $schedules = (new StudentUpcomingExamWidget)->getViewData()['exams'][0]['schedules'];
+
+    expect($schedules)->toHaveCount(2)
+        ->and($schedules[0]['subject'])->toBe('Bangla')
+        ->and($schedules[1]['subject'])->toBe('English');
+});
+
+it('shows the subject and date in the exam schedule modal when the widget is clicked', function () {
+    $class = Classes::create(['name' => 'Class Eight Modal', 'order' => 8]);
+    $student = makeDashboardStudent($class);
+    $examType = ExamType::create(['name' => 'Final']);
+
+    $exam = Exam::create([
+        'exam_type_id' => $examType->id,
+        'class_id' => $class->id,
+        'session_year' => now()->year,
+        'start_date' => today()->addDays(5)->toDateString(),
+        'end_date' => today()->addDays(7)->toDateString(),
+        'is_published' => false,
+    ]);
+
+    $bangla = Subject::create(['name' => 'Bangla', 'has_mcq' => false, 'has_written' => true, 'has_practical' => false, 'is_active' => true]);
+    $bangla->classes()->attach($class->id, ['subject_type' => SubjectType::Compulsory->value]);
+
+    ExamSchedule::create(['exam_id' => $exam->id, 'subject_id' => $bangla->id, 'exam_date' => today()->addDays(5)->toDateString()]);
+
+    $this->actingAs($student->user);
+
+    Livewire::test(StudentUpcomingExamWidget::class)
+        ->assertSee('Bangla')
+        ->assertSee(today()->addDays(5)->format('d M, Y (D)'));
+});
+
+it('shows a fallback message in the modal when the exam has no schedule set yet', function () {
+    $class = Classes::create(['name' => 'Class Eight No Schedule', 'order' => 8]);
+    $student = makeDashboardStudent($class);
+    $examType = ExamType::create(['name' => 'Final']);
+
+    Exam::create([
+        'exam_type_id' => $examType->id,
+        'class_id' => $class->id,
+        'session_year' => now()->year,
+        'start_date' => today()->addDays(5)->toDateString(),
+        'end_date' => today()->addDays(7)->toDateString(),
+        'is_published' => false,
+    ]);
+
+    $this->actingAs($student->user);
+
+    Livewire::test(StudentUpcomingExamWidget::class)
+        ->assertSee('No subject-wise schedule set yet.');
 });
 
 it('shows the latest-result widget with zeroed values when there is no merit ranking yet', function () {
