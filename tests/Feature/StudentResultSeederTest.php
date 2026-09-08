@@ -3,7 +3,9 @@
 use App\Enums\ExamConfigType;
 use App\Enums\Gender;
 use App\Enums\StudentStatus;
+use App\Enums\SubjectType;
 use App\Models\Classes;
+use App\Models\ClassGroupSubject;
 use App\Models\Exam;
 use App\Models\ExamSubjectConfig;
 use App\Models\ExamType;
@@ -53,6 +55,13 @@ function createResultTestExam(ExamConfigType $type, int $studentCount = 8, array
 
     $subject = Subject::create(['name' => 'Mathematics', 'has_mcq' => false]);
 
+    ClassGroupSubject::create([
+        'class_id' => $class->id,
+        'group_id' => null,
+        'subject_id' => $subject->id,
+        'subject_type' => SubjectType::Compulsory,
+    ]);
+
     ExamSubjectConfig::create(array_merge([
         'exam_id' => $exam->id,
         'subject_id' => $subject->id,
@@ -75,7 +84,7 @@ function createResultTestExam(ExamConfigType $type, int $studentCount = 8, array
 it('creates one result per student per subject for the exam', function () {
     $exam = createResultTestExam(ExamConfigType::Main, studentCount: 8);
 
-    (new StudentResultSeeder)->run();
+    app(StudentResultSeeder::class)->run();
 
     expect(StudentResult::where('exam_id', $exam->id)->count())->toBe(8);
 });
@@ -83,7 +92,7 @@ it('creates one result per student per subject for the exam', function () {
 it('does not mark any student absent for a main exam', function () {
     $exam = createResultTestExam(ExamConfigType::Main, studentCount: 8);
 
-    (new StudentResultSeeder)->run();
+    app(StudentResultSeeder::class)->run();
 
     expect(StudentResult::where('exam_id', $exam->id)->where('is_absent', true)->count())->toBe(0);
 });
@@ -91,7 +100,7 @@ it('does not mark any student absent for a main exam', function () {
 it('marks two or three students absent for a supporting exam', function () {
     $exam = createResultTestExam(ExamConfigType::Supporting, studentCount: 8);
 
-    (new StudentResultSeeder)->run();
+    app(StudentResultSeeder::class)->run();
 
     $absentCount = StudentResult::where('exam_id', $exam->id)->where('is_absent', true)->count();
 
@@ -101,7 +110,7 @@ it('marks two or three students absent for a supporting exam', function () {
 it('marks one or two students absent for a not-supporting exam', function () {
     $exam = createResultTestExam(ExamConfigType::NotSupporting, studentCount: 8);
 
-    (new StudentResultSeeder)->run();
+    app(StudentResultSeeder::class)->run();
 
     $absentCount = StudentResult::where('exam_id', $exam->id)->where('is_absent', true)->count();
 
@@ -111,7 +120,7 @@ it('marks one or two students absent for a not-supporting exam', function () {
 it('nulls out marks and zeroes the total for absent students', function () {
     $exam = createResultTestExam(ExamConfigType::Supporting, studentCount: 8);
 
-    (new StudentResultSeeder)->run();
+    app(StudentResultSeeder::class)->run();
 
     $absentResults = StudentResult::where('exam_id', $exam->id)->where('is_absent', true)->get();
 
@@ -137,7 +146,7 @@ it('keeps every mark within the exam subject config full marks', function () {
     ]);
     $config = $exam->subjectConfigs->sole();
 
-    (new StudentResultSeeder)->run();
+    app(StudentResultSeeder::class)->run();
 
     $results = StudentResult::where('exam_id', $exam->id)->get();
 
@@ -156,7 +165,7 @@ it('fails one to three students on a subject while the majority pass', function 
     $exam = createResultTestExam(ExamConfigType::Main, studentCount: 10);
     $config = $exam->subjectConfigs->sole();
 
-    (new StudentResultSeeder)->run();
+    app(StudentResultSeeder::class)->run();
 
     $results = StudentResult::where('exam_id', $exam->id)->get();
     $failing = $results->filter(fn (StudentResult $result) => $result->total_marks < $config->pass_mark);
@@ -169,8 +178,8 @@ it('fails one to three students on a subject while the majority pass', function 
 it('is idempotent when run twice for the same exam', function () {
     $exam = createResultTestExam(ExamConfigType::Main, studentCount: 6);
 
-    (new StudentResultSeeder)->run();
-    (new StudentResultSeeder)->run();
+    app(StudentResultSeeder::class)->run();
+    app(StudentResultSeeder::class)->run();
 
     expect(StudentResult::where('exam_id', $exam->id)->count())->toBe(6);
 });

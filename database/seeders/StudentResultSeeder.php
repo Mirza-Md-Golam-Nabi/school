@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Actions\ResolveEligibleStudentsForSubject;
 use App\Enums\ExamConfigType;
 use App\Models\Exam;
 use App\Models\ExamSubjectConfig;
@@ -14,6 +15,10 @@ use Illuminate\Support\Facades\DB;
 
 class StudentResultSeeder extends Seeder
 {
+    public function __construct(
+        private readonly ResolveEligibleStudentsForSubject $resolveEligibleStudentsForSubject,
+    ) {}
+
     /**
      * Run the database seeds.
      */
@@ -30,41 +35,76 @@ class StudentResultSeeder extends Seeder
 
     private function seedExamResults(Exam $exam): void
     {
-        $students = StudentProfile::where('current_class_id', $exam->class_id)->active()->get();
         $subjectConfigs = $exam->subjectConfigs;
 
-        if ($students->isEmpty() || $subjectConfigs->isEmpty()) {
+        if ($subjectConfigs->isEmpty()) {
             return;
         }
+
+        // Class 9-10 splits into Science/Commerce/Humanities groups: some subjects
+        // are group-restricted compulsory subjects and others are per-student
+        // optional picks, so who actually sits a subject's exam varies per student.
+        // Mirror the same eligibility rules used for the real marks-entry sheet
+        // instead of assuming every student in the class takes every subject.
+        $eligibleStudentsBySubject = $subjectConfigs->mapWithKeys(
+            fn (ExamSubjectConfig $config): array => [
+                $config->subject_id => $this->resolveEligibleStudentsForSubject->execute((int) $exam->class_id, (int) $config->subject_id),
+            ]
+        );
+
+        $eligibleSubjectIdsByStudent = [];
+
+        foreach ($eligibleStudentsBySubject as $subjectId => $eligibleStudents) {
+            foreach ($eligibleStudents as $student) {
+                $eligibleSubjectIdsByStudent[$student->id][] = $subjectId;
+            }
+        }
+
+        if ($eligibleSubjectIdsByStudent === []) {
+            return;
+        }
+
+        $studentsWithSubjects = StudentProfile::where('current_class_id', $exam->class_id)
+            ->active()
+            ->get()
+            ->filter(fn (StudentProfile $student): bool => isset($eligibleSubjectIdsByStudent[$student->id]))
+            ->values();
 
         $configType = $exam->examType?->examTypeConfig?->type;
 
         $absentCount = match ($configType) {
-            ExamConfigType::Supporting => fake()->numberBetween(2, 3),
+            ExamConfigType::Supporting => fake()->numberBetween(1, 2),
             ExamConfigType::NotSupporting => fake()->numberBetween(1, 2),
             default => 0,
         };
 
-        $absentStudentIds = $this->pickRandomIds($students, min($absentCount, $students->count() - 1));
+        $absentStudentIds = $this->pickRandomIds($studentsWithSubjects, min($absentCount, $studentsWithSubjects->count() - 1));
 
-        // Each absent student misses only one subject of the exam, not every subject.
+        // Each absent student misses only one subject of the exam they're actually
+        // eligible for, not every subject.
         $absentSubjectIdByStudent = collect($absentStudentIds)
-            ->mapWithKeys(fn (int $studentId): array => [$studentId => $subjectConfigs->random()->subject_id]);
+            ->mapWithKeys(fn (int $studentId): array => [$studentId => collect($eligibleSubjectIdsByStudent[$studentId])->random()]);
 
         // At least 99% of students must pass each exam — at most one student may
-        // fail it, and only in a single subject; even that is not guaranteed.
-        $presentStudents = $students->reject(fn (StudentProfile $student) => in_array($student->id, $absentStudentIds, true));
+        // fail it, and only in a single eligible subject; even that is not guaranteed.
+        $presentStudents = $studentsWithSubjects->reject(fn (StudentProfile $student) => in_array($student->id, $absentStudentIds, true));
 
         $failingStudentId = ($presentStudents->isNotEmpty() && fake()->boolean(40))
             ? $presentStudents->random()->id
             : null;
 
-        $failingSubjectId = $failingStudentId ? $subjectConfigs->random()->subject_id : null;
+        $failingSubjectId = $failingStudentId ? collect($eligibleSubjectIdsByStudent[$failingStudentId])->random() : null;
 
         $rows = [];
 
         foreach ($subjectConfigs as $config) {
-            $this->collectSubjectResults($rows, $exam, $config, $students, $absentSubjectIdByStudent, $failingStudentId, $failingSubjectId);
+            $eligibleStudents = $eligibleStudentsBySubject->get($config->subject_id);
+
+            if ($eligibleStudents === null || $eligibleStudents->isEmpty()) {
+                continue;
+            }
+
+            $this->collectSubjectResults($rows, $exam, $config, $eligibleStudents, $absentSubjectIdByStudent, $failingStudentId, $failingSubjectId);
         }
 
         $this->upsertResults($rows);

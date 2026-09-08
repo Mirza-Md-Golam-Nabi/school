@@ -4,9 +4,12 @@ namespace Database\Seeders;
 
 use App\Enums\AddressType;
 use App\Enums\Gender;
+use App\Enums\OptionalSubjectRole;
 use App\Enums\StudentStatus;
 use App\Enums\UserType;
 use App\Models\Classes;
+use App\Models\ClassGroupSubject;
+use App\Models\StudentProfile;
 use App\Models\User;
 use Database\Seeders\Helpers\LocationData;
 use Illuminate\Database\Seeder;
@@ -128,6 +131,8 @@ class StudentSeeder extends Seeder
             'status' => StudentStatus::Active,
         ]);
 
+        $this->assignOptionalSubjects($profile, $class);
+
         $isSameAddress = fake()->boolean(70);
 
         $profile->addresses()->create([
@@ -143,6 +148,59 @@ class StudentSeeder extends Seeder
                 'is_same' => false,
             ]);
         }
+    }
+
+    /**
+     * Class 9-10 students belong to a group (Science/Commerce/Humanities), so
+     * they pick one main_optional subject from that group's own optional
+     * pool, and one extra_optional subject from that same pool plus the
+     * "All Groups" optional pool — mirroring the exact rules the student
+     * profile form and promotion flow use (see ClassGroupSubject::
+     * optionalSubjectOptions()), so a Science-only subject never ends up
+     * attached to a Commerce/Humanities student, or vice versa.
+     */
+    private function assignOptionalSubjects(StudentProfile $profile, Classes $class): void
+    {
+        $groupId = $profile->current_group_id;
+
+        if (! $groupId) {
+            return;
+        }
+
+        $mainOptions = ClassGroupSubject::optionalSubjectOptions($class->id, $groupId, includeAllGroups: false);
+        $mainSubjectId = null;
+
+        // Science has its own optional pool (Biology/Higher Mathematics), so it gets a
+        // main_optional pick. Commerce/Humanities have no group-exclusive optional
+        // subject — only the "All Groups" pool — so they never get a main_optional,
+        // but still get an extra_optional (the 4th-subject pick) below.
+        if ($mainOptions->isNotEmpty()) {
+            $mainSubjectId = $mainOptions->keys()->random();
+
+            $profile->optionalSubjects()->create([
+                'class_id' => $class->id,
+                'group_id' => $groupId,
+                'subject_id' => $mainSubjectId,
+                'role' => OptionalSubjectRole::MainOptional,
+            ]);
+        }
+
+        $extraOptions = ClassGroupSubject::optionalSubjectOptions($class->id, $groupId);
+
+        if ($mainSubjectId) {
+            $extraOptions = $extraOptions->forget($mainSubjectId);
+        }
+
+        if ($extraOptions->isEmpty()) {
+            return;
+        }
+
+        $profile->optionalSubjects()->create([
+            'class_id' => $class->id,
+            'group_id' => $groupId,
+            'subject_id' => $extraOptions->keys()->random(),
+            'role' => OptionalSubjectRole::ExtraOptional,
+        ]);
     }
 
     private function randomAddress(): string

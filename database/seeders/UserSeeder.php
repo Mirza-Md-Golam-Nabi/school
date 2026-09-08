@@ -5,8 +5,8 @@ namespace Database\Seeders;
 use App\Enums\UserType;
 use App\Models\User;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class UserSeeder extends Seeder
 {
@@ -25,7 +25,6 @@ class UserSeeder extends Seeder
 
         foreach ($user_types as $user_type) {
             $is_super_admin = $user_type === UserType::SuperAdmin;
-            $email = $user_type->value.'@school.com';
 
             $user = User::factory()->create([
                 'email' => $user_type->value.'@school.com',
@@ -34,17 +33,7 @@ class UserSeeder extends Seeder
                 'is_active' => true,
             ]);
 
-            if (! $user) {
-                $user = User::factory()->create([
-                    'name' => Str::headline($user_type->value),
-                    'email' => $email,
-                    'user_type' => $user_type,
-                    'is_super_admin' => $is_super_admin,
-                    'is_active' => true,
-                ]);
-
-                $user->assignRole($user_type->roleName());
-            }
+            $user->assignRole($user_type->roleName());
         }
     }
 
