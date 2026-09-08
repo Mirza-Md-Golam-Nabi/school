@@ -26,6 +26,7 @@ class SubjectsTable
                 ->orderBy('name', 'asc')
                 ->orderBy('is_active', 'desc')
             )
+            ->paginated(false)
             ->columns([
                 TextColumn::make('code')
                     ->label('Code')

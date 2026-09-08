@@ -9,6 +9,7 @@ use App\Filament\Resources\Exams\Pages\ListExams;
 use App\Filament\Resources\Exams\RelationManagers\MeritRankingsRelationManager;
 use App\Filament\Resources\Exams\RelationManagers\ScheduleRelationManager;
 use App\Filament\Resources\Exams\RelationManagers\SubjectConfigsRelationManager;
+use App\Filament\Resources\Exams\RelationManagers\TabulationSheetRelationManager;
 use App\Filament\Resources\Exams\Schemas\ExamForm;
 use App\Filament\Resources\Exams\Tables\ExamsTable;
 use App\Models\Exam;
@@ -47,6 +48,7 @@ class ExamResource extends Resource
             SubjectConfigsRelationManager::class,
             ScheduleRelationManager::class,
             MeritRankingsRelationManager::class,
+            TabulationSheetRelationManager::class,
         ];
     }
 
