@@ -6,6 +6,7 @@ use App\Enums\StudentListColumn;
 use App\Filament\Resources\StudentProfiles\Concerns\HasStudentCredentialsModal;
 use App\Filament\Resources\StudentProfiles\StudentProfileResource;
 use App\Filament\Resources\StudentProfiles\Tables\StudentProfilesTable;
+use App\Filament\Resources\StudentProfiles\Widgets\GroupStudentCountsWidget;
 use App\Models\Classes;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
@@ -54,6 +55,17 @@ class StudentsByClass extends ListRecords
         return [
             StudentProfileResource::getUrl() => 'Students',
             '' => $this->getTitle(),
+        ];
+    }
+
+    protected function getHeaderWidgets(): array
+    {
+        if (! $this->resolveClass()?->has_group) {
+            return [];
+        }
+
+        return [
+            GroupStudentCountsWidget::make(['classId' => $this->classId]),
         ];
     }
 

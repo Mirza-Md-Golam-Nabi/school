@@ -8,6 +8,7 @@ use App\Http\Controllers\ClassSeatPlanPdfController;
 use App\Http\Controllers\ClassStudentListPdfController;
 use App\Http\Controllers\EmailVerificationController;
 use App\Http\Controllers\ExamSchedulePdfController;
+use App\Http\Controllers\ExamTabulationSheetPdfController;
 use App\Http\Controllers\FeePaymentSlipPdfController;
 use App\Http\Controllers\FundTransactionAttachmentController;
 use App\Http\Controllers\LocaleController;
@@ -59,6 +60,10 @@ Route::get('/classes/{class}/attendance-report/{year}/{month}/download', ClassAt
 Route::get('/exams/{exam}/schedule/download', ExamSchedulePdfController::class)
     ->middleware('auth')
     ->name('exams.schedule.download');
+
+Route::get('/exams/{exam}/tabulation-sheet/download', ExamTabulationSheetPdfController::class)
+    ->middleware('auth')
+    ->name('exams.tabulation-sheet.download');
 
 Route::get('/fee-payments/{batchId}/slip', FeePaymentSlipPdfController::class)
     ->middleware('auth')

@@ -71,7 +71,13 @@ class StudentProfilesTable
 
                 SelectFilter::make('current_class_id')
                     ->label('Class')
-                    ->relationship('class', 'name'),
+                    ->relationship('class', 'name')
+                    ->visible($class === null),
+
+                SelectFilter::make('current_group_id')
+                    ->label('Group')
+                    ->relationship('group', 'name')
+                    ->visible($class !== null && $class->has_group),
 
                 TrashedFilter::make(),
             ])

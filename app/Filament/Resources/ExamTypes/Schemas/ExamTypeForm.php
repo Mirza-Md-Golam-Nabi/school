@@ -108,12 +108,12 @@ class ExamTypeForm
                             ->required(fn (Get $get): bool => $get('type') === ExamConfigType::Supporting->value),
 
                         TextInput::make('contribution_percent')
-                            ->label('Contribution Percent')
-                            ->helperText('কতো % মার্কস যোগ হবে?')
+                            ->label('Contribution')
+                            ->helperText('কতো মার্কস যোগ হবে?')
                             ->numeric()
                             ->minValue(1)
                             ->maxValue(100)
-                            ->suffix('%')
+                            ->suffix('+')
                             ->visible(fn (Get $get): bool => $get('type') === ExamConfigType::Supporting->value)
                             ->required(fn (Get $get): bool => $get('type') === ExamConfigType::Supporting->value),
 
@@ -130,12 +130,12 @@ class ExamTypeForm
                     ->required(fn (Get $get): bool => $get('type') === ExamConfigType::Supporting->value),
 
                 TextInput::make('contribution_percent')
-                    ->label('Contribution Percent')
-                    ->helperText('কতো % মার্কস যোগ হবে?')
+                    ->label('Contribution')
+                    ->helperText('কতো মার্কস যোগ হবে?')
                     ->numeric()
                     ->minValue(1)
                     ->maxValue(100)
-                    ->suffix('%')
+                    ->suffix('+')
                     ->visible(fn (Get $get): bool => $get('type') === ExamConfigType::Supporting->value)
                     ->required(fn (Get $get): bool => $get('type') === ExamConfigType::Supporting->value),
 

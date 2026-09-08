@@ -4,46 +4,25 @@ namespace App\Filament\Resources\StudentProfiles\Pages;
 
 use App\Actions\UpdateStudentProfileAction;
 use App\Enums\OptionalSubjectRole;
+use App\Filament\Resources\StudentProfiles\Concerns\HasResetPasswordAction;
 use App\Filament\Resources\StudentProfiles\StudentProfileResource;
 use App\Models\StudentProfile;
-use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ForceDeleteAction;
 use Filament\Actions\RestoreAction;
-use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Database\Eloquent\Model;
 
 class EditStudentProfile extends EditRecord
 {
+    use HasResetPasswordAction;
+
     protected static string $resource = StudentProfileResource::class;
 
     protected function getHeaderActions(): array
     {
         return [
-            Action::make('resetPassword')
-                ->label('Reset Password')
-                ->icon('heroicon-o-key')
-                ->color('warning')
-                ->requiresConfirmation()
-                ->modalHeading('Password Reset করবেন?')
-                ->modalDescription('Password ডিফল্ট মানে ফিরিয়ে দেওয়া হবে এবং Recovery PIN মুছে যাবে। পরবর্তী লগইনে student-কে নতুন password ও PIN সেট করতে বাধ্য করা হবে।')
-                ->action(function (): void {
-                    /** @var StudentProfile $profile */
-                    $profile = $this->getRecord();
-
-                    $profile->user->update([
-                        'password' => 'password',
-                        'must_change_password' => true,
-                        'pin' => null,
-                    ]);
-
-                    Notification::make()
-                        ->title('Password reset হয়েছে')
-                        ->body('Default password: password')
-                        ->success()
-                        ->send();
-                }),
+            $this->resetPasswordAction('warning'),
 
             DeleteAction::make(),
             ForceDeleteAction::make(),
