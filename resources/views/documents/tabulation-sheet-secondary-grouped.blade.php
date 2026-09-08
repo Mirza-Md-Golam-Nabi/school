@@ -30,6 +30,13 @@
 
     $sealDataUri = $toDataUri(SchoolSetting::get('school_seal'));
     $signatureDataUri = $toDataUri(SchoolSetting::get('principal_signature'));
+
+    // Fixed-width columns (roll/name/total/gpa/grade/rank, + section/sec-rank
+    // when the class has sections) are reserved first; whatever percentage is
+    // left is split evenly across however many subjects that group's own
+    // block actually has — each group can offer a different subject count.
+    $reservedColumnsPercent = 4 + ($hasSections ? 6 + 6 : 0) + 6 + 5 + 5 + 5 + 12;
+    $subjectColumnWidth = fn (int $subjectCount): float => max((100 - $reservedColumnsPercent) / max($subjectCount, 1), 4);
 @endphp
 <!DOCTYPE html>
 <html>
@@ -96,6 +103,7 @@
 
         table.tabulation {
             width: 100%;
+            table-layout: fixed;
             border-collapse: collapse;
         }
 
@@ -104,13 +112,52 @@
             border: 1px solid #999;
             padding: 4px 5px;
             text-align: center;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
         }
 
         table.tabulation th {
             background: #f2f2f2;
         }
 
+        table.tabulation th.roll-col,
+        table.tabulation td.roll-col {
+            width: 4%;
+        }
+
+        table.tabulation th.section-col,
+        table.tabulation td.section-col {
+            width: 6%;
+        }
+
+        table.tabulation th.total-col,
+        table.tabulation td.total-col {
+            width: 6%;
+        }
+
+        table.tabulation th.gpa-col,
+        table.tabulation td.gpa-col {
+            width: 5%;
+        }
+
+        table.tabulation th.grade-col,
+        table.tabulation td.grade-col {
+            width: 5%;
+        }
+
+        table.tabulation th.rank-col,
+        table.tabulation td.rank-col {
+            width: 5%;
+        }
+
+        table.tabulation th.sec-rank-col,
+        table.tabulation td.sec-rank-col {
+            width: 6%;
+        }
+
+        table.tabulation th.name-col,
         table.tabulation td.name-col {
+            width: 12%;
             text-align: left;
         }
 
@@ -146,36 +193,38 @@
 
             <div class="group-heading">{{ $block['group']->name }} Group</div>
 
+            @php $blockSubjectWidth = $subjectColumnWidth($block['subjects']->count()); @endphp
+
             <table class="tabulation">
                 <thead>
                     <tr>
-                        <th>Roll</th>
-                        <th>Name</th>
+                        <th class="roll-col">Roll</th>
+                        <th class="name-col">Name</th>
                         @if ($hasSections)
-                            <th>Section</th>
+                            <th class="section-col">Section</th>
                         @endif
                         @foreach ($block['subjects'] as $subject)
-                            <th>{{ $subject->name }}</th>
+                            <th class="subject-col" style="width: {{ $blockSubjectWidth }}%">{{ $subject->name }}</th>
                         @endforeach
-                        <th>Total</th>
-                        <th>GPA</th>
-                        <th>Grade</th>
-                        <th>Rank</th>
+                        <th class="total-col">Total</th>
+                        <th class="gpa-col">GPA</th>
+                        <th class="grade-col">Grade</th>
+                        <th class="rank-col">Rank</th>
                         @if ($hasSections)
-                            <th>Sec. Rank</th>
+                            <th class="sec-rank-col">Sec. Rank</th>
                         @endif
                     </tr>
                 </thead>
                 <tbody>
                     @foreach ($block['rows'] as $row)
                         <tr>
-                            <td>{{ sprintf('%02d', $row['roll_no']) }}</td>
+                            <td class="roll-col">{{ sprintf('%02d', $row['roll_no']) }}</td>
                             <td class="name-col">{{ $row['name'] }}</td>
                             @if ($hasSections)
-                                <td>{{ $row['section_name'] ?? '-' }}</td>
+                                <td class="section-col">{{ $row['section_name'] ?? '-' }}</td>
                             @endif
                             @foreach ($block['subjects'] as $subject)
-                                <td>
+                                <td class="subject-col" style="width: {{ $blockSubjectWidth }}%">
                                     @if ($row['marks'][$subject->id]['is_absent'] ?? false)
                                         Absent
                                     @else
@@ -183,12 +232,12 @@
                                     @endif
                                 </td>
                             @endforeach
-                            <td>{{ $formatMark($row['total_marks']) }}</td>
-                            <td>{{ number_format($row['gpa'], 2) }}</td>
-                            <td>{{ $row['grade_label'] ?? '-' }}</td>
-                            <td>{{ $row['class_rank'] ?? '-' }}</td>
+                            <td class="total-col">{{ $formatMark($row['total_marks']) }}</td>
+                            <td class="gpa-col">{{ number_format($row['gpa'], 2) }}</td>
+                            <td class="grade-col">{{ $row['grade_label'] ?? '-' }}</td>
+                            <td class="rank-col">{{ $row['class_rank'] ?? '-' }}</td>
                             @if ($hasSections)
-                                <td>{{ $row['section_rank'] ?? '-' }}</td>
+                                <td class="sec-rank-col">{{ $row['section_rank'] ?? '-' }}</td>
                             @endif
                         </tr>
                     @endforeach

@@ -2,9 +2,14 @@
 
 namespace App\Filament\Resources\Exams\RelationManagers;
 
+use App\Enums\ClassLevel;
 use App\Models\GradeScale;
+use App\Models\StudentMeritRanking;
 use Filament\Actions\Action;
+use Filament\Forms\Components\Radio;
 use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\View as ViewComponent;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -59,6 +64,13 @@ class TabulationSheetRelationManager extends RelationManager
                     ->formatStateUsing(fn ($state): string => number_format((float) $state, 2))
                     ->color(fn ($state): string => GradeScale::fromGpa((float) $state)?->color ?? 'gray'),
 
+                TextColumn::make('grade')
+                    ->label('Grade')
+                    ->alignCenter()
+                    ->badge()
+                    ->state(fn (StudentMeritRanking $record): string => GradeScale::fromGpa((float) $record->gpa)?->letter_grade ?? '—')
+                    ->color(fn (StudentMeritRanking $record): string => GradeScale::fromGpa((float) $record->gpa)?->color ?? 'gray'),
+
                 TextColumn::make('class_rank')
                     ->label('Rank')
                     ->alignCenter()
@@ -72,9 +84,46 @@ class TabulationSheetRelationManager extends RelationManager
                     ->icon(Heroicon::OutlinedArrowDownTray)
                     ->color('info')
                     ->visible(fn (): bool => $this->getOwnerRecord()->meritRankings()->exists())
-                    ->url(fn (): string => route('exams.tabulation-sheet.download', ['exam' => $this->getOwnerRecord()])),
+                    ->schema([
+                        Section::make('Page Setup')
+                            ->schema([
+                                ViewComponent::make('filament.shared.orientation-preview'),
+
+                                Radio::make('orientation')
+                                    ->label('Orientation')
+                                    ->options([
+                                        'P' => 'Portrait',
+                                        'L' => 'Landscape',
+                                    ])
+                                    ->default(fn (): string => $this->getOwnerRecord()->class?->level === ClassLevel::Primary ? 'P' : 'L')
+                                    ->inline()
+                                    ->inlineLabel(false)
+                                    ->live()
+                                    ->required(),
+
+                                Radio::make('pageSize')
+                                    ->label('Page Size')
+                                    ->options([
+                                        'A4' => 'A4',
+                                        'A3' => 'A3',
+                                        'Legal' => 'Legal',
+                                    ])
+                                    ->default('A4')
+                                    ->inline()
+                                    ->inlineLabel(false)
+                                    ->required(),
+                            ]),
+                    ])
+                    ->modalWidth('md')
+                    ->modalHeading('Download Tabulation Sheet (PDF)')
+                    ->modalSubmitActionLabel('Download')
+                    ->action(fn (array $data) => $this->redirect(route('exams.tabulation-sheet.download', [
+                        'exam' => $this->getOwnerRecord(),
+                        'pageSize' => $data['pageSize'] ?? 'A4',
+                        'orientation' => $data['orientation'] ?? 'P',
+                    ]))),
             ])
-            ->defaultSort('class_rank')
+            ->defaultSort('student.roll_no')
             ->modifyQueryUsing(fn (Builder $query) => $query->with(['student.user', 'student.group', 'section']))
             ->emptyStateHeading('এখনো কোনো ranking calculate করা হয়নি')
             ->emptyStateDescription('আগে Exam-এর "Calculate Rankings" বাটন থেকে ranking calculate করুন।')

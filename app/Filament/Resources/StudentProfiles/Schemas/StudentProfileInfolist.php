@@ -46,6 +46,11 @@ class StudentProfileInfolist
                             ->icon(Heroicon::OutlinedBanknotes)
                             ->extraAttributes(['class' => 'text-xs sm:text-sm'])
                             ->schema(self::feeSummarySchema()),
+
+                        Tab::make('Subjects')
+                            ->icon(Heroicon::OutlinedBookOpen)
+                            ->extraAttributes(['class' => 'text-xs sm:text-sm'])
+                            ->schema(self::subjectsSchema()),
                     ]),
             ]);
     }
@@ -151,6 +156,18 @@ class StudentProfileInfolist
             ViewEntry::make('fee_summary')
                 ->hiddenLabel()
                 ->view('filament.resources.student-profiles.infolists.fee-summary'),
+        ];
+    }
+
+    /**
+     * @return array<int, ViewEntry>
+     */
+    private static function subjectsSchema(): array
+    {
+        return [
+            ViewEntry::make('subjects')
+                ->hiddenLabel()
+                ->view('filament.resources.student-profiles.infolists.subjects-list'),
         ];
     }
 }

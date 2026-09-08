@@ -32,8 +32,9 @@ class BuildExamTabulationSheetDetail
 
         $rankings = $exam->meritRankings()
             ->with(['student.user', 'student.group', 'section'])
-            ->orderBy('class_rank')
-            ->get();
+            ->get()
+            ->sortBy(fn (StudentMeritRanking $ranking): int => (int) $ranking->student?->roll_no)
+            ->values();
 
         if ($rankings->isEmpty()) {
             return [
