@@ -25,7 +25,7 @@ enum ClassLevel: string implements HasColor, HasLabel
     public function getColor(): string
     {
         return match ($this) {
-            self::PrePrimary => 'gray',
+            self::PrePrimary => 'danger',
             self::Primary => 'primary',
             self::Secondary => 'info',
             self::College => 'success',
