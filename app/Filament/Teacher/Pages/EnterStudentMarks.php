@@ -2,10 +2,10 @@
 
 namespace App\Filament\Teacher\Pages;
 
+use App\Actions\ResolveEligibleStudentsForSubject;
 use App\Filament\Teacher\Resources\Exams\ExamResource;
 use App\Models\Exam;
 use App\Models\ExamSubjectConfig;
-use App\Models\StudentProfile;
 use App\Models\StudentResult;
 use App\Models\Subject;
 use BackedEnum;
@@ -102,11 +102,7 @@ class EnterStudentMarks extends Page
 
     public function getStudents(): Collection
     {
-        return StudentProfile::with('user')
-            ->where('current_class_id', $this->classId)
-            ->active()
-            ->orderBy('roll_no')
-            ->get();
+        return app(ResolveEligibleStudentsForSubject::class)->execute($this->classId, $this->subjectId);
     }
 
     public function getSubjectConfig(): ?ExamSubjectConfig

@@ -18,6 +18,7 @@ class ClassesTable
     {
         return $table
             ->defaultSort('order')
+            ->paginated(false)
             ->columns([
                 TextColumn::make('name')
                     ->searchable(),

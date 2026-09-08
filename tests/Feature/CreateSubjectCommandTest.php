@@ -35,7 +35,7 @@ it('creates the secondary and college level subjects together without duplicatin
         // College-only subject.
         ->and(Subject::where('name', 'Logic')->exists())->toBeTrue()
         // Secondary-only subject.
-        ->and(Subject::where('name', 'Career Education')->exists())->toBeTrue();
+        ->and(Subject::where('name', 'Bangla 1st Paper')->exists())->toBeTrue();
 });
 
 it('does not duplicate or overwrite an already-existing subject when run again', function () {
