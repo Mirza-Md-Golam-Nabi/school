@@ -13,6 +13,12 @@ class ClassGroup extends Pivot
     use LogsActivity;
     use LogsRelationLabels;
 
+    /**
+     * class_groups has its own auto-incrementing `id` — see ClassGroupSubject
+     * for why Pivot's default (false) breaks a later re-select by key.
+     */
+    public $incrementing = true;
+
     protected $table = 'class_groups';
 
     protected $fillable = [

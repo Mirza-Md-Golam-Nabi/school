@@ -18,6 +18,17 @@ class ClassGroupSubject extends Pivot
     use LogsActivity;
     use LogsRelationLabels;
 
+    /**
+     * The class_group_subject table has its own auto-incrementing `id`
+     * primary key (not just the class_id/group_id/subject_id composite).
+     * Pivot defaults this to false, which skips capturing the generated id
+     * after insert — breaking any later re-select by key (e.g. Activitylog's
+     * fresh() call after a "created" event) when this model is queried
+     * directly (firstOrCreate/create) rather than through the belongsToMany
+     * relationship that would otherwise set the pivot keys for us.
+     */
+    public $incrementing = true;
+
     protected $fillable = [
         'class_id',
         'group_id',
