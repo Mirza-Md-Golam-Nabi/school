@@ -32,6 +32,7 @@ class ClassSeeder extends Seeder
             $class = Classes::firstOrCreate(
                 ['name' => $config['name']],
                 [
+                    'name_bn' => $config['name_bn'] ?? null,
                     'level' => $config['level'],
                     'order' => $config['order'],
                     'class_teacher_id' => $teachers->get($index)?->id,
@@ -54,13 +55,17 @@ class ClassSeeder extends Seeder
     /** @return Collection<int, Group> */
     private function createGroups(): Collection
     {
-        $groupNames = ['Science', 'Commerce', 'Humanities'];
+        $groups = [
+            'Science' => 'বিজ্ঞান',
+            'Commerce' => 'ব্যবসায় শিক্ষা',
+            'Humanities' => 'মানবিক',
+        ];
 
-        foreach ($groupNames as $name) {
-            Group::firstOrCreate(['name' => $name], ['is_active' => true]);
+        foreach ($groups as $name => $nameBn) {
+            Group::firstOrCreate(['name' => $name], ['name_bn' => $nameBn, 'is_active' => true]);
         }
 
-        return Group::whereIn('name', $groupNames)->get();
+        return Group::whereIn('name', array_keys($groups))->get();
     }
 
     private function createSections(Classes $class): void
