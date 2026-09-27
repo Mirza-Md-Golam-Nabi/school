@@ -21,11 +21,24 @@ class ClassDefinitions
     public static function prePrimary(): array
     {
         return [
-            ['name' => 'Play', 'level' => ClassLevel::PrePrimary, 'order' => -2],
-            ['name' => 'Nursery', 'level' => ClassLevel::PrePrimary, 'order' => -1],
-            ['name' => 'K.G', 'level' => ClassLevel::PrePrimary, 'order' => 0],
+            ['name' => 'Play', 'name_bn' => 'প্লে', 'level' => ClassLevel::PrePrimary, 'order' => -2],
+            ['name' => 'Nursery', 'name_bn' => 'নার্সারি', 'level' => ClassLevel::PrePrimary, 'order' => -1],
+            ['name' => 'K.G', 'name_bn' => 'কে.জি', 'level' => ClassLevel::PrePrimary, 'order' => 0],
         ];
     }
+
+    /**
+     * Bengali ordinal class names ("প্রথম শ্রেণি", "দ্বিতীয় শ্রেণি", ...) used across
+     * primary/secondary/college, keyed by class order — matches the naming
+     * convention on Bangladeshi report cards/marksheets.
+     *
+     * @var array<int, string>
+     */
+    private const BENGALI_ORDINALS = [
+        1 => 'প্রথম', 2 => 'দ্বিতীয়', 3 => 'তৃতীয়', 4 => 'চতুর্থ', 5 => 'পঞ্চম',
+        6 => 'ষষ্ঠ', 7 => 'সপ্তম', 8 => 'অষ্টম', 9 => 'নবম', 10 => 'দশম',
+        11 => 'একাদশ', 12 => 'দ্বাদশ',
+    ];
 
     /**
      * Primary level — Class 1 through Class 5, no section or group.
@@ -37,6 +50,7 @@ class ClassDefinitions
         return collect(range(1, 5))
             ->map(fn (int $order): array => [
                 'name' => "Class {$order}",
+                'name_bn' => self::BENGALI_ORDINALS[$order],
                 'level' => ClassLevel::Primary,
                 'order' => $order,
             ])
@@ -54,6 +68,7 @@ class ClassDefinitions
         return collect(range(6, 10))
             ->map(fn (int $order): array => [
                 'name' => "Class {$order}",
+                'name_bn' => self::BENGALI_ORDINALS[$order],
                 'level' => ClassLevel::Secondary,
                 'order' => $order,
                 'has_section' => true,
@@ -73,6 +88,7 @@ class ClassDefinitions
         return collect(range(11, 12))
             ->map(fn (int $order): array => [
                 'name' => "Class {$order}",
+                'name_bn' => self::BENGALI_ORDINALS[$order],
                 'level' => ClassLevel::College,
                 'order' => $order,
                 'has_group' => true,

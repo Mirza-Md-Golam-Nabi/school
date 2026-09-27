@@ -98,9 +98,9 @@ class BuildClassStudentListPdfAction
             StudentListColumn::GuardianOccupation => $student->guardian_occupation ?? '-',
             StudentListColumn::GuardianPhone => $student->guardian_phone ?? '-',
             StudentListColumn::MainSubject => $student->optionalSubjects
-                ->firstWhere('role', OptionalSubjectRole::MainOptional)?->subject?->name ?? '-',
+                ->firstWhere('role', OptionalSubjectRole::MainOptional)?->subject?->display_name ?? '-',
             StudentListColumn::AdditionalSubject => $student->optionalSubjects
-                ->firstWhere('role', OptionalSubjectRole::ExtraOptional)?->subject?->name ?? '-',
+                ->firstWhere('role', OptionalSubjectRole::ExtraOptional)?->subject?->display_name ?? '-',
         };
     }
 }

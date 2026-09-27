@@ -188,10 +188,10 @@
             </div>
             <div class="exam-info">
                 <div class="title">Tabulation Sheet</div>
-                <div class="subtitle">{{ $exam->examType?->name }} - {{ $exam->class?->name }} ({{ $exam->session_year }})</div>
+                <div class="subtitle">{{ $exam->examType?->name }} - {{ $exam->class?->display_name }} ({{ $exam->session_year }})</div>
             </div>
 
-            <div class="group-heading">{{ $block['group']->name }} Group</div>
+            <div class="group-heading">{{ $block['group']->display_name }} {{ __('Group') }}</div>
 
             @php $blockSubjectWidth = $subjectColumnWidth($block['subjects']->count()); @endphp
 
@@ -204,7 +204,7 @@
                             <th class="section-col">Section</th>
                         @endif
                         @foreach ($block['subjects'] as $subject)
-                            <th class="subject-col" style="width: {{ $blockSubjectWidth }}%">{{ $subject->name }}</th>
+                            <th class="subject-col" style="width: {{ $blockSubjectWidth }}%">{{ $subject->display_name }}</th>
                         @endforeach
                         <th class="total-col">Total</th>
                         <th class="gpa-col">GPA</th>

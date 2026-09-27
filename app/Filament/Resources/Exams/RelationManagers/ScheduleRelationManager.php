@@ -40,7 +40,7 @@ class ScheduleRelationManager extends RelationManager
                     ->options(fn () => Subject::whereHas(
                         'classes',
                         fn (Builder $q) => $q->where('classes.id', $classId)
-                    )->pluck('name', 'id'))
+                    )->get()->pluck('display_name', 'id'))
                     ->searchable()
                     ->native(false)
                     ->required()
@@ -69,6 +69,7 @@ class ScheduleRelationManager extends RelationManager
             ->columns([
                 TextColumn::make('subject.name')
                     ->label('Subject')
+                    ->formatStateUsing(fn ($record) => $record->subject?->display_name)
                     ->searchable(),
 
                 TextColumn::make('exam_date')
@@ -96,12 +97,27 @@ class ScheduleRelationManager extends RelationManager
                                     ->inlineLabel(false)
                                     ->required(),
                             ]),
+
+                        Section::make('Document Language')
+                            ->schema([
+                                Radio::make('subjectLanguage')
+                                    ->hiddenLabel()
+                                    ->options([
+                                        'en' => 'English',
+                                        'bn' => 'বাংলা',
+                                    ])
+                                    ->default(fn (): string => app()->getLocale())
+                                    ->inline()
+                                    ->inlineLabel(false)
+                                    ->required(),
+                            ]),
                     ])
                     ->modalHeading('Download Schedule (PDF)')
                     ->modalSubmitActionLabel('Download')
                     ->action(fn (array $data) => $this->redirect(route('exams.schedule.download', [
                         'exam' => $this->getOwnerRecord(),
                         'pageSize' => $data['pageSize'] ?? 'A5',
+                        'subjectLanguage' => $data['subjectLanguage'] ?? 'en',
                     ]))),
 
                 CreateAction::make()

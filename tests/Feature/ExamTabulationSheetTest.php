@@ -308,7 +308,7 @@ it('defaults the download modal to A4 page size and portrait orientation for a p
 
     Livewire::test(TabulationSheetRelationManager::class, ['ownerRecord' => $exam, 'pageClass' => EditExam::class])
         ->callAction(TestAction::make('downloadTabulationSheet')->table())
-        ->assertRedirect(route('exams.tabulation-sheet.download', ['exam' => $exam, 'pageSize' => 'A4', 'orientation' => 'P']));
+        ->assertRedirect(route('exams.tabulation-sheet.download', ['exam' => $exam, 'pageSize' => 'A4', 'orientation' => 'P', 'subjectLanguage' => 'en']));
 });
 
 it('defaults the download modal to landscape orientation for a class 9-10 style class', function () {
@@ -322,7 +322,7 @@ it('defaults the download modal to landscape orientation for a class 9-10 style 
 
     Livewire::test(TabulationSheetRelationManager::class, ['ownerRecord' => $exam, 'pageClass' => EditExam::class])
         ->callAction(TestAction::make('downloadTabulationSheet')->table())
-        ->assertRedirect(route('exams.tabulation-sheet.download', ['exam' => $exam, 'pageSize' => 'A4', 'orientation' => 'L']));
+        ->assertRedirect(route('exams.tabulation-sheet.download', ['exam' => $exam, 'pageSize' => 'A4', 'orientation' => 'L', 'subjectLanguage' => 'en']));
 });
 
 it('redirects to the download route with the selected page size and orientation', function () {
@@ -336,7 +336,7 @@ it('redirects to the download route with the selected page size and orientation'
 
     Livewire::test(TabulationSheetRelationManager::class, ['ownerRecord' => $exam, 'pageClass' => EditExam::class])
         ->callAction(TestAction::make('downloadTabulationSheet')->table(), ['pageSize' => 'Legal', 'orientation' => 'L'])
-        ->assertRedirect(route('exams.tabulation-sheet.download', ['exam' => $exam, 'pageSize' => 'Legal', 'orientation' => 'L']));
+        ->assertRedirect(route('exams.tabulation-sheet.download', ['exam' => $exam, 'pageSize' => 'Legal', 'orientation' => 'L', 'subjectLanguage' => 'en']));
 });
 
 it('honors an explicit A3 landscape choice when building the PDF', function () {

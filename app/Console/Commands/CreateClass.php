@@ -40,6 +40,7 @@ class CreateClass extends Command
                 $record = Classes::firstOrCreate(
                     ['name' => $class['name']],
                     [
+                        'name_bn' => $class['name_bn'] ?? null,
                         'level' => $class['level'],
                         'order' => $class['order'],
                         'has_section' => $class['has_section'] ?? false,

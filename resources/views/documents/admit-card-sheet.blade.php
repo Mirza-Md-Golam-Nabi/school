@@ -205,7 +205,7 @@
                                                     </tr>
                                                     <tr>
                                                         <td class="label">Class</td>
-                                                        <td>{{ $student->class?->name }}</td>
+                                                        <td>{{ $student->class?->display_name }}</td>
                                                     </tr>
                                                     <tr>
                                                         <td class="label">Roll No</td>

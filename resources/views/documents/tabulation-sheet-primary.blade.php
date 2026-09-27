@@ -174,7 +174,7 @@
     </div>
     <div class="exam-info">
         <div class="title">Tabulation Sheet</div>
-        <div class="subtitle">{{ $exam->examType?->name }} - {{ $exam->class?->name }} ({{ $exam->session_year }})</div>
+        <div class="subtitle">{{ $exam->examType?->name }} - {{ $exam->class?->display_name }} ({{ $exam->session_year }})</div>
     </div>
 
     <table class="tabulation">
@@ -186,7 +186,7 @@
                     <th class="section-col">Section</th>
                 @endif
                 @foreach ($subjects as $subject)
-                    <th class="subject-col" style="width: {{ $subjectColumnWidth }}%">{{ $subject->name }}</th>
+                    <th class="subject-col" style="width: {{ $subjectColumnWidth }}%">{{ $subject->display_name }}</th>
                 @endforeach
                 <th class="total-col">Total</th>
                 <th class="gpa-col">GPA</th>

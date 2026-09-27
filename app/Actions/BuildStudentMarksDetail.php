@@ -91,7 +91,7 @@ class BuildStudentMarksDetail
                 $groupId
             );
 
-            $subjectName = $result->subject?->name ?? '—';
+            $subjectName = $result->subject?->display_name ?? '—';
 
             if ($isExtraOptional) {
                 $subjectName .= ' (Additional)';

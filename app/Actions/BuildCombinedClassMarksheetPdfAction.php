@@ -7,6 +7,7 @@ use App\Models\Exam;
 use App\Models\Marksheet;
 use App\Models\StudentMeritRanking;
 use App\Support\Concerns\BuildsMpdfDocuments;
+use Illuminate\Support\Facades\App;
 
 class BuildCombinedClassMarksheetPdfAction
 {
@@ -16,8 +17,11 @@ class BuildCombinedClassMarksheetPdfAction
      * Combine every already-generated marksheet for this class + exam into one
      * PDF, one student per page, reusing the same per-student layout and data
      * as the individual marksheet PDFs.
+     *
+     * $subjectLanguage controls only this combined PDF's document language —
+     * independent of whatever language each marksheet was originally generated in.
      */
-    public function handle(Classes $class, Exam $exam): string
+    public function handle(Classes $class, Exam $exam, string $subjectLanguage = 'en'): string
     {
         $marksheets = Marksheet::where('exam_id', $exam->id)
             ->where('is_generated', true)
@@ -31,28 +35,35 @@ class BuildCombinedClassMarksheetPdfAction
 
         $mpdf = $this->makeMpdf();
 
-        foreach ($marksheets as $index => $marksheet) {
-            $ranking = StudentMeritRanking::where('exam_id', $marksheet->exam_id)
-                ->where('student_id', $marksheet->student_id)
-                ->first();
+        $currentLocale = App::getLocale();
+        App::setLocale(array_key_exists($subjectLanguage, config('app.available_locales')) ? $subjectLanguage : 'en');
 
-            if (! $ranking) {
-                continue;
+        try {
+            foreach ($marksheets as $index => $marksheet) {
+                $ranking = StudentMeritRanking::where('exam_id', $marksheet->exam_id)
+                    ->where('student_id', $marksheet->student_id)
+                    ->first();
+
+                if (! $ranking) {
+                    continue;
+                }
+
+                ['rows' => $rows, 'summary' => $summary] = app(BuildStudentMarksDetail::class)->handle($ranking);
+
+                $html = view('documents.marksheet', [
+                    'marksheet' => $marksheet,
+                    'rows' => $rows,
+                    'summary' => $summary,
+                ])->render();
+
+                if ($index > 0) {
+                    $mpdf->AddPage();
+                }
+
+                $mpdf->WriteHTML($html);
             }
-
-            ['rows' => $rows, 'summary' => $summary] = app(BuildStudentMarksDetail::class)->handle($ranking);
-
-            $html = view('documents.marksheet', [
-                'marksheet' => $marksheet,
-                'rows' => $rows,
-                'summary' => $summary,
-            ])->render();
-
-            if ($index > 0) {
-                $mpdf->AddPage();
-            }
-
-            $mpdf->WriteHTML($html);
+        } finally {
+            App::setLocale($currentLocale);
         }
 
         return $this->outputMpdfString($mpdf);

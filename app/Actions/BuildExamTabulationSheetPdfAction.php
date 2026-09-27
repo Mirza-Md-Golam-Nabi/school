@@ -4,6 +4,7 @@ namespace App\Actions;
 
 use App\Models\Exam;
 use App\Support\Concerns\BuildsMpdfDocuments;
+use Illuminate\Support\Facades\App;
 
 class BuildExamTabulationSheetPdfAction
 {
@@ -25,8 +26,10 @@ class BuildExamTabulationSheetPdfAction
      * $pageSize/$orientation come from the user's download-modal choice; an
      * unrecognized/omitted $orientation falls back to the layout's own
      * auto-detected orientation (portrait for Primary, landscape otherwise).
+     * $subjectLanguage controls only the subject names printed on the PDF
+     * (via Subject::display_name) — independent of the admin's own UI locale.
      */
-    public function handle(Exam $exam, string $pageSize = 'A4', ?string $orientation = null): string
+    public function handle(Exam $exam, string $pageSize = 'A4', ?string $orientation = null, string $subjectLanguage = 'en'): string
     {
         $detail = $this->buildDetail->handle($exam);
 
@@ -37,7 +40,14 @@ class BuildExamTabulationSheetPdfAction
 
         $mpdf = $this->makeMpdf($resolvedPageSize, $resolvedOrientation);
 
-        $html = view($detail['view'], $detail)->render();
+        $currentLocale = App::getLocale();
+        App::setLocale(array_key_exists($subjectLanguage, config('app.available_locales')) ? $subjectLanguage : 'en');
+
+        try {
+            $html = view($detail['view'], $detail)->render();
+        } finally {
+            App::setLocale($currentLocale);
+        }
 
         $mpdf->WriteHTML($html);
 

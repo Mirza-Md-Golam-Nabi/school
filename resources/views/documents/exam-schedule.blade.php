@@ -1,5 +1,6 @@
 @php
     use App\Models\SchoolSetting;
+    use App\Support\BengaliNumber;
     use Illuminate\Support\Facades\Storage;
 
     $schoolName = SchoolSetting::get('school_name', '');
@@ -137,24 +138,24 @@
         @endif
     </div>
     <div class="exam-info">
-        <div class="title">Exam Schedule</div>
-        <div class="subtitle">{{ $exam->examType?->name }} - {{ $exam->class?->name }} ({{ $exam->session_year }})</div>
+        <div class="title">{{ __('Exam Schedule') }}</div>
+        <div class="subtitle">{{ $exam->examType?->name }} - {{ $exam->class?->display_name }} ({{ BengaliNumber::localize((string) $exam->session_year) }})</div>
     </div>
 
     <table class="schedule">
         <thead>
             <tr>
-                <th>Subject</th>
-                <th class="date-col">Date</th>
-                <th class="day-col">Day</th>
+                <th>{{ __('Subject') }}</th>
+                <th class="date-col">{{ __('Date') }}</th>
+                <th class="day-col">{{ __('Day') }}</th>
             </tr>
         </thead>
         <tbody>
             @foreach ($schedules as $schedule)
                 <tr>
-                    <td>{{ $schedule->subject?->name }}</td>
-                    <td class="date-col">{{ $schedule->exam_date->format('d M Y') }}</td>
-                    <td class="day-col">{{ $schedule->exam_date->format('l') }}</td>
+                    <td>{{ $schedule->subject?->display_name }}</td>
+                    <td class="date-col">{{ BengaliNumber::localize($schedule->exam_date->translatedFormat('d F Y')) }}</td>
+                    <td class="day-col">{{ $schedule->exam_date->translatedFormat('l') }}</td>
                 </tr>
             @endforeach
         </tbody>
@@ -164,7 +165,7 @@
         <tr>
             <td>
                 <br><br><br>
-                Class Teacher
+                {{ __('Class Teacher') }}
             </td>
             <td>
                 @if ($sealDataUri)
@@ -172,7 +173,7 @@
                 @else
                     <br><br>
                 @endif
-                School Seal
+                {{ __('School Seal') }}
             </td>
             <td>
                 @if ($signatureDataUri)
@@ -180,7 +181,7 @@
                 @else
                     <br><br>
                 @endif
-                Principal's Signature
+                {{ __("Principal's Signature") }}
             </td>
         </tr>
     </table>

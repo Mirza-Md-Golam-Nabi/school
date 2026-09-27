@@ -68,7 +68,7 @@ class EnterStudentMarks extends Page
     {
         $subject = Subject::find($this->subjectId);
 
-        return 'Enter Marks — '.($subject?->name ?? 'Subject');
+        return 'Enter Marks — '.($subject?->display_name ?? 'Subject');
     }
 
     public function getBreadcrumbs(): array

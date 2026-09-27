@@ -75,5 +75,5 @@ it('redirects to the download route when at least one marksheet has been generat
         ->mountAction('downloadAllMarksheets')
         ->setActionData(['exam_id' => $exam->id])
         ->callMountedAction()
-        ->assertRedirect(route('marksheets.class.download', ['class' => $class->id, 'exam' => $exam->id]));
+        ->assertRedirect(route('marksheets.class.download', ['class' => $class->id, 'exam' => $exam->id, 'subjectLanguage' => 'en']));
 });

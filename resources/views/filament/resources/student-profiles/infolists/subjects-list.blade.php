@@ -12,7 +12,7 @@
 
     $compulsorySubjects = $classGroupSubjects
         ->filter(fn ($classGroupSubject) => $classGroupSubject->group_id === null && $classGroupSubject->subject_type === SubjectType::Compulsory)
-        ->pluck('subject.name')
+        ->pluck('subject.display_name')
         ->filter()
         ->unique()
         ->sort()
@@ -20,14 +20,14 @@
 
     $groupCompulsorySubjects = $classGroupSubjects
         ->filter(fn ($classGroupSubject) => $classGroupSubject->group_id !== null && $classGroupSubject->subject_type === SubjectType::Compulsory)
-        ->pluck('subject.name')
+        ->pluck('subject.display_name')
         ->filter();
 
     $optionalSelections = $student->optionalSubjects()->with('subject')->get();
 
     $mainOptionalSubjects = $optionalSelections
         ->where('role', OptionalSubjectRole::MainOptional)
-        ->pluck('subject.name')
+        ->pluck('subject.display_name')
         ->filter();
 
     $groupSubjects = $groupCompulsorySubjects
@@ -38,7 +38,7 @@
 
     $additionalSubjects = $optionalSelections
         ->where('role', OptionalSubjectRole::ExtraOptional)
-        ->pluck('subject.name')
+        ->pluck('subject.display_name')
         ->filter()
         ->values();
 

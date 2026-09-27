@@ -112,6 +112,17 @@ class TabulationSheetRelationManager extends RelationManager
                                     ->inline()
                                     ->inlineLabel(false)
                                     ->required(),
+
+                                Radio::make('subjectLanguage')
+                                    ->label('Subject Name Language')
+                                    ->options([
+                                        'en' => 'English',
+                                        'bn' => 'বাংলা',
+                                    ])
+                                    ->default(fn (): string => app()->getLocale())
+                                    ->inline()
+                                    ->inlineLabel(false)
+                                    ->required(),
                             ]),
                     ])
                     ->modalWidth('md')
@@ -121,6 +132,7 @@ class TabulationSheetRelationManager extends RelationManager
                         'exam' => $this->getOwnerRecord(),
                         'pageSize' => $data['pageSize'] ?? 'A4',
                         'orientation' => $data['orientation'] ?? 'P',
+                        'subjectLanguage' => $data['subjectLanguage'] ?? 'en',
                     ]))),
             ])
             ->defaultSort('student.roll_no')

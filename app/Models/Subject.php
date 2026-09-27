@@ -19,6 +19,7 @@ class Subject extends Model
 
     protected $fillable = [
         'name',
+        'name_bn',
         'code',
         'has_mcq',
         'has_written',
@@ -55,6 +56,18 @@ class Subject extends Model
     public function scopeActive(Builder $query)
     {
         return $query->where('is_active', true);
+    }
+
+    /**
+     * Locale-aware subject name — বাংলা locale-এ name_bn (fallback: name), অন্যথায় name।
+     */
+    public function getDisplayNameAttribute(): string
+    {
+        if (app()->getLocale() === 'bn' && filled($this->name_bn)) {
+            return $this->name_bn;
+        }
+
+        return $this->name;
     }
 
     public function getActivitylogOptions(): LogOptions

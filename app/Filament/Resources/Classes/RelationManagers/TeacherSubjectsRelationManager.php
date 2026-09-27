@@ -90,6 +90,7 @@ class TeacherSubjectsRelationManager extends RelationManager
 
                 TextColumn::make('subject.name')
                     ->label('Subject')
+                    ->formatStateUsing(fn ($record) => $record->subject?->display_name)
                     ->searchable()
                     ->sortable(),
 

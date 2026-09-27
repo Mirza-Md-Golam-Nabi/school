@@ -20,8 +20,9 @@ class ExamSchedulePdfController extends Controller
         $exam->loadMissing(['examType', 'class']);
 
         $pageSize = (string) $request->query('pageSize', 'A4');
+        $subjectLanguage = (string) $request->query('subjectLanguage', 'en');
 
-        $pdf = $action->handle($exam, $pageSize);
+        $pdf = $action->handle($exam, $pageSize, $subjectLanguage);
 
         $filename = "exam-schedule-{$this->sanitizeFilenameSegment($exam->class?->name ?? 'Class')}-{$this->sanitizeFilenameSegment($exam->examType?->name ?? 'Exam')}-{$exam->session_year}.pdf";
 

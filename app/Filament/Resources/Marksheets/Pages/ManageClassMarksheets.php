@@ -8,9 +8,11 @@ use App\Models\Classes;
 use App\Models\Exam;
 use App\Models\Marksheet;
 use Filament\Actions\Action;
+use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
+use Filament\Schemas\Components\Section;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Contracts\Support\Htmlable;
@@ -66,6 +68,20 @@ class ManageClassMarksheets extends ListRecords
                         ->searchable()
                         ->native(false)
                         ->required(),
+
+                    Section::make('Document Language')
+                        ->schema([
+                            Radio::make('subjectLanguage')
+                                ->hiddenLabel()
+                                ->options([
+                                    'en' => 'English',
+                                    'bn' => 'বাংলা',
+                                ])
+                                ->default(fn (): string => app()->getLocale())
+                                ->inline()
+                                ->inlineLabel(false)
+                                ->required(),
+                        ]),
                 ])
                 ->modalHeading(fn (): string => 'Generate Marksheets — '.(Classes::query()->find($this->classId)?->name ?? 'Class'))
                 ->modalDescription('Marksheets will be generated for every active student in this class who already has a calculated ranking for the selected exam.')
@@ -74,7 +90,7 @@ class ManageClassMarksheets extends ListRecords
                     $exam = Exam::findOrFail($data['exam_id']);
 
                     $result = app(GenerateMarksheetsForExamAction::class)
-                        ->handle($exam, auth()->id());
+                        ->handle($exam, auth()->id(), $data['subjectLanguage'] ?? 'en');
 
                     Notification::make()
                         ->title('Marksheet generation queued')
@@ -102,6 +118,20 @@ class ManageClassMarksheets extends ListRecords
                         ->searchable()
                         ->native(false)
                         ->required(),
+
+                    Section::make('Document Language')
+                        ->schema([
+                            Radio::make('subjectLanguage')
+                                ->hiddenLabel()
+                                ->options([
+                                    'en' => 'English',
+                                    'bn' => 'বাংলা',
+                                ])
+                                ->default(fn (): string => app()->getLocale())
+                                ->inline()
+                                ->inlineLabel(false)
+                                ->required(),
+                        ]),
                 ])
                 ->modalHeading(fn (): string => 'Download All Marksheets — '.(Classes::query()->find($this->classId)?->name ?? 'Class'))
                 ->modalDescription('আগে থেকে generate করা সব marksheet একটা PDF-এ, প্রতি student আলাদা পেজে, combine করে download হবে।')
@@ -127,6 +157,7 @@ class ManageClassMarksheets extends ListRecords
                     $this->redirect(route('marksheets.class.download', [
                         'class' => $this->classId,
                         'exam' => $examId,
+                        'subjectLanguage' => $data['subjectLanguage'] ?? 'en',
                     ]));
                 }),
         ];
