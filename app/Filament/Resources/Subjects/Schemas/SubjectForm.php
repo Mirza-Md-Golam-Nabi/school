@@ -16,19 +16,23 @@ class SubjectForm
                 Section::make('Subject Information')
                     ->schema([
                         TextInput::make('name')
-                            ->label('Subject Name')
+                            ->label('Subject Name (English)')
                             ->placeholder('e.g. Mathematics')
                             ->required()
+                            ->maxLength(100),
+
+                        TextInput::make('name_bn')
+                            ->label('Subject Name (Bengali)')
+                            ->placeholder('যেমন: গণিত')
                             ->maxLength(100),
 
                         TextInput::make('code')
                             ->label('Subject Code')
                             ->placeholder('e.g. MAT')
-                            ->required()
                             ->unique(ignoreRecord: true)
                             ->maxLength(20)
                             ->extraInputAttributes(['style' => 'text-transform: uppercase'])
-                            ->dehydrateStateUsing(fn ($state) => strtoupper($state)),
+                            ->dehydrateStateUsing(fn (?string $state) => filled($state) ? strtoupper($state) : null),
                     ])
                     ->columns([
                         'sm' => 1,

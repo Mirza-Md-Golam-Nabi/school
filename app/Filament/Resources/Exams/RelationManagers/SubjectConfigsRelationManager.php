@@ -45,7 +45,7 @@ class SubjectConfigsRelationManager extends RelationManager
         $subjectOptions = Subject::whereHas(
             'classes',
             fn (Builder $q) => $q->where('classes.id', $classId)
-        )->pluck('name', 'id')->toArray();
+        )->get()->pluck('display_name', 'id')->toArray();
 
         $sourceRule = ExamContributeRule::where('source_exam_type_id', $exam->exam_type_id)
             ->where('class_id', $classId)
@@ -248,6 +248,7 @@ class SubjectConfigsRelationManager extends RelationManager
             ->columns([
                 TextColumn::make('subject.name')
                     ->label('Subject')
+                    ->formatStateUsing(fn ($record) => $record->subject?->display_name)
                     ->searchable(),
 
                 TextColumn::make('total_marks')

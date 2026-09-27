@@ -80,7 +80,7 @@ class ClassGroupSubject extends Pivot
             ->where('class_id', $classId)
             ->with('subject')
             ->get()
-            ->pluck('subject.name', 'subject_id')
+            ->pluck('subject.display_name', 'subject_id')
             ->unique()
             ->filter();
     }
@@ -116,7 +116,7 @@ class ClassGroupSubject extends Pivot
             })
             ->with('subject')
             ->get()
-            ->pluck('subject.name', 'subject_id');
+            ->pluck('subject.display_name', 'subject_id');
     }
 
     public function getActivitylogOptions(): LogOptions

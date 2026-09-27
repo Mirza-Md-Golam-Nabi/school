@@ -40,6 +40,11 @@ class SubjectsTable
                     ->searchable()
                     ->sortable(),
 
+                TextColumn::make('name_bn')
+                    ->label('Subject Name (Bengali)')
+                    ->searchable()
+                    ->toggleable(),
+
                 IconColumn::make('has_written')
                     ->label('Written')
                     ->boolean()

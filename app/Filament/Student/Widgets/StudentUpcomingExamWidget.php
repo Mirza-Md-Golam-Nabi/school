@@ -46,7 +46,7 @@ class StudentUpcomingExamWidget extends Widget
                 'schedules' => $exam->schedules
                     ->sortBy('exam_date')
                     ->map(fn (ExamSchedule $schedule): array => [
-                        'subject' => $schedule->subject?->name ?? __('Subject'),
+                        'subject' => $schedule->subject?->display_name ?? __('Subject'),
                         'date' => $schedule->exam_date?->format('d M, Y (D)'),
                     ])
                     ->values(),

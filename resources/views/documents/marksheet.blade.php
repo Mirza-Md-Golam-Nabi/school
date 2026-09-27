@@ -1,6 +1,7 @@
 @php
     use App\Models\GradeScale;
     use App\Models\SchoolSetting;
+    use App\Support\BengaliNumber;
     use Illuminate\Support\Facades\Storage;
 
     $student = $marksheet->student;
@@ -245,39 +246,39 @@
             @endif
         </div>
 
-        <div class="title">Marksheet - {{ $exam->examType?->name }} {{ $exam->session_year }}</div>
+        <div class="title">{{ __('Marksheet') }} - {{ $exam->examType?->name }} {{ BengaliNumber::localize((string) $exam->session_year) }}</div>
 
         <table class="top-section">
             <tr>
                 <td class="info-col">
                     <table class="info">
                         <tr>
-                            <td class="label">Student Name</td>
+                            <td class="label">{{ __('Student Name') }}</td>
                             <td colspan="3">{{ $student->user?->name }}</td>
                         </tr>
                         <tr>
-                            <td class="label">Class</td>
-                            <td>{{ $student->class?->name }}</td>
+                            <td class="label">{{ __('Class') }}</td>
+                            <td>{{ $student->class?->display_name }}</td>
                         </tr>
                         <tr>
-                            <td class="label">Roll No</td>
-                            <td>{{ sprintf('%02d', $student->roll_no) }}</td>
+                            <td class="label">{{ __('Roll No') }}</td>
+                            <td>{{ BengaliNumber::localize(sprintf('%02d', $student->roll_no)) }}</td>
                         </tr>
                         @if ($student->group)
                             <tr>
-                                <td class="label">Group</td>
-                                <td colspan="3">{{ $student->group?->name }}</td>
+                                <td class="label">{{ __('Group') }}</td>
+                                <td colspan="3">{{ $student->group?->display_name }}</td>
                             </tr>
                         @endif
                         @if ($student->section)
                             <tr>
-                                <td class="label">Section</td>
+                                <td class="label">{{ __('Section') }}</td>
                                 <td colspan="3">{{ $student->section?->name }}</td>
                             </tr>
                         @endif
                         <tr>
-                            <td class="label">Session</td>
-                            <td colspan="3">{{ $student->session_year }}</td>
+                            <td class="label">{{ __('Session') }}</td>
+                            <td colspan="3">{{ BengaliNumber::localize((string) $student->session_year) }}</td>
                         </tr>
                     </table>
                 </td>
@@ -286,17 +287,17 @@
                         <table class="grade-scale">
                             <thead>
                                 <tr>
-                                    <th>Letter Grade</th>
-                                    <th>Marks Interval</th>
-                                    <th>Grade Point</th>
+                                    <th>{{ __('Letter Grade') }}</th>
+                                    <th>{{ __('Marks Interval') }}</th>
+                                    <th>{{ __('Grade Point') }}</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach ($gradeScales as $scale)
                                     <tr>
                                         <td>{{ $scale->letter_grade }}</td>
-                                        <td>{{ $formatMark($scale->min_mark) }} - {{ $formatMark($scale->max_mark) }}</td>
-                                        <td>{{ number_format($scale->grade_point, 2) }}</td>
+                                        <td>{{ BengaliNumber::localize($formatMark($scale->min_mark) . ' - ' . $formatMark($scale->max_mark)) }}</td>
+                                        <td>{{ BengaliNumber::localize(number_format($scale->grade_point, 2)) }}</td>
                                     </tr>
                                 @endforeach
                             </tbody>
@@ -309,36 +310,36 @@
         <table class="subjects">
             <thead>
                 <tr>
-                    <th style="text-align: left;">Subject</th>
-                    <th>MCQ</th>
-                    <th>Written</th>
-                    <th>Practical</th>
+                    <th style="text-align: left;">{{ __('Subject') }}</th>
+                    <th>{{ __('MCQ') }}</th>
+                    <th>{{ __('Written') }}</th>
+                    <th>{{ __('Practical') }}</th>
                     @if ($contributionSourceName)
                         <th>{{ $contributionSourceName }}</th>
                     @endif
-                    <th>Marks</th>
-                    <th>Best</th>
-                    <th>Grade</th>
+                    <th>{{ __('Marks') }}</th>
+                    <th>{{ __('Best') }}</th>
+                    <th>{{ __('Grade') }}</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach ($rows as $row)
                     <tr>
                         <td>{{ $row['subject_name'] }}</td>
-                        <td style="text-align: center;">{{ $row['mcq_marks'] ?? '-' }}</td>
-                        <td style="text-align: center;">{{ $row['written_marks'] ?? '-' }}</td>
-                        <td style="text-align: center;">{{ $row['practical_marks'] ?? '-' }}</td>
+                        <td style="text-align: center;">{{ BengaliNumber::localize((string) ($row['mcq_marks'] ?? '-')) }}</td>
+                        <td style="text-align: center;">{{ BengaliNumber::localize((string) ($row['written_marks'] ?? '-')) }}</td>
+                        <td style="text-align: center;">{{ BengaliNumber::localize((string) ($row['practical_marks'] ?? '-')) }}</td>
                         @if ($contributionSourceName)
-                            <td style="text-align: center;">{{ $row['contribution']['contributed_marks'] ?? '-' }}</td>
+                            <td style="text-align: center;">{{ BengaliNumber::localize((string) ($row['contribution']['contributed_marks'] ?? '-')) }}</td>
                         @endif
                         <td style="text-align: center;">
                             @if ($row['is_absent'])
-                                Absent
+                                {{ __('Absent') }}
                             @else
-                                {{ $row['total_marks'] }}
+                                {{ BengaliNumber::localize((string) $row['total_marks']) }}
                             @endif
                         </td>
-                        <td style="text-align: center;">{{ $row['best_marks'] ?? '-' }}</td>
+                        <td style="text-align: center;">{{ BengaliNumber::localize((string) ($row['best_marks'] ?? '-')) }}</td>
                         <td style="text-align: center; font-weight: bold;">
                             {{ $row['grade_label'] ?? '-' }}
                         </td>
@@ -347,41 +348,41 @@
             </tbody>
         </table>
 
-        <div class="summary-heading">Academic Transcript</div>
+        <div class="summary-heading">{{ __('Academic Transcript') }}</div>
         <table class="summary">
             <tr>
-                <td class="summary-label">Total Marks</td>
-                <td>{{ $summary['total_marks'] }}</td>
-                <td class="summary-label">GPA</td>
-                <td>{{ $summary['gpa'] }} ({{ $summary['overall_grade_label'] }})</td>
+                <td class="summary-label">{{ __('Total Marks') }}</td>
+                <td>{{ BengaliNumber::localize((string) $summary['total_marks']) }}</td>
+                <td class="summary-label">{{ __('GPA') }}</td>
+                <td>{{ BengaliNumber::localize((string) $summary['gpa']) }} ({{ $summary['overall_grade_label'] }})</td>
             </tr>
             <tr>
-                <td class="summary-label">Class Rank</td>
+                <td class="summary-label">{{ __('Class Rank') }}</td>
                 @if ($hasSections)
-                    <td>{{ $summary['class_rank'] ?? '-' }}</td>
-                    <td class="summary-label">Section Rank</td>
-                    <td>{{ $summary['section_rank'] ?? '-' }}</td>
+                    <td>{{ BengaliNumber::localize((string) ($summary['class_rank'] ?? '-')) }}</td>
+                    <td class="summary-label">{{ __('Section Rank') }}</td>
+                    <td>{{ BengaliNumber::localize((string) ($summary['section_rank'] ?? '-')) }}</td>
                 @else
-                    <td colspan="3">{{ $summary['class_rank'] ?? '-' }}</td>
+                    <td colspan="3">{{ BengaliNumber::localize((string) ($summary['class_rank'] ?? '-')) }}</td>
                 @endif
             </tr>
             <tr>
-                <td class="summary-label">1st Position Total Marks</td>
-                <td>{{ $summary['top_rank_total_marks'] ?? '-' }}</td>
-                <td class="summary-label">1st Position GPA</td>
+                <td class="summary-label">{{ __('1st Position Total Marks') }}</td>
+                <td>{{ BengaliNumber::localize((string) ($summary['top_rank_total_marks'] ?? '-')) }}</td>
+                <td class="summary-label">{{ __('1st Position GPA') }}</td>
                 <td>
                     @if ($summary['top_rank_gpa'])
-                        {{ $summary['top_rank_gpa'] }} ({{ $summary['top_rank_grade_label'] }})
+                        {{ BengaliNumber::localize((string) $summary['top_rank_gpa']) }} ({{ $summary['top_rank_grade_label'] }})
                     @else
                         -
                     @endif
                 </td>
             </tr>
             <tr>
-                <td class="summary-label">Working Days</td>
-                <td>{{ $summary['working_days'] }}</td>
-                <td class="summary-label">Present</td>
-                <td>{{ $summary['present_days'] }}</td>
+                <td class="summary-label">{{ __('Working Days') }}</td>
+                <td>{{ BengaliNumber::localize((string) $summary['working_days']) }}</td>
+                <td class="summary-label">{{ __('Present') }}</td>
+                <td>{{ BengaliNumber::localize((string) $summary['present_days']) }}</td>
             </tr>
         </table>
 
@@ -389,11 +390,11 @@
             <tr>
                 <td>
                     <br><br><br>
-                    Class Teacher
+                    {{ __('Class Teacher') }}
                 </td>
                 <td>
                     <br><br><br>
-                    Guardian
+                    {{ __('Guardian') }}
                 </td>
                 <td>
                     @if ($sealDataUri)
@@ -401,7 +402,7 @@
                     @else
                         <br><br>
                     @endif
-                    School Seal
+                    {{ __('School Seal') }}
                 </td>
                 <td>
                     @if ($signatureDataUri)
@@ -409,7 +410,7 @@
                     @else
                         <br><br>
                     @endif
-                    Principal's Signature
+                    {{ __("Principal's Signature") }}
                 </td>
             </tr>
         </table>

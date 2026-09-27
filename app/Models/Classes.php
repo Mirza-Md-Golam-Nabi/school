@@ -27,7 +27,7 @@ class Classes extends Model
 
     protected $table = 'classes';
 
-    protected $fillable = ['name', 'level', 'order', 'class_teacher_id', 'has_section', 'has_group', 'is_active'];
+    protected $fillable = ['name', 'name_bn', 'level', 'order', 'class_teacher_id', 'has_section', 'has_group', 'is_active'];
 
     protected $casts = [
         'level' => ClassLevel::class,
@@ -35,6 +35,18 @@ class Classes extends Model
         'has_group' => 'boolean',
         'is_active' => 'boolean',
     ];
+
+    /**
+     * Locale-aware class name — বাংলা locale-এ name_bn (fallback: name), অন্যথায় name।
+     */
+    public function getDisplayNameAttribute(): string
+    {
+        if (app()->getLocale() === 'bn' && filled($this->name_bn)) {
+            return $this->name_bn;
+        }
+
+        return $this->name;
+    }
 
     #[Scope]
     protected function active(Builder $query): void

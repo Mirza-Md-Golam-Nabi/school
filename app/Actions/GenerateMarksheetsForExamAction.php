@@ -17,9 +17,12 @@ class GenerateMarksheetsForExamAction
      * are regenerated — the PDF job deletes the old file and writes a fresh one —
      * rather than skipped, so re-running this always produces up-to-date PDFs.
      *
+     * $subjectLanguage controls the generated marksheets' document language
+     * (subject names, labels, and numerals) — baked into the stored PDF.
+     *
      * @return array{created: int, regenerated: int, skipped_no_ranking: int}
      */
-    public function handle(Exam $exam, ?int $generatedBy = null): array
+    public function handle(Exam $exam, ?int $generatedBy = null, string $subjectLanguage = 'en'): array
     {
         $created = 0;
         $regenerated = 0;
@@ -56,7 +59,7 @@ class GenerateMarksheetsForExamAction
                 $regenerated++;
             }
 
-            GenerateMarksheetPdfJob::dispatch($marksheet->id);
+            GenerateMarksheetPdfJob::dispatch($marksheet->id, $subjectLanguage);
         }
 
         $this->logGeneration($exam, $created, $regenerated, $skippedNoRanking);

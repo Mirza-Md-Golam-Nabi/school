@@ -22,6 +22,10 @@ class ClassesTable
             ->columns([
                 TextColumn::make('name')
                     ->searchable(),
+                TextColumn::make('name_bn')
+                    ->label('Class Name (Bengali)')
+                    ->searchable()
+                    ->toggleable(),
                 TextColumn::make('level')
                     ->badge(),
                 TextColumn::make('order')

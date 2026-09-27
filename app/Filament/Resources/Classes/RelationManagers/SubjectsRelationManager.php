@@ -28,7 +28,7 @@ class SubjectsRelationManager extends RelationManager
             ->components([
                 Select::make('subject_id')
                     ->label('Subject')
-                    ->options(Subject::active()->pluck('name', 'id'))
+                    ->options(Subject::active()->get()->pluck('display_name', 'id'))
                     ->searchable()
                     ->preload()
                     ->required(),

@@ -14,11 +14,23 @@ class Group extends Model
     use LogsActivity;
     use SoftDeletes;
 
-    protected $fillable = ['name', 'is_active'];
+    protected $fillable = ['name', 'name_bn', 'is_active'];
 
     protected $casts = [
         'is_active' => 'boolean',
     ];
+
+    /**
+     * Locale-aware group name — বাংলা locale-এ name_bn (fallback: name), অন্যথায় name।
+     */
+    public function getDisplayNameAttribute(): string
+    {
+        if (app()->getLocale() === 'bn' && filled($this->name_bn)) {
+            return $this->name_bn;
+        }
+
+        return $this->name;
+    }
 
     public function classes(): BelongsToMany
     {

@@ -50,6 +50,10 @@ class GroupResource extends Resource
                     ->maxLength(50)
                     ->placeholder('Enter Group Name')
                     ->helperText('উদাহরণ: Science, Arts, Commerce, General'),
+                TextInput::make('name_bn')
+                    ->label('Group Name (Bengali)')
+                    ->maxLength(50)
+                    ->placeholder('যেমন: বিজ্ঞান, মানবিক, ব্যবসায় শিক্ষা'),
                 Radio::make('is_active')
                     ->label('Is Active?')
                     ->default(true)
@@ -67,6 +71,10 @@ class GroupResource extends Resource
             ->columns([
                 TextColumn::make('name')
                     ->searchable(),
+                TextColumn::make('name_bn')
+                    ->label('Group Name (Bengali)')
+                    ->searchable()
+                    ->toggleable(),
                 IconColumn::make('is_active')
                     ->boolean(),
                 TextColumn::make('created_at')

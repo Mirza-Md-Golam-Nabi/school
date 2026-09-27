@@ -39,6 +39,7 @@ class CreateSubject extends Command
                 $record = Subject::firstOrCreate(
                     ['name' => $subject['name']],
                     [
+                        'name_bn' => $subject['name_bn'] ?? null,
                         'code' => $subject['code'] ?? null,
                         'has_mcq' => $subject['has_mcq'] ?? true,
                         'has_written' => $subject['has_written'] ?? true,

@@ -19,6 +19,9 @@ class ClassesForm
                     ->required()
                     ->placeholder('Enter Class Name')
                     ->helperText('Ex: Class 1, Class 2'),
+                TextInput::make('name_bn')
+                    ->label('Class Name (Bengali)')
+                    ->placeholder('যেমন: প্রথম শ্রেণি, দ্বিতীয় শ্রেণি'),
                 Select::make('level')
                     ->options(ClassLevel::options())
                     ->required(),

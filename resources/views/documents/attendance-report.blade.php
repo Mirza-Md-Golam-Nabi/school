@@ -105,7 +105,7 @@
         @if ($schoolAddressLine)
             <div class="school-address">{{ $schoolAddressLine }}</div>
         @endif
-        <div class="title">Student Attendance Report - {{ $class->name }} - {{ $monthLabel }}</div>
+        <div class="title">Student Attendance Report - {{ $class->display_name }} - {{ $monthLabel }}</div>
     </div>
 
     <table class="report">

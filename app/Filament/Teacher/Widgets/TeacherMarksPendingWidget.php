@@ -60,7 +60,8 @@ class TeacherMarksPendingWidget extends Widget
             ->flip();
 
         $subjectNames = Subject::whereIn('id', $assignments->pluck('subject_id')->unique())
-            ->pluck('name', 'id');
+            ->get()
+            ->pluck('display_name', 'id');
 
         $pending = [];
 

@@ -133,7 +133,7 @@ it('redirects to the schedule download route with the selected page size', funct
 
     Livewire::test(ScheduleRelationManager::class, ['ownerRecord' => $exam, 'pageClass' => EditExam::class])
         ->callAction(TestAction::make('downloadSchedule')->table(), ['pageSize' => 'A5'])
-        ->assertRedirect(route('exams.schedule.download', ['exam' => $exam, 'pageSize' => 'A5']));
+        ->assertRedirect(route('exams.schedule.download', ['exam' => $exam, 'pageSize' => 'A5', 'subjectLanguage' => 'en']));
 });
 
 it('only offers subjects assigned to the exam class', function () {

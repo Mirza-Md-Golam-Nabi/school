@@ -60,7 +60,7 @@ class MySubjects extends Page
             ->map(fn (Collection $rows) => [
                 'class' => $rows->first()->class,
                 'subjects' => $rows->map(fn ($row) => [
-                    'name' => $row->subject?->name ?? '—',
+                    'name' => $row->subject?->display_name ?? '—',
                     'section' => $row->section?->name,
                 ])->values(),
             ])

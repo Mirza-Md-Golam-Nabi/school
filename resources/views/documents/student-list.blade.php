@@ -94,7 +94,7 @@
     </div>
     <div class="list-info">
         <div class="title">Student List</div>
-        <div class="subtitle">{{ $class->name }} - Session: {{ $sessionYear }}</div>
+        <div class="subtitle">{{ $class->display_name }} - Session: {{ $sessionYear }}</div>
     </div>
 
     <table class="list">

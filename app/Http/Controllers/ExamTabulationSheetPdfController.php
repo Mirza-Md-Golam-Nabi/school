@@ -21,8 +21,9 @@ class ExamTabulationSheetPdfController extends Controller
 
         $pageSize = (string) $request->query('pageSize', 'A4');
         $orientation = $request->query('orientation');
+        $subjectLanguage = (string) $request->query('subjectLanguage', 'en');
 
-        $pdf = $action->handle($exam, $pageSize, is_string($orientation) ? $orientation : null);
+        $pdf = $action->handle($exam, $pageSize, is_string($orientation) ? $orientation : null, $subjectLanguage);
 
         $filename = "tabulation-sheet-{$this->sanitizeFilenameSegment($exam->class?->name ?? 'Class')}-{$this->sanitizeFilenameSegment($exam->examType?->name ?? 'Exam')}-{$exam->session_year}.pdf";
 
