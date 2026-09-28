@@ -81,6 +81,14 @@ class StaffProfile extends Model
         return $this->morphMany(Attendance::class, 'attendable');
     }
 
+    /**
+     * The enroll IDs this person has on attendance devices.
+     */
+    public function deviceEnrollments(): MorphMany
+    {
+        return $this->morphMany(DeviceUser::class, 'enrollable');
+    }
+
     public function defaultSchoolAccount(): BelongsTo
     {
         return $this->belongsTo(SchoolAccount::class, 'default_school_account_id');

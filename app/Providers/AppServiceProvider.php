@@ -4,8 +4,12 @@ namespace App\Providers;
 
 use App\Models\ActingAdmin;
 use App\Models\Attendance;
+use App\Models\StaffProfile;
+use App\Models\StudentProfile;
+use App\Models\TeacherProfile;
 use App\Observers\ActingAdminObserver;
 use App\Observers\AttendanceObserver;
+use App\Observers\DeviceEnrollmentObserver;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -28,6 +32,10 @@ class AppServiceProvider extends ServiceProvider
 
         Attendance::observe(AttendanceObserver::class);
         ActingAdmin::observe(ActingAdminObserver::class);
+
+        StudentProfile::observe(DeviceEnrollmentObserver::class);
+        TeacherProfile::observe(DeviceEnrollmentObserver::class);
+        StaffProfile::observe(DeviceEnrollmentObserver::class);
 
         // Login/Logout/Failed-login activity logging is handled by
         // App\Listeners\Log*Login/Logout, auto-discovered from app/Listeners
