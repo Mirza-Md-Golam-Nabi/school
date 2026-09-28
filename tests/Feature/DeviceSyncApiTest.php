@@ -169,21 +169,58 @@ it('marks deletions the client carried out as removed, but only scheduled ones',
         ->and($normal->fresh()->isRemoved())->toBeFalse();
 });
 
-it('stores the reported device capacity', function () {
+it('counts what the device holds from the reported user list and measures it against the admin-entered capacity', function () {
     $this->travelTo('2026-12-01 10:00:00');
     $device = syncApiDevice();
+    $device->update(['user_capacity' => 1000, 'fingerprint_capacity' => 3000, 'card_capacity' => 3000, 'record_capacity' => 100000]);
+    syncApiEnrolled($device, '1');
+    syncApiEnrolled($device, '2');
 
     syncApiReport([
-        'users' => [],
-        'sizes' => ['users' => 320, 'users_cap' => 1000, 'fingers' => 610, 'fingers_cap' => 3000, 'cards' => 320, 'cards_cap' => 3000, 'records' => 1200, 'records_cap' => 100000],
+        'users' => [
+            ['enroll_id' => '1', 'card_number' => '111', 'fingerprint_count' => 2],
+            ['enroll_id' => '2', 'card_number' => '0', 'fingerprint_count' => 1],
+            ['enroll_id' => '900', 'card_number' => '222', 'fingerprint_count' => 0],
+        ],
+        'sizes' => ['records' => 1200, 'users_cap' => 9999, 'fingers_cap' => 9999],
     ])->assertSuccessful();
 
     $device->refresh();
 
-    expect($device->usageOf('users'))->toBe(['used' => 320, 'limit' => 1000, 'percent' => 32])
+    expect($device->usageOf('users'))->toBe(['used' => 3, 'limit' => 1000, 'percent' => 0])
+        ->and($device->usageOf('fingers'))->toBe(['used' => 3, 'limit' => 3000, 'percent' => 0])
+        ->and($device->usageOf('cards'))->toBe(['used' => 2, 'limit' => 3000, 'percent' => 0])
         ->and($device->usageOf('records'))->toBe(['used' => 1200, 'limit' => 100000, 'percent' => 1])
+        ->and($device->reported_sizes)->not->toHaveKeys(['users_cap', 'fingers_cap'])
         ->and($device->sizes_reported_at->toDateTimeString())->toBe('2026-12-01 10:00:00')
-        ->and($device->capacitySummary())->toContain('Users 320/1000 (32%)', 'Cards 320/3000 (11%)');
+        ->and($device->capacitySummary())->toContain('Users 3/1000 (0%)', 'Records 1200/100000 (1%)');
+});
+
+it('never takes capacity limits from the device report', function () {
+    $device = syncApiDevice();
+    $device->update(['user_capacity' => 1000]);
+
+    syncApiReport(['users' => [], 'sizes' => ['users_cap' => 3000]])->assertSuccessful();
+
+    expect($device->fresh()->user_capacity)->toBe(1000);
+});
+
+it('shows only the used count until a capacity is entered', function () {
+    $device = syncApiDevice();
+
+    syncApiReport(['users' => [['enroll_id' => '1']], 'sizes' => ['records' => 15]])->assertSuccessful();
+
+    expect($device->fresh()->usageOf('users'))->toBe(['used' => 1, 'limit' => null, 'percent' => null])
+        ->and($device->fresh()->capacitySummary())->toContain('Users 1 ·');
+});
+
+it('keeps the previous record total when a report leaves it out', function () {
+    $device = syncApiDevice();
+
+    syncApiReport(['users' => [], 'sizes' => ['records' => 500]])->assertSuccessful();
+    syncApiReport(['users' => []])->assertSuccessful();
+
+    expect($device->fresh()->reported_sizes['records'])->toBe(500);
 });
 
 it('validates the sync report', function (array $payload, string $invalidKey) {
@@ -195,5 +232,5 @@ it('validates the sync report', function (array $payload, string $invalidKey) {
     'enroll id missing' => [['users' => [['card_number' => '1']]], 'users.0.enroll_id'],
     'enroll id too long' => [['users' => [['enroll_id' => str_repeat('9', 51)]]], 'users.0.enroll_id'],
     'too many fingerprints' => [['users' => [['enroll_id' => '1', 'fingerprint_count' => 11]]], 'users.0.fingerprint_count'],
-    'negative size' => [['users' => [], 'sizes' => ['users' => -1]], 'sizes.users'],
+    'negative record count' => [['users' => [], 'sizes' => ['records' => -1]], 'sizes.records'],
 ]);

@@ -24,6 +24,10 @@ class AttendanceDevice extends Model
         'driver',
         'api_token_hash',
         'is_active',
+        'user_capacity',
+        'fingerprint_capacity',
+        'card_capacity',
+        'record_capacity',
         'last_synced_at',
         'reported_sizes',
         'sizes_reported_at',
@@ -35,6 +39,10 @@ class AttendanceDevice extends Model
     protected $casts = [
         'driver' => AttendanceDeviceDriver::class,
         'is_active' => 'boolean',
+        'user_capacity' => 'integer',
+        'fingerprint_capacity' => 'integer',
+        'card_capacity' => 'integer',
+        'record_capacity' => 'integer',
         'last_synced_at' => 'datetime',
         'reported_sizes' => 'array',
         'sizes_reported_at' => 'datetime',
@@ -57,34 +65,61 @@ class AttendanceDevice extends Model
     }
 
     /**
-     * How full one of the device's stores is, from the last size report.
+     * Device store => the column holding its capacity limit, which an admin copies
+     * from the device's Device Capacity screen (never hardcoded).
+     *
+     * @var array<string, string>
+     */
+    public const CAPACITY_COLUMNS = [
+        'users' => 'user_capacity',
+        'fingers' => 'fingerprint_capacity',
+        'cards' => 'card_capacity',
+        'records' => 'record_capacity',
+    ];
+
+    /**
+     * How full one of the device's stores is: the used count comes from the last
+     * sync report, the limit from the capacity entered on the device. Null until
+     * the device has reported; the limit (and percent) stay null until an admin
+     * enters that capacity.
      *
      * @param  'users'|'fingers'|'cards'|'records'  $store
-     * @return array{used: int, limit: int, percent: int}|null
+     * @return array{used: int, limit: int|null, percent: int|null}|null
      */
     public function usageOf(string $store): ?array
     {
         $used = $this->reported_sizes[$store] ?? null;
-        $limit = $this->reported_sizes["{$store}_cap"] ?? null;
 
-        if ($used === null || ! $limit) {
+        if ($used === null) {
             return null;
         }
 
-        return ['used' => (int) $used, 'limit' => (int) $limit, 'percent' => (int) round($used / $limit * 100)];
+        $limit = $this->{self::CAPACITY_COLUMNS[$store]};
+
+        return [
+            'used' => (int) $used,
+            'limit' => $limit ? (int) $limit : null,
+            'percent' => $limit ? (int) round($used / $limit * 100) : null,
+        ];
     }
 
     /**
-     * One-line capacity report, e.g. "Users 320/1000 · Fingerprints 610/3000 · ...".
+     * One-line capacity report, e.g. "Users 320/1000 (32%) · Fingerprints 610/3000 (20%)".
      */
     public function capacitySummary(): ?string
     {
         $labels = ['users' => 'Users', 'fingers' => 'Fingerprints', 'cards' => 'Cards', 'records' => 'Records'];
 
         $parts = collect($labels)
-            ->map(fn (string $label, string $store): ?string => ($usage = $this->usageOf($store))
-                ? "{$label} {$usage['used']}/{$usage['limit']} ({$usage['percent']}%)"
-                : null)
+            ->map(function (string $label, string $store): ?string {
+                $usage = $this->usageOf($store);
+
+                return match (true) {
+                    $usage === null => null,
+                    $usage['limit'] === null => "{$label} {$usage['used']}",
+                    default => "{$label} {$usage['used']}/{$usage['limit']} ({$usage['percent']}%)",
+                };
+            })
             ->filter();
 
         if ($parts->isEmpty()) {

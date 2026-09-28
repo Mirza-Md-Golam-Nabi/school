@@ -42,6 +42,35 @@ class AttendanceDeviceForm
                             ->default(true)
                             ->inline(false)
                             ->helperText('An inactive device is rejected by the API, so its sync client stops delivering punches.'),
+
+                        TextInput::make('user_capacity')
+                            ->label('Users Capacity')
+                            ->numeric()
+                            ->integer()
+                            ->minValue(1)
+                            ->placeholder('e.g. 1000')
+                            ->helperText('Copy the limits from the device: Menu → System Info → Device Capacity. They are used to show how full the device is.'),
+
+                        TextInput::make('fingerprint_capacity')
+                            ->label('Fingerprint Capacity')
+                            ->numeric()
+                            ->integer()
+                            ->minValue(1)
+                            ->placeholder('e.g. 3000'),
+
+                        TextInput::make('card_capacity')
+                            ->label('Card Capacity')
+                            ->numeric()
+                            ->integer()
+                            ->minValue(1)
+                            ->placeholder('e.g. 3000'),
+
+                        TextInput::make('record_capacity')
+                            ->label('Attendance Record Capacity')
+                            ->numeric()
+                            ->integer()
+                            ->minValue(1)
+                            ->placeholder('e.g. 100000'),
                     ])
                     ->columns([
                         'default' => 1,

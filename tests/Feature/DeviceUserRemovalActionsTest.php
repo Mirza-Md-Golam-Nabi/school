@@ -170,7 +170,9 @@ it('approves the removals of every selected person from the bulk action', functi
 
 it('reports device capacity, awaiting approvals and unknown users on the device screens', function () {
     $device = AttendanceDevice::factory()->create([
-        'reported_sizes' => ['users' => 850, 'users_cap' => 1000, 'fingers' => 100, 'fingers_cap' => 3000],
+        'user_capacity' => 1000,
+        'fingerprint_capacity' => 3000,
+        'reported_sizes' => ['users' => 850, 'fingers' => 100, 'cards' => 40, 'records' => 15],
         'sizes_reported_at' => now(),
         'unknown_device_users' => [['enroll_id' => '900', 'name' => 'Test User', 'card_number' => null]],
     ]);

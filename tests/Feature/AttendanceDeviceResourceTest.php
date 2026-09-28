@@ -299,3 +299,63 @@ it('only auto-assigns the chosen kinds of people from the relation manager', fun
     expect(DeviceUser::where('attendance_device_id', $device->id)->pluck('enrollable_type')->all())->toBe([$teacher->getMorphClass()])
         ->and($student->deviceEnrollments()->count())->toBe(0);
 });
+
+it('saves the capacity limits entered in the device information', function () {
+    Livewire::test(CreateAttendanceDevice::class)
+        ->fillForm([
+            'name' => 'Main Gate K40',
+            'user_capacity' => 1000,
+            'fingerprint_capacity' => 3000,
+            'card_capacity' => 3000,
+            'record_capacity' => 100000,
+        ])
+        ->call('create')
+        ->assertHasNoFormErrors();
+
+    $device = AttendanceDevice::where('name', 'Main Gate K40')->sole();
+
+    expect($device->user_capacity)->toBe(1000)
+        ->and($device->fingerprint_capacity)->toBe(3000)
+        ->and($device->card_capacity)->toBe(3000)
+        ->and($device->record_capacity)->toBe(100000);
+
+    Livewire::test(EditAttendanceDevice::class, ['record' => $device->id])
+        ->assertSchemaStateSet(['user_capacity' => 1000, 'record_capacity' => 100000])
+        ->fillForm(['user_capacity' => 1500])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    expect($device->fresh()->user_capacity)->toBe(1500);
+});
+
+it('leaves the capacity limits optional', function () {
+    Livewire::test(CreateAttendanceDevice::class)
+        ->fillForm(['name' => 'No Limits Yet'])
+        ->call('create')
+        ->assertHasNoFormErrors();
+
+    expect(AttendanceDevice::where('name', 'No Limits Yet')->sole()->user_capacity)->toBeNull();
+});
+
+it('rejects capacity limits that are not positive whole numbers', function (mixed $value) {
+    Livewire::test(CreateAttendanceDevice::class)
+        ->fillForm(['name' => 'Bad Limits', 'user_capacity' => $value])
+        ->call('create')
+        ->assertHasFormErrors(['user_capacity']);
+})->with([
+    'zero' => 0,
+    'negative' => -5,
+    'decimal' => 10.5,
+    'text' => 'lots',
+]);
+
+it('shows only the used user count until a capacity is entered', function () {
+    $noLimit = AttendanceDevice::factory()->create(['reported_sizes' => ['users' => 40], 'sizes_reported_at' => now()]);
+    $withLimit = AttendanceDevice::factory()->create(['user_capacity' => 1000, 'reported_sizes' => ['users' => 40], 'sizes_reported_at' => now()]);
+    $notReported = AttendanceDevice::factory()->create();
+
+    Livewire::test(ListAttendanceDevices::class)
+        ->assertTableColumnStateSet('capacity', '40', $noLimit)
+        ->assertTableColumnStateSet('capacity', '40 / 1000', $withLimit)
+        ->assertTableColumnStateSet('capacity', null, $notReported);
+});

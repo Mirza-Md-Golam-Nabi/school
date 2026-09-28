@@ -57,12 +57,33 @@ class ApplyDeviceSyncReportAction
         }
 
         $device->forceFill([
-            'reported_sizes' => $report['sizes'] ?? $device->reported_sizes,
+            'reported_sizes' => $this->usedCounts($report, $device),
             'sizes_reported_at' => now(),
             'unknown_device_users' => $unknown,
         ])->save();
 
         return ['updated' => $updated, 'removed' => $removed, 'unknown' => count($unknown)];
+    }
+
+    /**
+     * What the device is currently holding. Users, fingerprints and cards are counted
+     * from the reported user list (more reliable than the device's own counters, which
+     * differ between firmware versions); only the punch-record total comes from the
+     * client. The capacity limits are entered by an admin, never taken from a report.
+     *
+     * @param  array<string, mixed>  $report
+     * @return array{users: int, fingers: int, cards: int, records: int|null}
+     */
+    private function usedCounts(array $report, AttendanceDevice $device): array
+    {
+        $onDevice = collect($report['users'] ?? []);
+
+        return [
+            'users' => $onDevice->count(),
+            'fingers' => (int) $onDevice->sum(fn (array $user): int => (int) ($user['fingerprint_count'] ?? 0)),
+            'cards' => $onDevice->filter(fn (array $user): bool => $this->normalizeCard($user['card_number'] ?? null) !== null)->count(),
+            'records' => $report['sizes']['records'] ?? ($device->reported_sizes['records'] ?? null),
+        ];
     }
 
     /**

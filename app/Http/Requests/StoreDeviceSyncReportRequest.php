@@ -55,14 +55,7 @@ class StoreDeviceSyncReportRequest extends FormRequest
             'removed' => ['nullable', 'array', 'max:5000'],
             'removed.*' => ['string', 'max:50'],
             'sizes' => ['nullable', 'array'],
-            'sizes.users' => ['nullable', 'integer', 'min:0'],
-            'sizes.users_cap' => ['nullable', 'integer', 'min:0'],
-            'sizes.fingers' => ['nullable', 'integer', 'min:0'],
-            'sizes.fingers_cap' => ['nullable', 'integer', 'min:0'],
-            'sizes.cards' => ['nullable', 'integer', 'min:0'],
-            'sizes.cards_cap' => ['nullable', 'integer', 'min:0'],
             'sizes.records' => ['nullable', 'integer', 'min:0'],
-            'sizes.records_cap' => ['nullable', 'integer', 'min:0'],
         ];
     }
 }

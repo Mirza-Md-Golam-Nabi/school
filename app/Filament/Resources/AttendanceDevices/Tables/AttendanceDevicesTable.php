@@ -74,11 +74,16 @@ class AttendanceDevicesTable
                     ->state(function (AttendanceDevice $record): ?string {
                         $users = $record->usageOf('users');
 
-                        return $users ? "{$users['used']} / {$users['limit']}" : null;
+                        return match (true) {
+                            $users === null => null,
+                            $users['limit'] === null => (string) $users['used'],
+                            default => "{$users['used']} / {$users['limit']}",
+                        };
                     })
                     ->placeholder('Not reported')
                     ->color(fn (AttendanceDevice $record): string => match (true) {
                         $record->usageOf('users') === null => 'gray',
+                        $record->usageOf('users')['percent'] === null => 'info',
                         $record->usageOf('users')['percent'] >= 95 => 'danger',
                         $record->usageOf('users')['percent'] >= 80 => 'warning',
                         default => 'success',
