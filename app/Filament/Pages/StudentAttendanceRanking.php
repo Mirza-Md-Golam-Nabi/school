@@ -41,7 +41,7 @@ class StudentAttendanceRanking extends Page
         $year = (int) now()->year;
 
         $counts = Attendance::where('attendable_type', StudentProfile::class)
-            ->where('status', AttendanceStatus::Present)
+            ->countedPresent(StudentProfile::class)
             ->whereYear('date', $year)
             ->selectRaw('attendable_id, count(*) as present_count')
             ->groupBy('attendable_id')
@@ -70,7 +70,7 @@ class StudentAttendanceRanking extends Page
         $year = (int) now()->year;
 
         $counts = Attendance::where('attendable_type', StudentProfile::class)
-            ->where('status', AttendanceStatus::Present)
+            ->countedPresent(StudentProfile::class)
             ->whereYear('date', $year)
             ->whereNotNull('class_id')
             ->selectRaw('class_id, attendable_id, count(*) as present_count')

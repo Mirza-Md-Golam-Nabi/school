@@ -5,6 +5,7 @@ namespace App\Filament\Widgets;
 use App\Enums\AttendanceStatus;
 use App\Filament\Pages\StaffAttendance;
 use App\Models\Attendance;
+use App\Models\AttendanceSetting;
 use App\Models\StaffProfile;
 use Filament\Widgets\Widget;
 
@@ -36,7 +37,7 @@ class StaffAttendanceOverviewWidget extends Widget
 
         return [
             'totalStaff' => $totalStaff,
-            'presentToday' => $todayCounts[AttendanceStatus::Present->value] ?? 0,
+            'presentToday' => $todayCounts->only(AttendanceSetting::current()->presentStatusValuesFor(StaffProfile::class))->sum(),
             'absentToday' => $todayCounts[AttendanceStatus::Absent->value] ?? 0,
             'url' => StaffAttendance::getUrl(),
         ];

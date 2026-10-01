@@ -5,6 +5,7 @@ namespace App\Filament\Widgets;
 use App\Enums\AttendanceStatus;
 use App\Filament\Pages\StudentAttendance;
 use App\Models\Attendance;
+use App\Models\AttendanceSetting;
 use App\Models\StudentProfile;
 use Filament\Widgets\Widget;
 
@@ -36,7 +37,7 @@ class StudentAttendanceOverviewWidget extends Widget
 
         return [
             'totalStudents' => $totalStudents,
-            'presentToday' => $todayCounts[AttendanceStatus::Present->value] ?? 0,
+            'presentToday' => $todayCounts->only(AttendanceSetting::current()->presentStatusValuesFor(StudentProfile::class))->sum(),
             'absentToday' => $todayCounts[AttendanceStatus::Absent->value] ?? 0,
             'url' => StudentAttendance::getUrl(),
         ];

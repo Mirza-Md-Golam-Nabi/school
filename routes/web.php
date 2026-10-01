@@ -7,6 +7,7 @@ use App\Http\Controllers\ClassMarksheetsPdfController;
 use App\Http\Controllers\ClassSeatPlanPdfController;
 use App\Http\Controllers\ClassStudentListPdfController;
 use App\Http\Controllers\EmailVerificationController;
+use App\Http\Controllers\EmployeeAttendanceReportPdfController;
 use App\Http\Controllers\ExamSchedulePdfController;
 use App\Http\Controllers\ExamTabulationSheetPdfController;
 use App\Http\Controllers\FeePaymentSlipPdfController;
@@ -56,6 +57,11 @@ Route::get('/classes/{class}/attendance-report/{year}/{month}/download', ClassAt
     ->middleware('auth')
     ->whereNumber(['year', 'month'])
     ->name('attendance-report.class.download');
+
+Route::get('/attendance-report/employees/{year}/{month}/download', EmployeeAttendanceReportPdfController::class)
+    ->middleware('auth')
+    ->whereNumber(['year', 'month'])
+    ->name('attendance-report.employees.download');
 
 Route::get('/exams/{exam}/schedule/download', ExamSchedulePdfController::class)
     ->middleware('auth')

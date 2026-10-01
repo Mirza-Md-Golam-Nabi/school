@@ -20,12 +20,6 @@ use Illuminate\Support\Collection;
 class ProcessAttendancePunchesAction
 {
     /**
-     * Two punches closer than this are one physical touch (a double tap), not an
-     * arrival followed by a departure — so the second one never becomes the exit.
-     */
-    public const MIN_MINUTES_BETWEEN_ENTRY_AND_EXIT = 5;
-
-    /**
      * Turns this device's not-yet-processed punches into daily attendance rows.
      * Each affected person-day is recomputed from ALL of that person's punches
      * for the day, so reprocessing is idempotent and a late-arriving earlier
@@ -78,26 +72,52 @@ class ProcessAttendancePunchesAction
     {
         $person = $deviceUser->enrollable;
 
-        $times = $this->punchTimesFor($person, $day);
+        $punches = $this->punchesFor($person, $day);
 
-        if ($times->isEmpty()) {
+        if ($punches->isEmpty()) {
             return;
         }
 
-        $entry = $times->first();
-        $last = $times->last();
-        $exit = $last->diffInMinutes($entry, true) >= self::MIN_MINUTES_BETWEEN_ENTRY_AND_EXIT ? $last : null;
+        $entry = $punches->first()->punched_at;
 
-        $this->recordAttendance($person, $day, $entry, $exit);
+        $this->recordAttendance($person, $day, $entry, $this->resolveExit($punches, $entry));
+    }
+
+    /**
+     * The day's first punch is always the entry. Which punch is the exit depends on
+     * whether the device's Check-In / Check-Out selection was actually used that day:
+     *
+     *  - The day has both check-in and check-out punches: the selection is being
+     *    switched, so it is trusted — the last check-out after the entry is the exit,
+     *    however soon it follows.
+     *  - Every punch carries the same state (nobody switched it): the state says
+     *    nothing, so the last punch is the exit only when it is far enough from the
+     *    entry; anything sooner is a repeated touch on arrival.
+     *
+     * @param  Collection<int, AttendancePunch>  $punches  oldest first
+     */
+    private function resolveExit(Collection $punches, Carbon $entry): ?Carbon
+    {
+        $directions = $punches->map(fn (AttendancePunch $punch): ?PunchDirection => $punch->direction());
+
+        if ($directions->contains(PunchDirection::Entry) && $directions->contains(PunchDirection::Exit)) {
+            return $punches
+                ->last(fn (AttendancePunch $punch): bool => $punch->direction() === PunchDirection::Exit && $punch->punched_at->gt($entry))
+                ?->punched_at;
+        }
+
+        $last = $punches->last()->punched_at;
+
+        return $last->diffInMinutes($entry, true) >= config('attendance.exit_after_minutes') ? $last : null;
     }
 
     /**
      * Every punch of this person on this day across all the devices they're
      * enrolled on, oldest first.
      *
-     * @return Collection<int, Carbon>
+     * @return Collection<int, AttendancePunch>
      */
-    private function punchTimesFor(Model $person, Carbon $day): Collection
+    private function punchesFor(Model $person, Carbon $day): Collection
     {
         $enrollments = DeviceUser::query()
             ->where('enrollable_type', $person->getMorphClass())
@@ -114,7 +134,7 @@ class ProcessAttendancePunchesAction
                 }
             })
             ->orderBy('punched_at')
-            ->pluck('punched_at');
+            ->get(['id', 'punched_at', 'state']);
     }
 
     private function recordAttendance(Model $person, Carbon $day, Carbon $entry, ?Carbon $exit): void

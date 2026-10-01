@@ -8,6 +8,7 @@ use App\Filament\Concerns\HasAttendancePagePermission;
 use App\Models\AttendanceSetting;
 use BackedEnum;
 use Filament\Actions\Action;
+use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\TimePicker;
@@ -71,6 +72,22 @@ class ManageAttendanceSettings extends Page
                                     ->minValue(1)
                                     ->maxValue(120)
                                     ->required(),
+                            ]),
+                        ]),
+
+                    Section::make(__('Count Late Present (LP) as Present'))
+                        ->description(__('A late arrival recorded by the device is a Late Present (LP). For the ticked groups it is counted as present; reports still show it as LP. Untick a group to stop counting its LP.'))
+                        ->icon('heroicon-o-clock')
+                        ->schema([
+                            Grid::make(['default' => 1, 'md' => 3])->schema([
+                                Checkbox::make('count_late_students')
+                                    ->label(__('Students')),
+
+                                Checkbox::make('count_late_teachers')
+                                    ->label(__('Teachers')),
+
+                                Checkbox::make('count_late_staff')
+                                    ->label(__('Staff')),
                             ]),
                         ]),
 

@@ -5,6 +5,8 @@ namespace App\Models;
 use App\Enums\AttendanceSource;
 use App\Enums\AttendanceStatus;
 use App\Traits\LogsRelationLabels;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -36,6 +38,18 @@ class Attendance extends Model
         'status' => AttendanceStatus::class,
         'source' => AttendanceSource::class,
     ];
+
+    /**
+     * Rows that count as "present" for this kind of person: Present, plus Late when
+     * the attendance settings say their late arrivals are counted.
+     *
+     * @param  class-string  $attendableType
+     */
+    #[Scope]
+    protected function countedPresent(Builder $query, string $attendableType): void
+    {
+        $query->whereIn('status', AttendanceSetting::current()->presentStatusesFor($attendableType));
+    }
 
     public function attendable(): MorphTo
     {

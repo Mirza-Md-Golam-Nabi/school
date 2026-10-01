@@ -35,7 +35,7 @@ class StudentAttendanceRankingWidget extends Widget
             ->count();
 
         $counts = Attendance::where('attendable_type', StudentProfile::class)
-            ->where('status', AttendanceStatus::Present)
+            ->countedPresent(StudentProfile::class)
             ->whereYear('date', $year)
             ->selectRaw('attendable_id, count(*) as present_count')
             ->groupBy('attendable_id')

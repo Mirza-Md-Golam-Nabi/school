@@ -60,12 +60,13 @@ function punchRuleEnroll(AttendanceDevice $device, Model $person, string $enroll
     ]);
 }
 
-function punchRulePunch(AttendanceDevice $device, string $at, string $enrollId = '101'): AttendancePunch
+function punchRulePunch(AttendanceDevice $device, string $at, string $enrollId = '101', ?int $state = AttendancePunch::STATE_CHECK_IN): AttendancePunch
 {
     return AttendancePunch::factory()->create([
         'attendance_device_id' => $device->id,
         'enroll_id' => $enrollId,
         'punched_at' => $at,
+        'state' => $state,
     ]);
 }
 
@@ -125,6 +126,81 @@ it('uses the last punch as the exit only when it is far enough from the entry', 
 
     expect($attendance->entry_time)->toBe('07:55:00')
         ->and($attendance->exit_time)->toBe('13:58:00');
+});
+
+it('needs a 25 minute gap before a later punch is the exit when the in/out state never changes', function (?int $state) {
+    Notification::fake();
+    $device = AttendanceDevice::factory()->create();
+    $student = punchRuleStudent();
+    punchRuleEnroll($device, $student);
+    $exitTime = fn (): ?string => Attendance::where('attendable_id', $student->id)->sole()->exit_time;
+
+    punchRulePunch($device, '2026-09-28 07:55:00', state: $state);
+    punchRulePunch($device, '2026-09-28 08:19:00', state: $state);
+    punchRuleProcess($device);
+
+    expect($exitTime())->toBeNull();
+
+    punchRulePunch($device, '2026-09-28 08:20:00', state: $state);
+    punchRuleProcess($device);
+
+    expect($exitTime())->toBe('08:20:00')
+        ->and(Attendance::where('attendable_id', $student->id)->sole()->entry_time)->toBe('07:55:00');
+})->with([
+    'always check-in' => AttendancePunch::STATE_CHECK_IN,
+    'always check-out' => AttendancePunch::STATE_CHECK_OUT,
+    'no state reported' => null,
+    'a state that is neither in nor out' => 4,
+]);
+
+it('trusts a check-out punch as the exit when the device is switched between in and out', function () {
+    Notification::fake();
+    $device = AttendanceDevice::factory()->create();
+    $student = punchRuleStudent();
+    punchRuleEnroll($device, $student);
+    $attendance = fn (): Attendance => Attendance::where('attendable_id', $student->id)->sole();
+
+    punchRulePunch($device, '2026-09-28 07:55:00', state: AttendancePunch::STATE_CHECK_IN);
+    punchRulePunch($device, '2026-09-28 08:05:00', state: AttendancePunch::STATE_CHECK_OUT);
+    punchRuleProcess($device);
+
+    // Only ten minutes apart, but the device said "out".
+    expect($attendance()->entry_time)->toBe('07:55:00')
+        ->and($attendance()->exit_time)->toBe('08:05:00');
+});
+
+it('uses the first punch as entry and the last check-out as exit when people punch several times', function () {
+    Notification::fake();
+    $device = AttendanceDevice::factory()->create();
+    $student = punchRuleStudent();
+    punchRuleEnroll($device, $student);
+
+    punchRulePunch($device, '2026-09-28 07:55:00', state: AttendancePunch::STATE_CHECK_IN);
+    punchRulePunch($device, '2026-09-28 07:56:00', state: AttendancePunch::STATE_CHECK_IN);
+    punchRulePunch($device, '2026-09-28 09:30:00', state: AttendancePunch::STATE_CHECK_IN);
+    punchRulePunch($device, '2026-09-28 13:58:00', state: AttendancePunch::STATE_CHECK_OUT);
+    punchRulePunch($device, '2026-09-28 13:59:00', state: AttendancePunch::STATE_CHECK_OUT);
+    punchRulePunch($device, '2026-09-28 14:03:00', state: AttendancePunch::STATE_CHECK_IN);
+    punchRuleProcess($device);
+
+    $attendance = Attendance::where('attendable_id', $student->id)->sole();
+
+    expect($attendance->entry_time)->toBe('07:55:00')
+        ->and($attendance->exit_time)->toBe('13:59:00');
+});
+
+it('lets the gap needed without a check-out be configured', function () {
+    Notification::fake();
+    config(['attendance.exit_after_minutes' => 60]);
+    $device = AttendanceDevice::factory()->create();
+    $student = punchRuleStudent();
+    punchRuleEnroll($device, $student);
+
+    punchRulePunch($device, '2026-09-28 07:55:00');
+    punchRulePunch($device, '2026-09-28 08:40:00');
+    punchRuleProcess($device);
+
+    expect(Attendance::where('attendable_id', $student->id)->sole()->exit_time)->toBeNull();
 });
 
 it('records teacher and staff attendance without a class', function () {

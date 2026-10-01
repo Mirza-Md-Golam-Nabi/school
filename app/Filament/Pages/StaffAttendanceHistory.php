@@ -6,6 +6,7 @@ use App\Enums\AttendanceStatus;
 use App\Enums\Permissions\AttendancePermission;
 use App\Filament\Concerns\HasAttendancePagePermission;
 use App\Models\Attendance;
+use App\Models\AttendanceSetting;
 use App\Models\StaffProfile;
 use BackedEnum;
 use Filament\Pages\Page;
@@ -67,11 +68,14 @@ class StaffAttendanceHistory extends Page
     {
         $staffIds = StaffProfile::withTrashed()->pluck('id');
 
+        $presentStatuses = AttendanceSetting::current()->presentStatusValuesFor(StaffProfile::class);
+        $presentPlaceholders = implode(', ', array_fill(0, count($presentStatuses), '?'));
+
         return Attendance::query()
             ->selectRaw('date, count(*) as total,
-                sum(case when status = ? then 1 else 0 end) as present_count,
+                sum(case when status in ('.$presentPlaceholders.') then 1 else 0 end) as present_count,
                 sum(case when status = ? then 1 else 0 end) as absent_count',
-                [AttendanceStatus::Present->value, AttendanceStatus::Absent->value]
+                [...$presentStatuses, AttendanceStatus::Absent->value]
             )
             ->where('attendable_type', StaffProfile::class)
             ->whereIn('attendable_id', $staffIds)

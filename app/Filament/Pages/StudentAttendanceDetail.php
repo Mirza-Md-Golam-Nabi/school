@@ -6,6 +6,7 @@ use App\Enums\AttendanceStatus;
 use App\Enums\Permissions\AttendancePermission;
 use App\Filament\Concerns\HasAttendancePagePermission;
 use App\Models\Attendance;
+use App\Models\AttendanceSetting;
 use App\Models\StudentProfile;
 use BackedEnum;
 use Filament\Pages\Page;
@@ -75,7 +76,7 @@ class StudentAttendanceDetail extends Page
         $student = $this->resolveStudent();
         $records = $this->getAttendanceRecords();
 
-        $presentCount = $records->where('status', AttendanceStatus::Present)->count();
+        $presentCount = $records->whereIn('status', AttendanceSetting::current()->presentStatusesFor(StudentProfile::class))->count();
         $absentCount = $records->where('status', AttendanceStatus::Absent)->count();
 
         $allTimeCounts = Attendance::query()
@@ -86,7 +87,7 @@ class StudentAttendanceDetail extends Page
             ->groupBy('status')
             ->pluck('total', 'status');
 
-        $allTimePresent = (int) ($allTimeCounts[AttendanceStatus::Present->value] ?? 0);
+        $allTimePresent = (int) $allTimeCounts->only(AttendanceSetting::current()->presentStatusValuesFor(StudentProfile::class))->sum();
         $allTimeAbsent = (int) ($allTimeCounts[AttendanceStatus::Absent->value] ?? 0);
 
         return compact('student', 'records', 'presentCount', 'absentCount', 'allTimePresent', 'allTimeAbsent');

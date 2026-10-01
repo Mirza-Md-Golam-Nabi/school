@@ -76,7 +76,7 @@ class AcademicHistoryClass extends Page
 
         $presentCounts = Attendance::where('attendable_type', StudentProfile::class)
             ->whereIn('attendable_id', $classmateIds)
-            ->where('status', AttendanceStatus::Present)
+            ->countedPresent(StudentProfile::class)
             ->where('class_id', $this->record->class_id)
             ->whereYear('date', $this->record->session_year)
             ->selectRaw('attendable_id, count(*) as present_count')

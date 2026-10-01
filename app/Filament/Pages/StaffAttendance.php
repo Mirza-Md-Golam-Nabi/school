@@ -8,6 +8,7 @@ use App\Enums\EmploymentStatus;
 use App\Enums\Permissions\AttendancePermission;
 use App\Filament\Concerns\HasAttendancePagePermission;
 use App\Models\Attendance;
+use App\Models\AttendanceSetting;
 use App\Models\StaffProfile;
 use App\Models\User;
 use BackedEnum;
@@ -64,7 +65,7 @@ class StaffAttendance extends Page
             ->where('attendable_type', StaffProfile::class)
             ->whereIn('attendable_id', $staffIds)
             ->where('date', $this->date)
-            ->where('status', AttendanceStatus::Present)
+            ->countedPresent(StaffProfile::class)
             ->pluck('attendable_id')
             ->map(fn ($id) => (string) $id)
             ->toArray();
@@ -88,6 +89,8 @@ class StaffAttendance extends Page
         $markedBy = auth()->id();
         $staff = $this->getStaff();
 
+        $countsLate = AttendanceSetting::current()->countsLateFor(StaffProfile::class);
+
         foreach ($staff as $member) {
             $isPresent = in_array((string) $member->id, $this->presentIds);
             $newStatus = $isPresent ? AttendanceStatus::Present : AttendanceStatus::Absent;
@@ -101,6 +104,13 @@ class StaffAttendance extends Page
             ];
 
             $existing = Attendance::where($keys)->first();
+
+            // While late arrivals are counted they show as ticked, so resaving the
+            // list must leave them Late instead of turning them into a plain Present.
+            if ($isPresent && $countsLate && $existing?->status === AttendanceStatus::Late) {
+                $newStatus = AttendanceStatus::Late;
+            }
+
             $statusChanged = $existing && $existing->status !== $newStatus;
 
             $attendance = $existing ?? new Attendance($keys);

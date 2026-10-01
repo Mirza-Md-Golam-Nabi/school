@@ -42,4 +42,18 @@ return [
 
     'max_removals_per_sync' => (int) env('ATTENDANCE_MAX_REMOVALS_PER_SYNC', 50),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Exit Without Check-Out
+    |--------------------------------------------------------------------------
+    |
+    | When the device's Check-In / Check-Out selection is switched during the day,
+    | a check-out punch is the exit. When nobody switches it, every punch looks
+    | the same, so a later punch only counts as the exit once it is at least this
+    | many minutes after the entry — anything sooner is a repeated touch on arrival.
+    |
+    */
+
+    'exit_after_minutes' => (int) env('ATTENDANCE_EXIT_AFTER_MINUTES', 25),
+
 ];

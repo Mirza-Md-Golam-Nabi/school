@@ -113,7 +113,7 @@ trait ManagesClassAttendance
             ->whereIn('attendable_id', $studentIds)
             ->where('date', $this->date)
             ->where('class_id', $this->classId)
-            ->where('status', AttendanceStatus::Present)
+            ->countedPresent(StudentProfile::class)
             ->pluck('attendable_id')
             ->map(fn ($id) => (string) $id)
             ->toArray();
