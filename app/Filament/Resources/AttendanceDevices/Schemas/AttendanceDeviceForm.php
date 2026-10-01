@@ -17,8 +17,8 @@ class AttendanceDeviceForm
     {
         return $schema
             ->components([
-                Section::make('Device Information')
-                    ->description('The API token is generated automatically and shown only once, right after the device is created.')
+                Section::make(__('Device Information'))
+                    ->description(__('The API token is generated automatically and shown only once, right after the device is created.'))
                     ->schema([
                         TextInput::make('name')
                             ->required()
@@ -29,7 +29,7 @@ class AttendanceDeviceForm
                             ->label('Serial Number')
                             ->unique(ignoreRecord: true)
                             ->maxLength(100)
-                            ->helperText('Optional — printed on the device label or shown in its System Info menu.'),
+                            ->helperText(__('Optional — printed on the device label or shown in its System Info menu.')),
 
                         Select::make('driver')
                             ->options(AttendanceDeviceDriver::class)
@@ -41,58 +41,73 @@ class AttendanceDeviceForm
                             ->label('Active')
                             ->default(true)
                             ->inline(false)
-                            ->helperText('An inactive device is rejected by the API, so its sync client stops delivering punches.'),
+                            ->helperText(__('An inactive device is rejected by the API, so its sync client stops delivering punches.')),
 
                         TextInput::make('user_capacity')
                             ->label('Users Capacity')
                             ->numeric()
                             ->integer()
                             ->minValue(1)
-                            ->placeholder('e.g. 1000')
-                            ->helperText('Copy the limits from the device: Menu → System Info → Device Capacity. They are used to show how full the device is.'),
+                            ->placeholder('e.g. :number', ['number' => '1000'])
+                            ->helperText(__('Copy the limits from the device: Menu → System Info → Device Capacity. They are used to show how full the device is.')),
 
                         TextInput::make('fingerprint_capacity')
                             ->label('Fingerprint Capacity')
                             ->numeric()
                             ->integer()
                             ->minValue(1)
-                            ->placeholder('e.g. 3000'),
+                            ->placeholder('e.g. :number', ['number' => '3000']),
 
                         TextInput::make('card_capacity')
                             ->label('Card Capacity')
                             ->numeric()
                             ->integer()
                             ->minValue(1)
-                            ->placeholder('e.g. 3000'),
+                            ->placeholder('e.g. :number', ['number' => '3000']),
 
                         TextInput::make('record_capacity')
                             ->label('Attendance Record Capacity')
                             ->numeric()
                             ->integer()
                             ->minValue(1)
-                            ->placeholder('e.g. 100000'),
+                            ->placeholder('e.g. :number', ['number' => '100000']),
+
+                        TextInput::make('log_retention_days')
+                            ->label(__('Clear Device Log After (Days)'))
+                            ->numeric()
+                            ->integer()
+                            ->minValue(1)
+                            ->maxValue(3650)
+                            ->placeholder('e.g. 30')
+                            ->helperText(__('Clears the whole device log once its oldest record is this many days old. All punches are uploaded to this software first. Leave empty to never clear.'))
+                            ->columnSpanFull(),
                     ])
                     ->columns([
                         'default' => 1,
                         'md' => 2,
                     ]),
 
-                Section::make('Last Report from the Device')
-                    ->description('Sent by the laptop sync script after each sync.')
+                Section::make(__('Last Report from the Device'))
+                    ->description(__('Sent by the laptop sync script after each sync.'))
                     ->schema([
                         TextEntry::make('capacity_report')
                             ->label('Capacity')
                             ->state(fn (?AttendanceDevice $record): ?string => $record?->capacitySummary())
-                            ->placeholder('No report yet.'),
+                            ->placeholder(__('No report yet.')),
+
+                        TextEntry::make('log_cleared_at')
+                            ->label(__('Device attendance log last cleared'))
+                            ->state(fn (?AttendanceDevice $record): ?string => $record?->log_cleared_at?->format('d M Y, h:i A'))
+                            ->placeholder(__('Never')),
 
                         TextEntry::make('unknown_users_report')
-                            ->label('Users on the device that this software does not know')
-                            ->helperText('They are left untouched. Remove them on the device, or link the enroll ID to a person.')
+                            ->label(__('Users on the device that this software does not know'))
+                            ->helperText(__('They are left untouched. Remove them on the device, or link the enroll ID to a person.'))
                             ->state(fn (?AttendanceDevice $record): array => collect($record?->unknown_device_users ?? [])
                                 ->map(fn (array $user): string => trim("#{$user['enroll_id']} ".($user['name'] ?? '')))
                                 ->all())
                             ->listWithLineBreaks()
-                            ->placeholder('None'),
+                            ->placeholder(__('None')),
                     ])
                     ->visibleOn('edit'),
             ])

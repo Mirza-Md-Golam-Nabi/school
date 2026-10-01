@@ -23,8 +23,11 @@ class BuildDeviceSyncPlanAction
      *    removal is still waiting out its grace period or for approval).
      *  - "remove": people the client should now delete from the device — an explicit
      *    list, never "whoever is missing from users", so a bad response can't wipe it.
+     *  - "log_retention_days": once the oldest punch record on the device is older than
+     *    this, the client uploads everything and clears the device's attendance log (the
+     *    device can only clear all of it). Null means the log is never cleared.
      *
-     * @return array{users: array<int, array{enroll_id: string, name: string, card_number: string|null}>, remove: array<int, string>}
+     * @return array{users: array<int, array{enroll_id: string, name: string, card_number: string|null}>, remove: array<int, string>, log_retention_days: int|null}
      */
     public function handle(AttendanceDevice $device): array
     {
@@ -55,6 +58,7 @@ class BuildDeviceSyncPlanAction
                 ->values()
                 ->all(),
             'remove' => $removeIds->values()->all(),
+            'log_retention_days' => $device->log_retention_days,
         ];
     }
 

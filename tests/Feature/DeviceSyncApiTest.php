@@ -223,6 +223,31 @@ it('keeps the previous record total when a report leaves it out', function () {
     expect($device->fresh()->reported_sizes['records'])->toBe(500);
 });
 
+it('tells the sync client after how many days to clear the device log', function () {
+    $device = syncApiDevice();
+
+    expect(syncApiPlan()->assertSuccessful()->json())->toHaveKey('log_retention_days', null);
+
+    $device->update(['log_retention_days' => 30]);
+
+    expect(syncApiPlan()->json('log_retention_days'))->toBe(30);
+});
+
+it('records when the sync client cleared the device log', function () {
+    $this->travelTo('2026-12-01 10:00:00');
+    $device = syncApiDevice();
+
+    syncApiReport(['users' => [], 'sizes' => ['records' => 0], 'log_cleared' => true])->assertSuccessful();
+
+    expect($device->fresh()->log_cleared_at->toDateTimeString())->toBe('2026-12-01 10:00:00');
+
+    $this->travelTo('2026-12-02 10:00:00');
+    syncApiReport(['users' => []])->assertSuccessful();
+    syncApiReport(['users' => [], 'log_cleared' => false])->assertSuccessful();
+
+    expect($device->fresh()->log_cleared_at->toDateTimeString())->toBe('2026-12-01 10:00:00');
+});
+
 it('validates the sync report', function (array $payload, string $invalidKey) {
     syncApiDevice();
 
@@ -233,4 +258,5 @@ it('validates the sync report', function (array $payload, string $invalidKey) {
     'enroll id too long' => [['users' => [['enroll_id' => str_repeat('9', 51)]]], 'users.0.enroll_id'],
     'too many fingerprints' => [['users' => [['enroll_id' => '1', 'fingerprint_count' => 11]]], 'users.0.fingerprint_count'],
     'negative record count' => [['users' => [], 'sizes' => ['records' => -1]], 'sizes.records'],
+    'log cleared not a boolean' => [['users' => [], 'log_cleared' => 'yes'], 'log_cleared'],
 ]);

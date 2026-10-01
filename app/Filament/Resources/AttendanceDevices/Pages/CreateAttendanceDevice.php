@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\AttendanceDevices\Pages;
 
+use App\Filament\Concerns\HasCopyToClipboardAction;
 use App\Filament\Resources\AttendanceDevices\AttendanceDeviceResource;
 use App\Models\AttendanceDevice;
 use Filament\Notifications\Notification;
@@ -11,6 +12,8 @@ use Illuminate\Support\Str;
 
 class CreateAttendanceDevice extends CreateRecord
 {
+    use HasCopyToClipboardAction;
+
     protected static string $resource = AttendanceDeviceResource::class;
 
     /**
@@ -33,6 +36,7 @@ class CreateAttendanceDevice extends CreateRecord
         Notification::make()
             ->title('Device created — copy its API token now')
             ->body($this->plainToken)
+            ->actions([static::copyToClipboardAction('copyToken', $this->plainToken)])
             ->success()
             ->persistent()
             ->send();

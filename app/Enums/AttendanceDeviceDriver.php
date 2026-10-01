@@ -12,8 +12,8 @@ enum AttendanceDeviceDriver: string implements HasLabel
     public function getLabel(): string
     {
         return match ($this) {
-            self::ZkPull => 'ZKTeco (Laptop Sync)',
-            self::Adms => 'ZKTeco ADMS (Push)',
+            self::ZkPull => __('ZKTeco (Laptop Sync)'),
+            self::Adms => __('ZKTeco ADMS (Push)'),
         };
     }
 }

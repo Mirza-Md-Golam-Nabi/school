@@ -4,6 +4,7 @@ namespace App\Filament\Resources\AttendanceDevices\Tables;
 
 use App\Actions\Attendance\ProcessAttendancePunchesAction;
 use App\Enums\DeviceUserRemovalStatus;
+use App\Filament\Concerns\HasCopyToClipboardAction;
 use App\Models\AttendanceDevice;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
@@ -16,6 +17,8 @@ use Illuminate\Database\Eloquent\Builder;
 
 class AttendanceDevicesTable
 {
+    use HasCopyToClipboardAction;
+
     /**
      * A device that hasn't reported for this long is likely offline (laptop off,
      * script stopped, no internet), so it is flagged in red.
@@ -133,9 +136,12 @@ class AttendanceDevicesTable
                     ->requiresConfirmation()
                     ->modalDescription('The current token stops working immediately. You must paste the new token into the sync script on the laptop.')
                     ->action(function (AttendanceDevice $record): void {
+                        $token = $record->rotateToken();
+
                         Notification::make()
                             ->title('New API token — copy it now')
-                            ->body($record->rotateToken())
+                            ->body($token)
+                            ->actions([self::copyToClipboardAction('copyToken', $token)])
                             ->success()
                             ->persistent()
                             ->send();

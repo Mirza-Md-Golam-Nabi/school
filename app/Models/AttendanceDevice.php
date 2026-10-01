@@ -28,9 +28,11 @@ class AttendanceDevice extends Model
         'fingerprint_capacity',
         'card_capacity',
         'record_capacity',
+        'log_retention_days',
         'last_synced_at',
         'reported_sizes',
         'sizes_reported_at',
+        'log_cleared_at',
         'unknown_device_users',
     ];
 
@@ -43,9 +45,11 @@ class AttendanceDevice extends Model
         'fingerprint_capacity' => 'integer',
         'card_capacity' => 'integer',
         'record_capacity' => 'integer',
+        'log_retention_days' => 'integer',
         'last_synced_at' => 'datetime',
         'reported_sizes' => 'array',
         'sizes_reported_at' => 'datetime',
+        'log_cleared_at' => 'datetime',
         'unknown_device_users' => 'array',
     ];
 
@@ -168,7 +172,7 @@ class AttendanceDevice extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['name', 'serial_number', 'driver', 'is_active'])
+            ->logOnly(['name', 'serial_number', 'driver', 'is_active', 'log_retention_days'])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs()
             ->useLogName('attendance_device')

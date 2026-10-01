@@ -11,9 +11,10 @@ class ApplyDeviceSyncReportAction
     /**
      * Records what the sync client found on the device: card numbers and fingerprint
      * counts of known people, deletions it carried out, the device's capacity, and any
-     * users on the device this software doesn't know about (left untouched).
+     * users on the device this software doesn't know about (left untouched), and whether
+     * the client has just cleared the device's attendance log.
      *
-     * @param  array{users?: array<int, array<string, mixed>>, removed?: array<int, string>, sizes?: array<string, int|null>|null}  $report
+     * @param  array{users?: array<int, array<string, mixed>>, removed?: array<int, string>, sizes?: array<string, int|null>|null, log_cleared?: bool|null}  $report
      * @return array{updated: int, removed: int, unknown: int}
      */
     public function handle(AttendanceDevice $device, array $report): array
@@ -59,6 +60,7 @@ class ApplyDeviceSyncReportAction
         $device->forceFill([
             'reported_sizes' => $this->usedCounts($report, $device),
             'sizes_reported_at' => now(),
+            'log_cleared_at' => ($report['log_cleared'] ?? false) ? now() : $device->log_cleared_at,
             'unknown_device_users' => $unknown,
         ])->save();
 

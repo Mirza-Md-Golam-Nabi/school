@@ -56,6 +56,7 @@ class StoreDeviceSyncReportRequest extends FormRequest
             'removed.*' => ['string', 'max:50'],
             'sizes' => ['nullable', 'array'],
             'sizes.records' => ['nullable', 'integer', 'min:0'],
+            'log_cleared' => ['nullable', 'boolean'],
         ];
     }
 }

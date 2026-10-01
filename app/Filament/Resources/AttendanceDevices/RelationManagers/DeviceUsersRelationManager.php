@@ -5,6 +5,7 @@ namespace App\Filament\Resources\AttendanceDevices\RelationManagers;
 use App\Actions\Attendance\AssignDeviceEnrollIdsAction;
 use App\Actions\Attendance\ProcessAttendancePunchesAction;
 use App\Enums\DeviceUserRemovalStatus;
+use App\Models\Classes;
 use App\Models\DeviceUser;
 use App\Models\StaffProfile;
 use App\Models\StudentProfile;
@@ -50,6 +51,8 @@ class DeviceUsersRelationManager extends RelationManager
                 ]),
             ]))
             ->defaultSort('id')
+            ->paginated([50, 75, 100])
+            ->defaultPaginationPageOption(50)
             ->columns([
                 TextColumn::make('enroll_id')
                     ->label('Enroll ID')
@@ -124,6 +127,17 @@ class DeviceUsersRelationManager extends RelationManager
                 SelectFilter::make('enrollable_type')
                     ->label('Type')
                     ->options(DeviceUser::personTypes()),
+
+                SelectFilter::make('class_id')
+                    ->label('Class')
+                    ->options(fn (): array => Classes::query()->orderBy('order')->get()->pluck('display_name', 'id')->all())
+                    ->query(fn (Builder $query, array $data): Builder => filled($data['value'] ?? null)
+                        ? $query->whereHasMorph(
+                            'enrollable',
+                            [StudentProfile::class],
+                            fn (Builder $student) => $student->where('current_class_id', $data['value']),
+                        )
+                        : $query),
             ])
             ->headerActions([
                 Action::make('assignEnrollIds')
@@ -233,14 +247,27 @@ class DeviceUsersRelationManager extends RelationManager
                 ->options(DeviceUser::personTypes())
                 ->required()
                 ->live()
+                ->afterStateUpdated(function (Set $set): void {
+                    $set('class_id', null);
+                    $set('person_id', null);
+                }),
+
+            Select::make('class_id')
+                ->label('Class')
+                ->options(fn (): array => Classes::query()->orderBy('order')->get()->pluck('display_name', 'id')->all())
+                ->visible(fn (Get $get): bool => $get('person_type') === StudentProfile::class)
+                ->required(fn (Get $get): bool => $get('person_type') === StudentProfile::class)
+                ->live()
+                ->dehydrated(false)
                 ->afterStateUpdated(fn (Set $set) => $set('person_id', null)),
 
             Select::make('person_id')
                 ->label('Person')
                 ->required()
                 ->searchable()
-                ->disabled(fn (Get $get): bool => blank($get('person_type')))
-                ->getSearchResultsUsing(fn (string $search, Get $get): array => $this->searchPeople($get('person_type'), $search))
+                ->preload()
+                ->disabled(fn (Get $get): bool => blank($get('person_type')) || ($get('person_type') === StudentProfile::class && blank($get('class_id'))))
+                ->getSearchResultsUsing(fn (string $search, Get $get): array => $this->searchPeople($get('person_type'), $search, $get('class_id')))
                 ->getOptionLabelUsing(fn (mixed $value, Get $get): ?string => $this->describePersonById($get('person_type'), $value))
                 ->rules([
                     fn (Get $get): Closure => function (string $attribute, mixed $value, Closure $fail) use ($get): void {
@@ -280,16 +307,21 @@ class DeviceUsersRelationManager extends RelationManager
     /**
      * @return array<int|string, string>
      */
-    private function searchPeople(?string $type, string $search): array
+    private function searchPeople(?string $type, string $search, mixed $classId = null): array
     {
         if (! $this->isPersonType($type)) {
+            return [];
+        }
+
+        if ($type === StudentProfile::class && blank($classId)) {
             return [];
         }
 
         return $type::query()
             ->active()
             ->with($type === StudentProfile::class ? ['user', 'class'] : ['user'])
-            ->whereHas('user', fn (Builder $user) => $user->where('name', 'like', "%{$search}%"))
+            ->when($type === StudentProfile::class, fn (Builder $query) => $query->where('current_class_id', $classId))
+            ->when(filled($search), fn (Builder $query) => $query->whereHas('user', fn (Builder $user) => $user->where('name', 'like', "%{$search}%")))
             ->limit(50)
             ->get()
             ->mapWithKeys(fn (Model $person): array => [$person->getKey() => DeviceUser::describePerson($person)])

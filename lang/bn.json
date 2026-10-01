@@ -103,5 +103,20 @@
     "1st Position Total Marks": "১ম স্থানের মোট নম্বর",
     "1st Position GPA": "১ম স্থানের জিপিএ",
     "Working Days": "কার্যদিবস",
-    "Guardian": "অভিভাবক"
+    "Guardian": "অভিভাবক",
+    "Device Information": "ডিভাইসের তথ্য",
+    "The API token is generated automatically and shown only once, right after the device is created.": "API টোকেন স্বয়ংক্রিয়ভাবে তৈরি হয় এবং ডিভাইস তৈরির ঠিক পরে শুধু একবার দেখানো হয়।",
+    "Optional — printed on the device label or shown in its System Info menu.": "ঐচ্ছিক — ডিভাইসের লেবেলে লেখা থাকে অথবা এর System Info মেনুতে দেখা যায়।",
+    "An inactive device is rejected by the API, so its sync client stops delivering punches.": "নিষ্ক্রিয় ডিভাইসকে API প্রত্যাখ্যান করে, তাই এর sync ক্লায়েন্ট পাঞ্চ পাঠানো বন্ধ করে দেয়।",
+    "Copy the limits from the device: Menu → System Info → Device Capacity. They are used to show how full the device is.": "ডিভাইস থেকে সীমাগুলো কপি করুন: Menu → System Info → Device Capacity। এগুলো দিয়ে দেখানো হয় ডিভাইস কতটা ভরে গেছে।",
+    "Clear Device Log After (Days)": "কত দিন পর ডিভাইসের লগ মুছবে",
+    "Clears the whole device log once its oldest record is this many days old. All punches are uploaded to this software first. Leave empty to never clear.": "ডিভাইসের সবচেয়ে পুরনো রেকর্ড এত দিনের হলে ডিভাইসের পুরো লগ মুছে যাবে। তার আগে সব পাঞ্চ এই সফটওয়্যারে আপলোড হয়। খালি রাখলে কখনো মুছবে না।",
+    "Device attendance log last cleared": "ডিভাইসের attendance log সর্বশেষ মোছা হয়েছে",
+    "Never": "কখনো না",
+    "Last Report from the Device": "ডিভাইসের সর্বশেষ রিপোর্ট",
+    "Sent by the laptop sync script after each sync.": "প্রতিবার সিঙ্কের পর ল্যাপটপের sync script এটা পাঠায়।",
+    "No report yet.": "এখনো কোনো রিপোর্ট আসেনি।",
+    "Users on the device that this software does not know": "ডিভাইসে থাকা যেসব ইউজারকে এই সফটওয়্যার চেনে না",
+    "They are left untouched. Remove them on the device, or link the enroll ID to a person.": "এগুলোতে কোনো পরিবর্তন করা হয় না। ডিভাইস থেকে সরান, অথবা enroll ID কোনো একজনের সাথে যুক্ত করুন।",
+    "None": "কোনোটি নেই"
 }
