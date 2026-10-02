@@ -124,6 +124,21 @@ class StudentProfile extends Model
         return $this->hasMany(StudentOptionalSubject::class, 'student_id');
     }
 
+    /**
+     * The number printed and barcoded on the student's ID card: their
+     * registration number, or — when none is recorded — the year they joined
+     * plus their profile id. Unlike session_year, neither changes on promotion,
+     * so a card stays valid for the student's whole time at the school.
+     */
+    public function idCardNumber(): string
+    {
+        if (filled($this->registration_no)) {
+            return (string) $this->registration_no;
+        }
+
+        return sprintf('%d%04d', ($this->admission_date ?? $this->created_at)->year, $this->id);
+    }
+
     public function scopeActive(Builder $query): void
     {
         $query->where('status', StudentStatus::Active);

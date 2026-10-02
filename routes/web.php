@@ -5,6 +5,7 @@ use App\Http\Controllers\ClassAdmitCardsPdfController;
 use App\Http\Controllers\ClassAttendanceReportPdfController;
 use App\Http\Controllers\ClassMarksheetsPdfController;
 use App\Http\Controllers\ClassSeatPlanPdfController;
+use App\Http\Controllers\ClassStudentIdCardsPdfController;
 use App\Http\Controllers\ClassStudentListPdfController;
 use App\Http\Controllers\EmailVerificationController;
 use App\Http\Controllers\EmployeeAttendanceReportPdfController;
@@ -48,6 +49,14 @@ Route::get('/classes/{class}/admit-cards/{exam}/download', ClassAdmitCardsPdfCon
 Route::get('/classes/{class}/seat-plan/download', ClassSeatPlanPdfController::class)
     ->middleware('auth')
     ->name('seat-plan.class.download');
+
+Route::get('/classes/{class}/student-id-cards/view', [ClassStudentIdCardsPdfController::class, 'view'])
+    ->middleware('auth')
+    ->name('student-id-cards.class.view');
+
+Route::get('/classes/{class}/student-id-cards/download', [ClassStudentIdCardsPdfController::class, 'download'])
+    ->middleware('auth')
+    ->name('student-id-cards.class.download');
 
 Route::get('/classes/{class}/student-list/download', ClassStudentListPdfController::class)
     ->middleware('auth')
