@@ -4,6 +4,7 @@ namespace App\Filament\Resources\StudentProfiles\Tables;
 
 use App\Enums\StudentStatus;
 use App\Models\Classes;
+use App\Models\StudentProfile;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -12,6 +13,8 @@ use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreAction;
 use Filament\Actions\RestoreBulkAction;
 use Filament\Actions\ViewAction;
+use Filament\AvatarProviders\UiAvatarsProvider;
+use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TrashedFilter;
@@ -24,6 +27,16 @@ class StudentProfilesTable
         return $table
             ->defaultSort('roll_no')
             ->columns([
+                ImageColumn::make('photo')
+                    ->label('Photo')
+                    ->disk('public')
+                    ->visibility('public')
+                    ->defaultImageUrl(fn (StudentProfile $record): ?string => $record->user
+                        ? app(UiAvatarsProvider::class)->get($record->user)
+                        : null)
+                    ->circular()
+                    ->imageSize(60),
+
                 TextColumn::make('user.name')
                     ->label('Name')
                     ->searchable()

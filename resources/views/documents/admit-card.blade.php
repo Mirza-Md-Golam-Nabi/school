@@ -32,7 +32,7 @@
 
     $sealDataUri = $toDataUri(SchoolSetting::get('school_seal'));
     $signatureDataUri = $toDataUri(SchoolSetting::get('principal_signature'));
-    $studentPhotoDataUri = $toDataUri($student->user?->avatar);
+    $studentPhotoDataUri = $toDataUri($student->photo);
 @endphp
 <!DOCTYPE html>
 <html>

@@ -74,7 +74,7 @@ class BuildClassStudentIdCardsPdfAction
 
             $cards = $pageStudents->values()->map(fn (StudentProfile $student, int $slot): array => [
                 'student' => $student,
-                'photo' => $this->photoRenderer->render($student->user?->avatar),
+                'photo' => $this->photoRenderer->render($student->photo),
                 ...$this->slotOrigin($slot),
             ]);
 

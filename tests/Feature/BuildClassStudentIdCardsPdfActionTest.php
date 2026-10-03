@@ -30,13 +30,12 @@ uses(RefreshDatabase::class);
 /**
  * @param  array<string, mixed>  $attributes
  */
-function makeIdCardTestStudent(int $classId, int $rollNo, StudentStatus $status = StudentStatus::Active, array $attributes = [], ?string $avatar = null): StudentProfile
+function makeIdCardTestStudent(int $classId, int $rollNo, StudentStatus $status = StudentStatus::Active, array $attributes = []): StudentProfile
 {
     $user = User::factory()->create([
         'user_type' => UserType::Student,
         'is_active' => true,
         'name' => "Student Roll {$rollNo}",
-        'avatar' => $avatar,
     ]);
 
     return StudentProfile::create([
@@ -84,7 +83,7 @@ it('fits four students on a page and starts a new page for the fifth', function 
 it('renders a fully filled-in card with photo, logo, group, section and guardian details', function () {
     Storage::fake('public');
 
-    $avatar = UploadedFile::fake()->image('avatar.jpg', 300, 450)->store('avatars', 'public');
+    $photo = UploadedFile::fake()->image('photo.jpg', 300, 450)->store('student-profiles/photos', 'public');
     SchoolSetting::set('school_name', 'আদর্শ উচ্চ বিদ্যালয়');
     SchoolSetting::set('school_logo', UploadedFile::fake()->image('logo.png', 120, 120)->store('school-settings', 'public'));
 
@@ -101,7 +100,8 @@ it('renders a fully filled-in card with photo, logo, group, section and guardian
         'mother_name' => 'Rokeya Begum',
         'guardian_phone' => '01812345678',
         'date_of_birth' => '2011-03-14',
-    ], $avatar);
+        'photo' => $photo,
+    ]);
     $student->addresses()->create(['type' => AddressType::Present, 'address' => 'Rupdia, Jashore']);
 
     $pdf = app(BuildClassStudentIdCardsPdfAction::class)->handle($class);

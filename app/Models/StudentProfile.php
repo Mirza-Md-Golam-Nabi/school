@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Storage;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
@@ -24,6 +25,7 @@ class StudentProfile extends Model
 
     protected $fillable = [
         'user_id',
+        'photo',
         'roll_no',
         'registration_no',
         'birth_certificate_no',
@@ -122,6 +124,19 @@ class StudentProfile extends Model
     public function optionalSubjects(): HasMany
     {
         return $this->hasMany(StudentOptionalSubject::class, 'student_id');
+    }
+
+    /**
+     * Public URL of the official photo the school uploaded for this student —
+     * not the avatar the student may have set on their own account.
+     */
+    public function photoUrl(): ?string
+    {
+        $storage = Storage::disk('public');
+
+        return ($this->photo && $storage->exists($this->photo))
+            ? $storage->url($this->photo)
+            : null;
     }
 
     /**

@@ -154,6 +154,7 @@ class CreateStudentProfileAction
     private function profileData(array $data): array
     {
         return [
+            'photo' => $data['photo'] ?? null,
             'roll_no' => $data['roll_no'] ?? null,
             'registration_no' => $data['registration_no'] ?? null,
             'birth_certificate_no' => $data['birth_certificate_no'] ?? null,

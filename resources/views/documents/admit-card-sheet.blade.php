@@ -169,7 +169,7 @@
                     @php
                         $student = $admitCard->student;
                         $exam = $admitCard->exam;
-                        $studentPhotoDataUri = $toDataUri($student->user?->avatar);
+                        $studentPhotoDataUri = $toDataUri($student->photo);
                     @endphp
                     <td class="cell">
                         <table class="card">
