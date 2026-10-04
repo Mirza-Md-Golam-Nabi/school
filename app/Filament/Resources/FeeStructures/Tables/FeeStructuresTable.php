@@ -13,6 +13,7 @@ use Filament\Actions\EditAction;
 use Filament\Notifications\Notification;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
@@ -22,6 +23,7 @@ class FeeStructuresTable
     public static function configure(Table $table): Table
     {
         return $table
+            ->defaultSort('session_year', 'desc')
             ->columns([
                 TextColumn::make('class.name')
                     ->label('Class')
@@ -64,6 +66,11 @@ class FeeStructuresTable
                 SelectFilter::make('fee_type_id')
                     ->label('Fee Type')
                     ->options(FeeType::pluck('name', 'id')),
+                SelectFilter::make('session_year')
+                    ->label('Session Year')
+                    ->multiple()
+                    ->options(fn (HasTable $livewire): array => self::sessionYearOptions($livewire))
+                    ->default(fn (HasTable $livewire): array => self::defaultSessionYears($livewire)),
                 TernaryFilter::make('is_active')
                     ->label('Active Status'),
             ])
@@ -95,5 +102,63 @@ class FeeStructuresTable
                     DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    /**
+     * ফিল্টারে সবসময় দুটো বছর থাকে — বর্তমান বছর, আর তার সাথে আগামী বছর (যদি তার
+     * structure তৈরি হয়ে থাকে) নয়তো গত বছর। ক্লাসের পেজে শুধু সেই ক্লাসের structure
+     * দেখে সিদ্ধান্ত হয়।
+     *
+     * @return array<int, int>
+     */
+    private static function sessionYearOptions(HasTable $livewire): array
+    {
+        $currentYear = now()->year;
+        $otherYear = in_array($currentYear + 1, self::existingSessionYears($livewire), true)
+            ? $currentYear + 1
+            : $currentYear - 1;
+
+        $years = [$currentYear, $otherYear];
+        rsort($years);
+
+        return array_combine($years, $years);
+    }
+
+    /**
+     * ডিফল্টে বর্তমান বছর দেখায়, আর আগামী বছরের structure তৈরি হয়ে থাকলে সেটাও সাথে
+     * দেখায় — যাতে নতুন সেশনে কপি করার পর ফলাফল সাথে সাথে চোখে পড়ে। দুটোর কোনোটারই
+     * structure না থাকলে গত বছরেরটা দেখায়, টেবিল যাতে খালি না আসে।
+     *
+     * @return array<int, int>
+     */
+    private static function defaultSessionYears(HasTable $livewire): array
+    {
+        $currentYear = now()->year;
+        $existingYears = self::existingSessionYears($livewire);
+
+        if (in_array($currentYear + 1, $existingYears, true)) {
+            return [$currentYear + 1, $currentYear];
+        }
+
+        if (! in_array($currentYear, $existingYears, true) && in_array($currentYear - 1, $existingYears, true)) {
+            return [$currentYear - 1];
+        }
+
+        return [$currentYear];
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    private static function existingSessionYears(HasTable $livewire): array
+    {
+        $classId = $livewire->classId ?? null;
+
+        return FeeStructure::query()
+            ->when($classId, fn ($query) => $query->where('class_id', $classId))
+            ->distinct()
+            ->pluck('session_year')
+            ->map(fn (int|string $year): int => (int) $year)
+            ->all();
     }
 }

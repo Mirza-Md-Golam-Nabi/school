@@ -4,6 +4,7 @@ namespace App\Filament\Resources\StudentProfiles\Pages;
 
 use App\Enums\StudentListColumn;
 use App\Filament\Resources\StudentProfiles\Concerns\HasStudentCredentialsModal;
+use App\Filament\Resources\StudentProfiles\Concerns\HasStudentImportActions;
 use App\Filament\Resources\StudentProfiles\StudentProfileResource;
 use App\Filament\Resources\StudentProfiles\Tables\StudentProfilesTable;
 use App\Filament\Resources\StudentProfiles\Widgets\GroupStudentCountsWidget;
@@ -23,6 +24,7 @@ use Livewire\Attributes\Url;
 class StudentsByClass extends ListRecords
 {
     use HasStudentCredentialsModal;
+    use HasStudentImportActions;
 
     protected static string $resource = StudentProfileResource::class;
 
@@ -80,6 +82,8 @@ class StudentsByClass extends ListRecords
 
             CreateAction::make()
                 ->url(fn (): string => StudentProfileResource::getUrl('create', $this->classId ? ['classId' => $this->classId] : [])),
+
+            $this->studentImportActionGroup($this->classId ?: null),
 
             Action::make('downloadStudentList')
                 ->label('Student List (PDF)')

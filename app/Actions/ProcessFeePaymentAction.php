@@ -9,6 +9,7 @@ use App\Models\StudentProfile;
 use App\Notifications\FeePaymentReceivedNotification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class ProcessFeePaymentAction
 {
@@ -17,6 +18,8 @@ class ProcessFeePaymentAction
      * Creates one FeePayment record per invoice and updates invoice statuses.
      *
      * @param  array<string, mixed>  $data
+     *
+     * @throws ValidationException when none of the given invoices has anything left to pay
      */
     public function handle(array $data): FeePayment
     {
@@ -83,6 +86,12 @@ class ProcessFeePaymentAction
                 $invoice->update(['status' => $newStatus]);
             }
         });
+
+        if ($firstPayment === null) {
+            throw ValidationException::withMessages([
+                'data.invoice_ids' => 'নির্বাচিত ইনভয়েসগুলোতে পরিশোধ করার মতো কোনো বকেয়া নেই।',
+            ]);
+        }
 
         // Notify the student's user about each invoice paid
         $student = StudentProfile::with('user')->find($data['student_id']);

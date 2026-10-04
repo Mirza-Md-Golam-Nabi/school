@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\StudentProfiles\Pages;
 
 use App\Enums\StudentStatus;
+use App\Filament\Resources\StudentProfiles\Concerns\HasStudentImportActions;
 use App\Filament\Resources\StudentProfiles\StudentProfileResource;
 use App\Models\Classes;
 use Filament\Actions\CreateAction;
@@ -10,6 +11,8 @@ use Filament\Resources\Pages\Page;
 
 class ListStudentProfiles extends Page
 {
+    use HasStudentImportActions;
+
     protected static string $resource = StudentProfileResource::class;
 
     protected string $view = 'filament.resources.student-profiles.pages.list-student-profiles';
@@ -18,6 +21,7 @@ class ListStudentProfiles extends Page
     {
         return [
             CreateAction::make(),
+            $this->studentImportActionGroup(),
         ];
     }
 

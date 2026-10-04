@@ -14,6 +14,8 @@
                     $url             = App\Filament\Resources\FeeStructures\FeeStructureResource::getUrl(
                                            'class-fee-structures', ['class' => $class->id]
                                        );
+                    $structureCount  = $class->feeStructures->count();
+                    $sessionYear     = $class->feeStructures->first()?->session_year;
                     $monthly         = $class->feeStructures->filter(fn ($s) => $s->feeType->is_monthly);
                     $visible         = $monthly->take(3);
                     $hiddenCount     = max(0, $monthly->count() - 3);
@@ -42,11 +44,16 @@
                             </p>
                             <x-filament::badge
                                 size="sm"
-                                :color="$class->fee_structures_count > 0 ? 'success' : 'gray'"
+                                :color="$structureCount > 0 ? 'success' : 'gray'"
                             >
-                                {{ $class->fee_structures_count }}
-                                {{ Str::plural('type', $class->fee_structures_count) }}
+                                {{ $structureCount }}
+                                {{ Str::plural('type', $structureCount) }}
                             </x-filament::badge>
+                            @if ($sessionYear)
+                                <x-filament::badge size="sm" color="gray">
+                                    {{ $sessionYear }}
+                                </x-filament::badge>
+                            @endif
                         </div>
                     </div>
 
