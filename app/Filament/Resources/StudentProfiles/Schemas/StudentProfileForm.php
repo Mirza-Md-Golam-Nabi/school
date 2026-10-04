@@ -47,6 +47,15 @@ class StudentProfileForm
                             TextInput::make('name')
                                 ->label('Full Name')
                                 ->required(),
+
+                            FileUpload::make('photo')
+                                ->label('Student Photo (Official)')
+                                ->image()
+                                ->disk('public')
+                                ->directory('student-profiles/photos')
+                                ->visibility('public')
+                                ->imageEditor()
+                                ->helperText('অফিসিয়াল ছবি — ID card, admit card ইত্যাদিতে এই ছবিই ছাপা হয়।'),
                         ]),
                     ]),
 

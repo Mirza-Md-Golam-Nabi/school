@@ -12,7 +12,7 @@ use Illuminate\Support\Collection;
 class BuildClassAttendanceReportRows
 {
     /**
-     * Build the per-student, per-day P/A attendance grid for a class and
+     * Build the per-student, per-day P/LP/A attendance grid for a class and
      * month. Shared by the PDF action and its tests so the day/status
      * resolution logic has one source of truth.
      *
@@ -58,13 +58,14 @@ class BuildClassAttendanceReportRows
     }
 
     /**
-     * The report only shows P/A: Late still counts as present for the day,
-     * Leave counts as absent — there is no separate column for those statuses.
+     * P = Present, LP = Late Present (a device punch after the grace period),
+     * A = Absent. Leave counts as absent — there is no separate mark for it.
      */
     private function markFor(?AttendanceStatus $status): string
     {
         return match ($status) {
-            AttendanceStatus::Present, AttendanceStatus::Late => 'P',
+            AttendanceStatus::Present => 'P',
+            AttendanceStatus::Late => 'LP',
             AttendanceStatus::Absent, AttendanceStatus::Leave => 'A',
             null => '',
         };

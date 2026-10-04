@@ -4,6 +4,7 @@ namespace App\Filament\Teacher\Widgets;
 
 use App\Enums\AttendanceStatus;
 use App\Models\Attendance;
+use App\Models\AttendanceSetting;
 use App\Models\StudentProfile;
 use Filament\Widgets\Widget;
 use Illuminate\Support\Facades\Auth;
@@ -40,6 +41,8 @@ class ClassAttendanceTodayWidget extends Widget
             ->orderBy('order')
             ->get();
 
+        $presentStatuses = AttendanceSetting::current()->presentStatusesFor(StudentProfile::class);
+
         $attendanceByClass = Attendance::query()
             ->where('attendable_type', StudentProfile::class)
             ->where('date', today()->toDateString())
@@ -50,9 +53,9 @@ class ClassAttendanceTodayWidget extends Widget
             ->get()
             ->groupBy('class_id');
 
-        $classes->each(function ($class) use ($attendanceByClass): void {
+        $classes->each(function ($class) use ($attendanceByClass, $presentStatuses): void {
             $counts = $attendanceByClass->get($class->id, collect());
-            $class->present_today = (int) $counts->where('status', AttendanceStatus::Present->value)->sum('total');
+            $class->present_today = (int) $counts->whereIn('status', $presentStatuses)->sum('total');
             $class->absent_today = (int) $counts->where('status', AttendanceStatus::Absent->value)->sum('total');
             $class->is_marked = ($class->present_today + $class->absent_today) > 0;
         });

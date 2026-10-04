@@ -22,7 +22,9 @@ class ViewStudentProfile extends ViewRecord
                 ->label('Back')
                 ->icon(Heroicon::OutlinedArrowLeft)
                 ->color('gray')
-                ->url(fn (): string => StudentProfileResource::getUrl()),
+                ->url(fn (): string => $this->getRecord()->current_class_id
+                    ? StudentProfileResource::getUrl('students-by-class', ['classId' => $this->getRecord()->current_class_id])
+                    : StudentProfileResource::getUrl()),
 
             $this->resetPasswordAction('danger'),
 

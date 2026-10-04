@@ -6,6 +6,7 @@ use App\Enums\AttendanceSource;
 use App\Enums\AttendanceStatus;
 use App\Filament\Pages\AttendanceModificationDetails;
 use App\Models\Attendance;
+use App\Models\AttendanceSetting;
 use App\Models\AttendanceStatusChange;
 use App\Models\Classes;
 use App\Models\StudentProfile;
@@ -36,6 +37,8 @@ class SaveClassAttendanceAction
         $batchId = (string) Str::uuid();
         $changes = collect();
 
+        $countsLate = AttendanceSetting::current()->countsLateFor(StudentProfile::class);
+
         foreach ($students as $student) {
             $isPresent = in_array((string) $student->id, $presentIds);
             $newStatus = $isPresent ? AttendanceStatus::Present : AttendanceStatus::Absent;
@@ -49,6 +52,13 @@ class SaveClassAttendanceAction
             ];
 
             $existing = Attendance::where($keys)->first();
+
+            // While late arrivals are counted they show as ticked, so resaving the
+            // list must leave them Late instead of turning them into a plain Present.
+            if ($isPresent && $countsLate && $existing?->status === AttendanceStatus::Late) {
+                $newStatus = AttendanceStatus::Late;
+            }
+
             $oldStatus = $existing?->status;
             $statusChanged = $existing && $oldStatus !== $newStatus;
 

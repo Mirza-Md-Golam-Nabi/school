@@ -86,6 +86,11 @@
             font-weight: bold;
         }
 
+        table.report td.late {
+            color: #b45309;
+            font-weight: bold;
+        }
+
         table.report td.absent {
             color: #b91c1c;
             font-weight: bold;
@@ -124,7 +129,7 @@
                     <td class="roll">{{ sprintf('%02d', $row['roll_no']) }}</td>
                     <td class="name">{{ $row['name'] }}</td>
                     @foreach ($row['days'] as $mark)
-                        <td class="{{ $mark === 'P' ? 'present' : ($mark === 'A' ? 'absent' : '') }}">
+                        <td class="{{ ['P' => 'present', 'LP' => 'late', 'A' => 'absent'][$mark] ?? '' }}">
                             {{ $mark }}
                         </td>
                     @endforeach
@@ -133,7 +138,7 @@
         </tbody>
     </table>
 
-    <div class="legend">P = Present, A = Absent</div>
+    <div class="legend">P = Present, LP = Late Present, A = Absent</div>
 </body>
 
 </html>

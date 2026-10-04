@@ -10,6 +10,7 @@ use BackedEnum;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use UnitEnum;
 
@@ -53,11 +54,10 @@ class MyAttendance extends Page
     {
         $profile = $this->resolveProfile();
 
-        if (! $profile) {
+        // Late Present comes only from a device punch; it can't be chosen by hand.
+        if (! $profile || ! in_array(AttendanceStatus::tryFrom($status), AttendanceStatus::manualCases(), true)) {
             return;
         }
-
-        $isPresentLike = in_array($status, ['present', 'late'], true);
 
         Attendance::updateOrCreate(
             [
@@ -71,7 +71,7 @@ class MyAttendance extends Page
                 'status' => $status,
                 'source' => AttendanceSource::Manual,
                 'marked_by' => auth()->id(),
-                'entry_time' => $isPresentLike ? now()->format('H:i:s') : null,
+                'entry_time' => $status === AttendanceStatus::Present->value ? now()->format('H:i:s') : null,
             ]
         );
 
@@ -111,7 +111,7 @@ class MyAttendance extends Page
                 'dotClass' => 'h-1.5 w-1.5 rounded-full bg-success-500',
             ],
             'late' => [
-                'label' => 'Late',
+                'label' => 'Late Present',
                 'color' => 'warning',
                 'icon' => 'heroicon-s-clock',
                 'circleBg' => 'bg-warning-100 dark:bg-warning-900',
@@ -149,6 +149,9 @@ class MyAttendance extends Page
         $greeting = $hour < 12 ? 'Good Morning' : ($hour < 17 ? 'Good Afternoon' : 'Good Evening');
         $current = $this->todayStatus ? $statusConfig[$this->todayStatus] : null;
 
+        // Every status can be shown as today's status, but only the manual ones get a button.
+        $manualConfig = Arr::only($statusConfig, array_column(AttendanceStatus::manualCases(), 'value'));
+
         $buttons = array_map(function (string $value, array $cfg): array {
             $isSelected = $this->todayStatus === $value;
 
@@ -158,7 +161,7 @@ class MyAttendance extends Page
                 'btnClass' => $isSelected ? $cfg['btnSelected'] : $cfg['btnUnselected'],
                 'dotClass' => $isSelected ? $cfg['dotClass'] : 'h-1.5 w-1.5 rounded-full bg-transparent',
             ];
-        }, array_keys($statusConfig), array_values($statusConfig));
+        }, array_keys($manualConfig), array_values($manualConfig));
 
         $history = $this->getRecentHistory($profile->id);
 

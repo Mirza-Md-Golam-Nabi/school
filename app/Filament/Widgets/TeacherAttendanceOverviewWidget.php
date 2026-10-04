@@ -5,6 +5,7 @@ namespace App\Filament\Widgets;
 use App\Enums\AttendanceStatus;
 use App\Filament\Pages\TeacherAttendance;
 use App\Models\Attendance;
+use App\Models\AttendanceSetting;
 use App\Models\TeacherProfile;
 use Filament\Widgets\Widget;
 
@@ -36,7 +37,7 @@ class TeacherAttendanceOverviewWidget extends Widget
 
         return [
             'totalTeachers' => $totalTeachers,
-            'presentToday' => $todayCounts[AttendanceStatus::Present->value] ?? 0,
+            'presentToday' => $todayCounts->only(AttendanceSetting::current()->presentStatusValuesFor(TeacherProfile::class))->sum(),
             'absentToday' => $todayCounts[AttendanceStatus::Absent->value] ?? 0,
             'url' => TeacherAttendance::getUrl(),
         ];

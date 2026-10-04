@@ -74,6 +74,14 @@ class TeacherProfile extends Model
         return $this->morphMany(Attendance::class, 'attendable');
     }
 
+    /**
+     * The enroll IDs this person has on attendance devices.
+     */
+    public function deviceEnrollments(): MorphMany
+    {
+        return $this->morphMany(DeviceUser::class, 'enrollable');
+    }
+
     public function leaveApplications(): MorphMany
     {
         return $this->morphMany(LeaveApplication::class, 'applicant');

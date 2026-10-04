@@ -151,7 +151,7 @@ class BuildStudentMarksDetail
         $presentDays = Attendance::where('attendable_type', StudentProfile::class)
             ->where('attendable_id', $ranking->student_id)
             ->where('class_id', $ranking->class_id)
-            ->where('status', AttendanceStatus::Present)
+            ->countedPresent(StudentProfile::class)
             ->whereYear('date', $sessionYear)
             ->count();
 

@@ -41,7 +41,7 @@ function markAttendanceReportTestDay(StudentProfile $student, int $classId, stri
     ]);
 }
 
-it('marks P for present and late, A for absent and leave, and blank for no record', function () {
+it('marks P for present, LP for late present, A for absent and leave, and blank for no record', function () {
     $class = Classes::create(['name' => 'Class One', 'order' => 1]);
     $student = makeAttendanceReportTestStudent($class->id, 1);
 
@@ -58,7 +58,7 @@ it('marks P for present and late, A for absent and leave, and blank for no recor
     $days = $rows->first()['days'];
 
     expect($days[1])->toBe('P')
-        ->and($days[2])->toBe('P')
+        ->and($days[2])->toBe('LP')
         ->and($days[3])->toBe('A')
         ->and($days[4])->toBe('A')
         ->and($days[5])->toBe('');

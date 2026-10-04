@@ -141,6 +141,11 @@
             border-top: 1px solid #1a1a1a;
         }
 
+        .signer-name {
+            font-weight: bold;
+            margin-bottom: 2px;
+        }
+
         .footer {
             margin-top: 16px;
             text-align: center;
@@ -237,7 +242,12 @@
 
         <table class="signatures">
             <tr>
-                <td>Received By</td>
+                <td>
+                    @if ($firstPayment->receivedBy?->name)
+                        <div class="signer-name">{{ $firstPayment->receivedBy->name }}</div>
+                    @endif
+                    Received By
+                </td>
                 <td>Authorized Signature</td>
             </tr>
         </table>

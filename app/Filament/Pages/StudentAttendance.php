@@ -6,6 +6,7 @@ use App\Enums\AttendanceStatus;
 use App\Enums\Permissions\AttendancePermission;
 use App\Filament\Concerns\HasAttendancePagePermission;
 use App\Models\Attendance;
+use App\Models\AttendanceSetting;
 use App\Models\Classes;
 use App\Models\StudentProfile;
 use BackedEnum;
@@ -34,6 +35,8 @@ class StudentAttendance extends Page
 
     public function getViewData(): array
     {
+        $presentStatuses = AttendanceSetting::current()->presentStatusesFor(StudentProfile::class);
+
         $todayCounts = Attendance::query()
             ->where('attendable_type', StudentProfile::class)
             ->where('date', today()->toDateString())
@@ -49,9 +52,9 @@ class StudentAttendance extends Page
             ])
             ->orderBy('order')
             ->get()
-            ->each(function (Classes $class) use ($todayCounts) {
+            ->each(function (Classes $class) use ($todayCounts, $presentStatuses) {
                 $counts = $todayCounts->get($class->id, collect());
-                $class->present_today = $counts->where('status', AttendanceStatus::Present->value)->sum('total');
+                $class->present_today = $counts->whereIn('status', $presentStatuses)->sum('total');
                 $class->absent_today = $counts->where('status', AttendanceStatus::Absent->value)->sum('total');
                 $class->is_marked = ($class->present_today + $class->absent_today) > 0;
             });

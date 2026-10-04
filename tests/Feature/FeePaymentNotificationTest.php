@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Notifications\FeePaymentReceivedNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Validation\ValidationException;
 
 uses(RefreshDatabase::class);
 
@@ -138,4 +139,25 @@ it('includes the month in the notification body for monthly fee invoices', funct
 
     expect($notification->data['body'])->toContain('Mar')
         ->and($notification->data['month'])->toBe(3);
+});
+
+it('rejects a payment when none of the selected invoices has any due left', function () {
+    $student = createNotificationTestStudent();
+    $feeType = FeeType::create(['name' => 'Tuition Fee', 'is_monthly' => true, 'is_active' => true]);
+    $invoice = createNotificationTestInvoice($student, $feeType, 1, 100);
+
+    $payment = [
+        'invoice_ids' => [$invoice->id],
+        'amount_paid' => 100,
+        'student_id' => $student->id,
+        'payment_method' => PaymentMethod::Cash,
+        'payment_date' => now()->toDateString(),
+    ];
+
+    app(ProcessFeePaymentAction::class)->handle([...$payment, 'receipt_no' => 'RCPT-NO-DUE-1']);
+
+    expect(fn () => app(ProcessFeePaymentAction::class)->handle([...$payment, 'receipt_no' => 'RCPT-NO-DUE-2']))
+        ->toThrow(ValidationException::class);
+
+    expect($invoice->payments()->count())->toBe(1);
 });

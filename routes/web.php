@@ -5,8 +5,10 @@ use App\Http\Controllers\ClassAdmitCardsPdfController;
 use App\Http\Controllers\ClassAttendanceReportPdfController;
 use App\Http\Controllers\ClassMarksheetsPdfController;
 use App\Http\Controllers\ClassSeatPlanPdfController;
+use App\Http\Controllers\ClassStudentIdCardsPdfController;
 use App\Http\Controllers\ClassStudentListPdfController;
 use App\Http\Controllers\EmailVerificationController;
+use App\Http\Controllers\EmployeeAttendanceReportPdfController;
 use App\Http\Controllers\ExamSchedulePdfController;
 use App\Http\Controllers\ExamTabulationSheetPdfController;
 use App\Http\Controllers\FeePaymentSlipPdfController;
@@ -48,6 +50,14 @@ Route::get('/classes/{class}/seat-plan/download', ClassSeatPlanPdfController::cl
     ->middleware('auth')
     ->name('seat-plan.class.download');
 
+Route::get('/classes/{class}/student-id-cards/view', [ClassStudentIdCardsPdfController::class, 'view'])
+    ->middleware('auth')
+    ->name('student-id-cards.class.view');
+
+Route::get('/classes/{class}/student-id-cards/download', [ClassStudentIdCardsPdfController::class, 'download'])
+    ->middleware('auth')
+    ->name('student-id-cards.class.download');
+
 Route::get('/classes/{class}/student-list/download', ClassStudentListPdfController::class)
     ->middleware('auth')
     ->name('student-list.class.download');
@@ -56,6 +66,11 @@ Route::get('/classes/{class}/attendance-report/{year}/{month}/download', ClassAt
     ->middleware('auth')
     ->whereNumber(['year', 'month'])
     ->name('attendance-report.class.download');
+
+Route::get('/attendance-report/employees/{year}/{month}/download', EmployeeAttendanceReportPdfController::class)
+    ->middleware('auth')
+    ->whereNumber(['year', 'month'])
+    ->name('attendance-report.employees.download');
 
 Route::get('/exams/{exam}/schedule/download', ExamSchedulePdfController::class)
     ->middleware('auth')

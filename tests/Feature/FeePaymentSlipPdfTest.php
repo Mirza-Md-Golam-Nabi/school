@@ -127,3 +127,27 @@ it('aborts with 404 for an unknown payment batch id', function () {
 
     $response->assertStatus(Response::HTTP_NOT_FOUND);
 });
+
+it("prints the receiver's name above the Received By signature line", function () {
+    $receiver = User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true, 'name' => 'Slip Receiver Karim']);
+    $student = createSlipTestStudent();
+    $invoice = createSlipTestInvoice($student, 300, month: 1);
+
+    $firstPayment = app(ProcessFeePaymentAction::class)->handle([
+        'invoice_ids' => [$invoice->id],
+        'amount_paid' => 300,
+        'receipt_no' => 'RCP-SIGNER',
+        'student_id' => $student->id,
+        'payment_method' => PaymentMethod::Cash,
+        'payment_date' => now()->toDateString(),
+        'received_by' => $receiver->id,
+    ]);
+
+    $payments = FeePayment::with(['student.user', 'student.class', 'student.section', 'student.group', 'invoice.feeType', 'receivedBy'])
+        ->where('payment_batch_id', $firstPayment->payment_batch_id)
+        ->get();
+
+    $html = view('documents.fee-payment-slip', ['payments' => $payments])->render();
+
+    expect($html)->toContain('<div class="signer-name">Slip Receiver Karim</div>');
+});

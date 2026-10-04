@@ -1,7 +1,9 @@
 @php
     $student = $getRecord();
     $user = $student->user;
-    $avatarUrl = $user?->getFilamentAvatarUrl();
+    // The official photo the school uploaded — never the avatar the student
+    // set on their own account, which stays private to the student.
+    $avatarUrl = $student->photoUrl();
     $initial = $user?->name ? mb_strtoupper(mb_substr($user->name, 0, 1)) : '?';
 
     // One of 3 gradients, picked per student so the color stays stable across

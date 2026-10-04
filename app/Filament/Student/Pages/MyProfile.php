@@ -78,10 +78,16 @@ class MyProfile extends Page
         return [
             Section::make('Account')
                 ->schema([
+                    ImageEntry::make('user.avatar')
+                        ->label('Profile Photo')
+                        ->disk('public')
+                        ->circular()
+                        ->imageSize(80)
+                        ->visible(fn (): bool => filled($profile->user?->avatar)),
                     TextEntry::make('user.name')->label('Name'),
                     TextEntry::make('user.email')->label('Email'),
                 ])
-                ->columns(2),
+                ->columns(3),
 
             Section::make('Academic')
                 ->schema([

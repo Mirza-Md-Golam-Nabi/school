@@ -55,7 +55,7 @@ it('renders the student view page with profile details and fee summary', functio
         ->assertSee('Guardian Info')
         ->assertSee('Fee Summary')
         ->assertSee('Back')
-        ->assertSee(StudentProfileResource::getUrl(), false);
+        ->assertSee(StudentProfileResource::getUrl('students-by-class', ['classId' => $class->id]), false);
 });
 
 it('lists recent payments in a table', function () {

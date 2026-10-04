@@ -2,14 +2,17 @@
 
 namespace App\Filament\Resources\FeeStructures\Pages;
 
+use App\Actions\CopyFeeStructuresToSessionYearAction;
 use App\Actions\GenerateMonthlyFeeInvoicesAction;
 use App\Actions\GenerateOneTimeFeeInvoicesForAllClassesAction;
 use App\Filament\Resources\FeeStructures\FeeStructureResource;
 use App\Models\Classes;
+use App\Models\FeeStructure;
 use App\Models\FeeType;
 use Carbon\Carbon;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Page;
 use Filament\Schemas\Components\Utilities\Get;
@@ -21,23 +24,33 @@ class ListFeeStructures extends Page
 
     protected string $view = 'filament.resources.fee-structures.pages.list-fee-structures';
 
-    public Collection $classes;
-
-    public function mount(): void
+    /**
+     * প্রতিটা ক্লাসের কার্ডে শুধু তার সর্বশেষ সেশনের active fee structure দেখায় —
+     * নতুন সেশনে কপি করার পর পুরনো ও নতুন বছরের ফি যাতে পাশাপাশি না আসে।
+     *
+     * @return array{classes: Collection<int, Classes>}
+     */
+    protected function getViewData(): array
     {
-        $this->classes = Classes::with([
-            'feeStructures' => fn ($q) => $q->where('is_active', true)->with('feeType'),
+        $classes = Classes::with([
+            'feeStructures' => fn ($query) => $query->where('is_active', true)->with('feeType'),
         ])
-            ->withCount(['feeStructures' => fn ($q) => $q->where('is_active', true)])
             ->active()
             ->orderBy('order')
             ->get()
-            ->each(function ($class) {
+            ->each(function (Classes $class): void {
+                $latestSessionYear = $class->feeStructures->max('session_year');
+
                 $class->setRelation(
                     'feeStructures',
-                    $class->feeStructures->sortBy('feeType.name')->values()
+                    $class->feeStructures
+                        ->where('session_year', $latestSessionYear)
+                        ->sortBy('feeType.name')
+                        ->values()
                 );
             });
+
+        return ['classes' => $classes];
     }
 
     protected function getHeaderActions(): array
@@ -103,10 +116,60 @@ class ListFeeStructures extends Page
                         ->success()
                         ->send();
                 }),
+            Action::make('copyToNewSession')
+                ->label('Copy to New Session')
+                ->icon('heroicon-o-document-duplicate')
+                ->color('warning')
+                ->fillForm(function (): array {
+                    $latestYear = $this->sessionYears()->first();
+
+                    return [
+                        'from_year' => $latestYear,
+                        'to_year' => $latestYear ? $latestYear + 1 : null,
+                    ];
+                })
+                ->schema([
+                    Select::make('from_year')
+                        ->label('Copy From Session Year')
+                        ->options(fn (): array => $this->sessionYears()->mapWithKeys(fn (int $year): array => [$year => $year])->all())
+                        ->native(false)
+                        ->required(),
+                    TextInput::make('to_year')
+                        ->label('New Session Year')
+                        ->numeric()
+                        ->minValue(2000)
+                        ->maxValue(2100)
+                        ->different('from_year')
+                        ->required(),
+                ])
+                ->modalHeading('Copy to New Session — All Classes')
+                ->modalDescription('সব ক্লাসের নির্বাচিত সেশনের সব active fee structure নতুন সেশনে কপি হবে। পুরনো সেশনের structure যেমন আছে তেমনই থাকবে।')
+                ->modalSubmitActionLabel('Copy')
+                ->action(function (array $data): void {
+                    $result = app(CopyFeeStructuresToSessionYearAction::class)
+                        ->handle((int) $data['from_year'], (int) $data['to_year']);
+
+                    Notification::make()
+                        ->title('Fee structures copied')
+                        ->body("Copied: {$result['copied']} | Skipped (already exists in {$data['to_year']}): {$result['skipped']}")
+                        ->success()
+                        ->send();
+                }),
             Action::make('create')
                 ->label('Add Fee Structure')
                 ->url(FeeStructureResource::getUrl('create'))
                 ->icon('heroicon-o-plus'),
         ];
+    }
+
+    /**
+     * @return Collection<int, int>
+     */
+    private function sessionYears(): Collection
+    {
+        return FeeStructure::query()
+            ->distinct()
+            ->orderByDesc('session_year')
+            ->pluck('session_year');
     }
 }

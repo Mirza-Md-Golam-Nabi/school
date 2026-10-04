@@ -3,6 +3,7 @@
 use App\Console\Commands\CheckLeaveExcess;
 use App\Console\Commands\GenerateMonthlyFeeInvoices;
 use App\Console\Commands\GenerateMonthlySalaryInvoices;
+use App\Console\Commands\MarkAbsentAttendance;
 use App\Console\Commands\PrunePushNotificationDeliveries;
 use App\Console\Commands\ResendUnacknowledgedPushNotifications;
 use App\Jobs\DeactivateExpiredActingAdminsJob;
@@ -24,6 +25,12 @@ Schedule::command(GenerateMonthlyFeeInvoices::class)->monthlyOn(1, '07:00');
 // Duplicate generation is already guarded inside the action (skips any
 // profile/month/year combination that already has an invoice).
 Schedule::command(GenerateMonthlySalaryInvoices::class)->lastDayOfMonth('23:00');
+
+// Close off each school day: mark enrolled people who never punched as absent.
+// Runs hourly and is safe to repeat — MarkAbsentForDateAction only acts once the
+// school day is over, a device has reported since, and the day has punches, and it
+// never touches anyone who already has an attendance row.
+Schedule::command(MarkAbsentAttendance::class)->hourly()->withoutOverlapping();
 
 // Check leave excess daily at 8:00 AM — creates excess logs for absent employees
 Schedule::command(CheckLeaveExcess::class)->dailyAt('08:00');
