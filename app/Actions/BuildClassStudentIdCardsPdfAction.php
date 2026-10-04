@@ -2,6 +2,7 @@
 
 namespace App\Actions;
 
+use App\Enums\StudentIdCardTemplate;
 use App\Models\Classes;
 use App\Models\SchoolSetting;
 use App\Models\StudentProfile;
@@ -17,9 +18,9 @@ class BuildClassStudentIdCardsPdfAction
     /**
      * Standard CR80 ID card, portrait, in millimetres.
      */
-    private const CARD_WIDTH = 54.0;
+    public const CARD_WIDTH = 54.0;
 
-    private const CARD_HEIGHT = 85.6;
+    public const CARD_HEIGHT = 85.6;
 
     /**
      * Gap between neighbouring students' cards, both across and down the sheet.
@@ -40,9 +41,12 @@ class BuildClassStudentIdCardsPdfAction
      * Build an ID card PDF for every active student in this class. Each
      * student's front and back sit side by side — so the pair can be cut out
      * as one piece and folded down the middle — four students per landscape A4 page.
+     * The cards use the design the school picked unless one is passed in.
      */
-    public function handle(Classes $class): string
+    public function handle(Classes $class, ?StudentIdCardTemplate $template = null): string
     {
+        $template ??= StudentIdCardLayout::template();
+
         $students = StudentProfile::with(['user', 'class', 'group', 'section', 'addresses'])
             ->active()
             ->where('current_class_id', $class->id)
@@ -55,8 +59,9 @@ class BuildClassStudentIdCardsPdfAction
 
         $sharedViewData = [
             'school' => $this->schoolBranding(),
-            'frontBackground' => $this->svgDataUri('documents.student-id-card.front-background'),
-            'backBackground' => $this->svgDataUri('documents.student-id-card.back-background'),
+            'theme' => $template->theme(),
+            'frontBackground' => $template->backgroundDataUri('front', self::CARD_WIDTH, self::CARD_HEIGHT),
+            'backBackground' => $template->backgroundDataUri('back', self::CARD_WIDTH, self::CARD_HEIGHT),
             'cardWidth' => self::CARD_WIDTH,
             'cardHeight' => self::CARD_HEIGHT,
             'frontFields' => StudentIdCardLayout::frontFields(),
@@ -74,7 +79,7 @@ class BuildClassStudentIdCardsPdfAction
 
             $cards = $pageStudents->values()->map(fn (StudentProfile $student, int $slot): array => [
                 'student' => $student,
-                'photo' => $this->photoRenderer->render($student->photo),
+                'photo' => $this->photoRenderer->render($student->photo, ringColour: $template->photoRing()),
                 ...$this->slotOrigin($slot),
             ]);
 
@@ -136,13 +141,5 @@ class BuildClassStudentIdCardsPdfAction
         $mime = $storage->mimeType($path) ?: 'image/png';
 
         return "data:{$mime};base64,".base64_encode((string) $storage->get($path));
-    }
-
-    private function svgDataUri(string $view): string
-    {
-        return 'data:image/svg+xml;base64,'.base64_encode(view($view, [
-            'width' => self::CARD_WIDTH,
-            'height' => self::CARD_HEIGHT,
-        ])->render());
     }
 }

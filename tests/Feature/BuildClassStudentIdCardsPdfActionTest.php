@@ -5,6 +5,7 @@ use App\Enums\AddressType;
 use App\Enums\BloodGroup;
 use App\Enums\Gender;
 use App\Enums\StudentIdCardField;
+use App\Enums\StudentIdCardTemplate;
 use App\Enums\StudentIdCardValidity;
 use App\Enums\StudentStatus;
 use App\Enums\UserType;
@@ -20,6 +21,7 @@ use App\Support\StudentIdCardLayout;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
 use Symfony\Component\HttpFoundation\Response;
@@ -385,4 +387,77 @@ it('rejects more fields on one side than the card has room for', function () {
         ->assertHasActionErrors(['front_fields']);
 
     expect(StudentIdCardLayout::frontFields())->toBe(StudentIdCardField::defaultFront());
+});
+
+it('uses the original design until the school picks another one', function () {
+    expect(StudentIdCardLayout::template())->toBe(StudentIdCardTemplate::Royal);
+
+    StudentIdCardLayout::saveTemplate(StudentIdCardTemplate::Midnight);
+
+    expect(StudentIdCardLayout::template())->toBe(StudentIdCardTemplate::Midnight);
+});
+
+it('builds the id card pdf in every design', function (StudentIdCardTemplate $template) {
+    $class = Classes::create(['name' => 'Design Class', 'order' => 1]);
+    makeIdCardTestStudent($class->id, 1);
+
+    $pdf = app(BuildClassStudentIdCardsPdfAction::class)->handle($class, $template);
+
+    expect($pdf)->toStartWith('%PDF');
+})->with(StudentIdCardTemplate::cases());
+
+it('prints the cards in the design the school selected', function () {
+    $class = Classes::create(['name' => 'Design Class', 'order' => 1]);
+    makeIdCardTestStudent($class->id, 1);
+
+    View::composer('documents.student-id-card-sheet', function ($view) use (&$renderedTheme) {
+        $renderedTheme = $view->getData()['theme'];
+    });
+
+    app(BuildClassStudentIdCardsPdfAction::class)->handle($class);
+    expect($renderedTheme)->toBe(StudentIdCardTemplate::Royal->theme());
+
+    StudentIdCardLayout::saveTemplate(StudentIdCardTemplate::Ocean);
+
+    app(BuildClassStudentIdCardsPdfAction::class)->handle($class);
+    expect($renderedTheme)->toBe(StudentIdCardTemplate::Ocean->theme());
+});
+
+it('gives every design its own artwork for both sides and its own palette', function () {
+    $fronts = [];
+    $backs = [];
+    $themes = [];
+
+    foreach (StudentIdCardTemplate::cases() as $template) {
+        expect(view()->exists($template->backgroundView('front')))->toBeTrue()
+            ->and(view()->exists($template->backgroundView('back')))->toBeTrue();
+
+        $fronts[] = $template->backgroundDataUri('front', 54.0, 85.6);
+        $backs[] = $template->backgroundDataUri('back', 54.0, 85.6);
+        $themes[] = json_encode($template->theme());
+    }
+
+    expect(StudentIdCardTemplate::cases())->toHaveCount(5)
+        ->and(array_unique($fronts))->toHaveCount(5)
+        ->and(array_unique($backs))->toHaveCount(5)
+        ->and(array_unique($themes))->toHaveCount(5);
+});
+
+it('shows all five designs on the id card page and saves the one that is clicked', function () {
+    $this->actingAs(grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true])));
+
+    $component = Livewire::test(StudentIdCards::class);
+
+    foreach (StudentIdCardTemplate::cases() as $template) {
+        $component->assertSee($template->getLabel())
+            ->assertSeeHtml("selectTemplate('{$template->value}')");
+    }
+
+    $component->call('selectTemplate', 'sunset')->assertNotified();
+
+    expect(StudentIdCardLayout::template())->toBe(StudentIdCardTemplate::Sunset);
+
+    $component->call('selectTemplate', 'not-a-design');
+
+    expect(StudentIdCardLayout::template())->toBe(StudentIdCardTemplate::Sunset);
 });

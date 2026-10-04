@@ -1,6 +1,10 @@
 @php
     use App\Enums\StudentIdCardField;
+    use App\Enums\StudentIdCardTemplate;
     use App\Enums\StudentIdCardValidity;
+
+    // Colours laid over the chosen design's artwork.
+    $theme ??= StudentIdCardTemplate::Royal->theme();
 
     // mpdf only honours absolute positioning on blocks that are direct children
     // of <body>, so each card is assembled from separately positioned layers
@@ -13,8 +17,9 @@
         $height,
     );
 
-    // Blood group is the one value picked out in red, wherever it is printed.
-    $valueColour = fn (StudentIdCardField $field): string => $field === StudentIdCardField::BloodGroup ? 'color: #dc2626;' : '';
+    // Blood group is the one value picked out in red, wherever it is printed —
+    // each side has its own shade, since a design's two sides can differ in ground.
+    $valueColour = fn (StudentIdCardField $field, string $shade): string => $field === StudentIdCardField::BloodGroup ? "color: {$shade};" : '';
 @endphp
 <!DOCTYPE html>
 <html>
@@ -29,7 +34,7 @@
         body {
             font-family: 'SolaimanLipi', sans-serif;
             font-size: 7pt;
-            color: #1e1b4b;
+            color: {{ $theme['text'] }};
         }
 
         .layer {
@@ -55,19 +60,19 @@
         .school-name {
             font-size: 8.5pt;
             font-weight: bold;
-            color: #ffffff;
+            color: {{ $theme['schoolName'] }};
             line-height: 1.15;
         }
 
         .school-address {
             font-size: 5.2pt;
-            color: #c7d2fe;
+            color: {{ $theme['schoolAddress'] }};
         }
 
         .student-name {
             font-size: 10pt;
             font-weight: bold;
-            color: #1e1b4b;
+            color: {{ $theme['studentName'] }};
             text-align: center;
             line-height: 1.15;
         }
@@ -77,8 +82,8 @@
             margin: 1mm auto 0 auto;
             padding: 0.5mm 0;
             border-radius: 2mm;
-            background-color: #3730a3;
-            color: #ffffff;
+            background-color: {{ $theme['roleBackground'] }};
+            color: {{ $theme['roleText'] }};
             font-size: 5.2pt;
             font-weight: bold;
             letter-spacing: 0.5mm;
@@ -86,7 +91,7 @@
         }
 
         table.details td {
-            border-bottom: 0.15mm solid #e0e7ff;
+            border-bottom: 0.15mm solid {{ $theme['rowBorder'] }};
             vertical-align: middle;
         }
 
@@ -95,25 +100,25 @@
             font-size: 5.2pt;
             font-weight: bold;
             letter-spacing: 0.15mm;
-            color: #6366f1;
+            color: {{ $theme['label'] }};
         }
 
         table.details td.value {
             font-size: 6.8pt;
             font-weight: bold;
-            color: #1e1b4b;
+            color: {{ $theme['value'] }};
         }
 
         .footer {
             font-size: 6pt;
             font-weight: bold;
             letter-spacing: 0.4mm;
-            color: #ffffff;
+            color: {{ $theme['footer'] }};
             text-align: center;
         }
 
         .footer .accent {
-            color: #fcd34d;
+            color: {{ $theme['footerAccent'] }};
         }
 
         /* ---------- Back ---------- */
@@ -121,7 +126,7 @@
             font-size: 7pt;
             font-weight: bold;
             letter-spacing: 0.5mm;
-            color: #ffffff;
+            color: {{ $theme['backTitle'] }};
             text-align: center;
         }
 
@@ -134,13 +139,13 @@
             font-size: 4.8pt;
             font-weight: bold;
             letter-spacing: 0.15mm;
-            color: #6366f1;
+            color: {{ $theme['fieldLabel'] }};
         }
 
         .field-value {
             font-size: 6.8pt;
             font-weight: bold;
-            color: #1e1b4b;
+            color: {{ $theme['fieldValue'] }};
             line-height: 1.2;
         }
 
@@ -152,13 +157,13 @@
             font-size: 6pt;
             font-weight: bold;
             letter-spacing: 0.6mm;
-            color: #1e1b4b;
+            color: {{ $theme['fieldValue'] }};
         }
 
         table.signing td {
             vertical-align: bottom;
             font-size: 5pt;
-            color: #4b5563;
+            color: {{ $theme['muted'] }};
         }
 
         table.signing td.authority {
@@ -167,21 +172,21 @@
         }
 
         .signature-line {
-            border-top: 0.2mm solid #1e1b4b;
+            border-top: 0.2mm solid {{ $theme['fieldValue'] }};
             padding-top: 0.4mm;
             font-weight: bold;
-            color: #1e1b4b;
+            color: {{ $theme['fieldValue'] }};
         }
 
         .validity {
             font-size: 6.4pt;
             font-weight: bold;
-            color: #1e1b4b;
+            color: {{ $theme['fieldValue'] }};
         }
 
         .return-note {
             font-size: 4.6pt;
-            color: #6b7280;
+            color: {{ $theme['returnNote'] }};
             text-align: center;
             line-height: 1.3;
         }
@@ -253,7 +258,7 @@
                 @foreach ($frontDetails as $detail)
                     <tr>
                         <td class="label" style="padding: {{ $frontRowPadding }}mm 0;">{{ $detail['field']->shortLabel() }}</td>
-                        <td class="value" style="padding: {{ $frontRowPadding }}mm 0; {{ $valueColour($detail['field']) }}">{{ $detail['value'] }}</td>
+                        <td class="value" style="padding: {{ $frontRowPadding }}mm 0; {{ $valueColour($detail['field'], $theme['highlight']) }}">{{ $detail['value'] }}</td>
                     </tr>
                 @endforeach
             </table>
@@ -280,7 +285,7 @@
                     <tr>
                         <td>
                             <div class="field-label">{{ mb_strtoupper($detail['field']->getLabel()) }}</div>
-                            <div class="field-value" style="{{ $valueColour($detail['field']) }}">{{ $detail['value'] }}</div>
+                            <div class="field-value" style="{{ $valueColour($detail['field'], $theme['backHighlight']) }}">{{ $detail['value'] }}</div>
                         </td>
                     </tr>
                 @endforeach

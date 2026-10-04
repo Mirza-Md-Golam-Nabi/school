@@ -2,10 +2,13 @@
 
 namespace App\Filament\Pages;
 
+use App\Actions\BuildClassStudentIdCardsPdfAction;
 use App\Enums\StudentIdCardField;
+use App\Enums\StudentIdCardTemplate;
 use App\Enums\StudentIdCardValidity;
 use App\Enums\StudentStatus;
 use App\Models\Classes;
+use App\Models\SchoolSetting;
 use App\Support\StudentIdCardLayout;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -46,6 +49,51 @@ class StudentIdCards extends Page
             ->active()
             ->orderBy('order')
             ->get();
+    }
+
+    /**
+     * Save the card design the school clicked in the design picker — every
+     * class's ID cards are printed in it from then on.
+     */
+    public function selectTemplate(string $template): void
+    {
+        $chosen = StudentIdCardTemplate::tryFrom($template);
+
+        if (! $chosen) {
+            return;
+        }
+
+        StudentIdCardLayout::saveTemplate($chosen);
+
+        Notification::make()
+            ->title("\"{$chosen->getLabel()}\" ডিজাইন সিলেক্ট হয়েছে।")
+            ->success()
+            ->send();
+    }
+
+    /**
+     * Every design with its artwork and palette, for the picker's previews.
+     *
+     * @return array<string, mixed>
+     */
+    protected function getViewData(): array
+    {
+        $width = BuildClassStudentIdCardsPdfAction::CARD_WIDTH;
+        $height = BuildClassStudentIdCardsPdfAction::CARD_HEIGHT;
+
+        return [
+            'selectedTemplate' => StudentIdCardLayout::template()->value,
+            'schoolName' => (string) SchoolSetting::get('school_name', 'School Name'),
+            'templates' => array_map(fn (StudentIdCardTemplate $template): array => [
+                'value' => $template->value,
+                'label' => $template->getLabel(),
+                'description' => $template->description(),
+                'theme' => $template->theme(),
+                'ring' => $template->photoRing(),
+                'front' => $template->backgroundDataUri('front', $width, $height),
+                'back' => $template->backgroundDataUri('back', $width, $height),
+            ], StudentIdCardTemplate::cases()),
+        ];
     }
 
     protected function getHeaderActions(): array

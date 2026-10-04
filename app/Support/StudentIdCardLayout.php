@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Enums\StudentIdCardField;
+use App\Enums\StudentIdCardTemplate;
 use App\Enums\StudentIdCardValidity;
 use App\Models\SchoolSetting;
 use Carbon\CarbonInterface;
@@ -26,6 +27,8 @@ class StudentIdCardLayout
     private const VALIDITY_KEY = 'student_id_card_validity';
 
     private const ISSUE_DATE_KEY = 'student_id_card_issue_date';
+
+    private const TEMPLATE_KEY = 'student_id_card_template';
 
     /**
      * @return array<int, StudentIdCardField>
@@ -57,6 +60,20 @@ class StudentIdCardLayout
         $stored = SchoolSetting::get(self::ISSUE_DATE_KEY);
 
         return filled($stored) ? Carbon::parse($stored) : today();
+    }
+
+    /**
+     * The card design the school picked — the original design until it picks one.
+     */
+    public static function template(): StudentIdCardTemplate
+    {
+        return StudentIdCardTemplate::tryFrom((string) SchoolSetting::get(self::TEMPLATE_KEY))
+            ?? StudentIdCardTemplate::Royal;
+    }
+
+    public static function saveTemplate(StudentIdCardTemplate $template): void
+    {
+        SchoolSetting::set(self::TEMPLATE_KEY, $template->value);
     }
 
     /**

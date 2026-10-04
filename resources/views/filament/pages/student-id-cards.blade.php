@@ -1,4 +1,6 @@
 <x-filament-panels::page>
+    @include('filament.pages.partials.student-id-card-design-picker')
+
     @if ($classes->isEmpty())
         <x-filament::empty-state
             icon="heroicon-o-identification"

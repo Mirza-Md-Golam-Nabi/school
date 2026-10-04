@@ -34,21 +34,29 @@ class IdCardPhotoRenderer
     /** @var array{0: int, 1: int, 2: int} */
     private const PLACEHOLDER_FIGURE = [165, 180, 252];
 
-    private ?string $placeholderDataUri = null;
+    /**
+     * The framed silhouette per ring colour — every photoless student on a
+     * sheet shares one.
+     *
+     * @var array<string, string>
+     */
+    private array $placeholderDataUris = [];
 
     /**
      * Render the framed portrait for the avatar stored at this path, falling
      * back to a silhouette when there is no avatar or it cannot be decoded.
+     *
+     * @param  array{0: int, 1: int, 2: int}  $ringColour  RGB of the outer ring — each card design has its own
      */
-    public function render(?string $avatarPath, string $disk = 'public'): string
+    public function render(?string $avatarPath, string $disk = 'public', array $ringColour = self::GOLD): string
     {
         $photo = $this->loadSquarePhoto($avatarPath, $disk);
 
         if ($photo === null) {
-            return $this->placeholderDataUri ??= $this->frame($this->drawPlaceholder());
+            return $this->placeholderDataUris[implode(',', $ringColour)] ??= $this->frame($this->drawPlaceholder(), $ringColour);
         }
 
-        return $this->frame($photo);
+        return $this->frame($photo, $ringColour);
     }
 
     /**
@@ -121,11 +129,13 @@ class IdCardPhotoRenderer
     }
 
     /**
-     * Clip the square photo to a circle and wrap it in the white and gold
+     * Clip the square photo to a circle and wrap it in the white and coloured
      * rings, returning the result as a PNG data URI. Only the pixels outside
      * the photo's safe inner disc are visited — the interior is left untouched.
+     *
+     * @param  array{0: int, 1: int, 2: int}  $ringColour
      */
-    private function frame(GdImage $photo): string
+    private function frame(GdImage $photo, array $ringColour): string
     {
         imagealphablending($photo, false);
         imagesavealpha($photo, true);
@@ -154,7 +164,7 @@ class IdCardPhotoRenderer
                 $colour = [($pixel >> 16) & 0xFF, ($pixel >> 8) & 0xFF, $pixel & 0xFF];
 
                 $colour = $this->blend($colour, self::WHITE, $this->coverage($distance, $photoRadius));
-                $colour = $this->blend($colour, self::GOLD, $this->coverage($distance, $whiteRadius));
+                $colour = $this->blend($colour, $ringColour, $this->coverage($distance, $whiteRadius));
                 $transparency = (int) round(127 * $this->coverage($distance, $outerRadius));
 
                 imagesetpixel($photo, $x, $y, imagecolorallocatealpha($photo, $colour[0], $colour[1], $colour[2], $transparency));
