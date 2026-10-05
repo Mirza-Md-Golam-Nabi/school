@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\AuthenticateAttendanceDevice;
+use App\Http\Middleware\AuthenticateCentralServer;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -20,6 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'auth.device' => AuthenticateAttendanceDevice::class,
+            'auth.central' => AuthenticateCentralServer::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

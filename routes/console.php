@@ -6,6 +6,7 @@ use App\Console\Commands\GenerateMonthlySalaryInvoices;
 use App\Console\Commands\MarkAbsentAttendance;
 use App\Console\Commands\PrunePushNotificationDeliveries;
 use App\Console\Commands\ResendUnacknowledgedPushNotifications;
+use App\Console\Commands\SendCentralStudentReport;
 use App\Jobs\DeactivateExpiredActingAdminsJob;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -59,3 +60,8 @@ Schedule::command(ResendUnacknowledgedPushNotifications::class)
 // daily instead of weekly just sweeps stale rows out sooner after they cross
 // that age, rather than letting up to a week's worth pile up between runs.
 Schedule::command(PrunePushNotificationDeliveries::class)->dailyAt('02:00');
+
+// Report this school's total student count to the central app at midnight on
+// the 15th of every month. The central app can also pull the same number at
+// any time through GET /api/central/student-report.
+Schedule::command(SendCentralStudentReport::class)->monthlyOn(15, '00:00');
