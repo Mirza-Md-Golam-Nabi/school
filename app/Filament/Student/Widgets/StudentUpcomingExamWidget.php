@@ -34,7 +34,7 @@ class StudentUpcomingExamWidget extends Widget
         $exams = Exam::query()
             ->where('class_id', $profile->current_class_id)
             ->where('session_year', now()->year)
-            ->whereDate('start_date', '>=', today()->toDateString())
+            ->where('start_date', '>=', today()->toDateString())
             ->with(['examType', 'schedules.subject'])
             ->orderBy('start_date')
             ->limit(5)

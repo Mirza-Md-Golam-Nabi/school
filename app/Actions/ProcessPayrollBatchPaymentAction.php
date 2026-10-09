@@ -70,7 +70,8 @@ class ProcessPayrollBatchPaymentAction
     public function totalDue(array $invoiceIds): float
     {
         return (float) SalaryInvoice::whereIn('id', $invoiceIds)
-            ->get()
+            ->withSum('payments', 'amount_paid')
+            ->get(['id', 'net_amount'])
             ->sum(fn (SalaryInvoice $invoice) => $invoice->due_amount);
     }
 }

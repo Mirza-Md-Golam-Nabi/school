@@ -64,7 +64,7 @@ class AcademicHistoryClass extends Page
 
         $workingDays = Attendance::where('attendable_type', StudentProfile::class)
             ->where('class_id', $this->record->class_id)
-            ->whereYear('date', $this->record->session_year)
+            ->inYear($this->record->session_year)
             ->distinct('date')
             ->count('date');
 
@@ -78,7 +78,7 @@ class AcademicHistoryClass extends Page
             ->whereIn('attendable_id', $classmateIds)
             ->countedPresent(StudentProfile::class)
             ->where('class_id', $this->record->class_id)
-            ->whereYear('date', $this->record->session_year)
+            ->inYear($this->record->session_year)
             ->selectRaw('attendable_id, count(*) as present_count')
             ->groupBy('attendable_id')
             ->pluck('present_count', 'attendable_id');

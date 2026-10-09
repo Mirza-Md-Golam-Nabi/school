@@ -122,20 +122,23 @@ class StudentResult extends Model
     protected function activityLogRelationLabels(): array
     {
         return [
-            'exam_id' => fn (int|string|null $id): ?string => $id === null ? null : Exam::withTrashed()->with(['examType', 'class'])->find($id)?->displayLabel(),
-            'class_id' => fn (int|string|null $id): ?string => $id === null ? null : Classes::find($id)?->name,
-            'subject_id' => fn (int|string|null $id): ?string => $id === null ? null : Subject::find($id)?->name,
+            'exam_id' => fn (int|string|null $id): ?string => Exam::activityLabelFor($id),
+            'class_id' => fn (int|string|null $id): ?string => $id === null ? null : self::activityNameLabel(Classes::class, $id),
+            'subject_id' => fn (int|string|null $id): ?string => $id === null ? null : self::activityNameLabel(Subject::class, $id),
             'student_id' => fn (int|string|null $id): ?string => $id === null ? null : self::studentLabel($id),
-            'contribution_source_exam_type_id' => fn (int|string|null $id): ?string => $id === null ? null : ExamType::find($id)?->name,
+            'contribution_source_exam_type_id' => fn (int|string|null $id): ?string => $id === null ? null : self::activityNameLabel(ExamType::class, $id),
         ];
     }
 
     private function activityLogDescription(): string
     {
-        $exam = Exam::withTrashed()->with('examType')->find($this->exam_id);
+        $exam = self::cachedActivityLabel(
+            "student_result_exam|{$this->exam_id}",
+            fn (): ?Exam => Exam::withTrashed()->with('examType')->find($this->exam_id),
+        );
         $studentLabel = self::studentLabel($this->student_id) ?? "Student #{$this->student_id}";
-        $subjectLabel = Subject::find($this->subject_id)?->name ?? "Subject #{$this->subject_id}";
-        $classLabel = Classes::find($this->class_id)?->name ?? "Class #{$this->class_id}";
+        $subjectLabel = self::activityNameLabel(Subject::class, $this->subject_id) ?? "Subject #{$this->subject_id}";
+        $classLabel = self::activityNameLabel(Classes::class, $this->class_id) ?? "Class #{$this->class_id}";
         $examTypeLabel = $exam?->examType?->name ?? "Exam #{$this->exam_id}";
 
         $classWithYear = $exam?->session_year !== null ? "{$classLabel} ({$exam->session_year})" : $classLabel;
@@ -145,12 +148,14 @@ class StudentResult extends Model
 
     private static function studentLabel(int|string $studentId): ?string
     {
-        $student = StudentProfile::withTrashed()->with('user')->find($studentId);
+        return self::cachedActivityLabel("student_label|{$studentId}", function () use ($studentId): ?string {
+            $student = StudentProfile::withTrashed()->with('user:id,name')->find($studentId, ['id', 'user_id', 'roll_no']);
 
-        if (! $student) {
-            return null;
-        }
+            if (! $student) {
+                return null;
+            }
 
-        return trim("{$student->user?->name} (Roll: {$student->roll_no})");
+            return trim("{$student->user?->name} (Roll: {$student->roll_no})");
+        });
     }
 }

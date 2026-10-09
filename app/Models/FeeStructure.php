@@ -52,15 +52,15 @@ class FeeStructure extends Model
     protected function activityLogRelationLabels(): array
     {
         return [
-            'class_id' => fn (int|string|null $id): ?string => $id === null ? null : Classes::find($id)?->name,
-            'fee_type_id' => fn (int|string|null $id): ?string => $id === null ? null : FeeType::find($id)?->name,
+            'class_id' => fn (int|string|null $id): ?string => $id === null ? null : self::activityNameLabel(Classes::class, $id),
+            'fee_type_id' => fn (int|string|null $id): ?string => $id === null ? null : self::activityNameLabel(FeeType::class, $id),
         ];
     }
 
     private function activityLogDescription(string $eventName): string
     {
-        $classLabel = $this->class?->name ?? "Class #{$this->class_id}";
-        $feeTypeLabel = $this->feeType?->name ?? "Fee Type #{$this->fee_type_id}";
+        $classLabel = self::activityNameLabel(Classes::class, $this->class_id) ?? "Class #{$this->class_id}";
+        $feeTypeLabel = self::activityNameLabel(FeeType::class, $this->fee_type_id) ?? "Fee Type #{$this->fee_type_id}";
 
         return ucfirst($eventName)." fee structure for \"{$feeTypeLabel}\" - {$classLabel} ({$this->session_year}).";
     }

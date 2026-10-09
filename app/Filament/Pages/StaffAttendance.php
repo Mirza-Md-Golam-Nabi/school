@@ -91,6 +91,15 @@ class StaffAttendance extends Page
 
         $countsLate = AttendanceSetting::current()->countsLateFor(StaffProfile::class);
 
+        $existingByPerson = Attendance::query()
+            ->where('attendable_type', StaffProfile::class)
+            ->whereIn('attendable_id', $staff->pluck('id'))
+            ->where('date', $this->date)
+            ->whereNull('class_id')
+            ->whereNull('subject_id')
+            ->get()
+            ->keyBy('attendable_id');
+
         foreach ($staff as $member) {
             $isPresent = in_array((string) $member->id, $this->presentIds);
             $newStatus = $isPresent ? AttendanceStatus::Present : AttendanceStatus::Absent;
@@ -103,7 +112,7 @@ class StaffAttendance extends Page
                 'subject_id' => null,
             ];
 
-            $existing = Attendance::where($keys)->first();
+            $existing = $existingByPerson->get($member->id);
 
             // While late arrivals are counted they show as ticked, so resaving the
             // list must leave them Late instead of turning them into a plain Present.

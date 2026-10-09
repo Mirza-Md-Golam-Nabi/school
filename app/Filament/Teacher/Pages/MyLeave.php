@@ -35,7 +35,8 @@ class MyLeave extends Page
             ->where('applicant_type', TeacherProfile::class)
             ->where('applicant_id', $profile->id)
             ->where('status', LeaveApplicationStatus::Approved)
-            ->whereYear('from_date', now()->year)
+            ->where('from_date', '>=', now()->startOfYear()->toDateString())
+            ->where('from_date', '<', now()->startOfYear()->addYear()->toDateString())
             ->selectRaw('leave_type_id, sum(total_days) as taken_days')
             ->groupBy('leave_type_id')
             ->pluck('taken_days', 'leave_type_id');

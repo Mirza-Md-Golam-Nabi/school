@@ -15,6 +15,9 @@ use Illuminate\Support\Collection;
 
 class BuildStudentMarksDetail
 {
+    /** @var array<string, array<string, mixed>> */
+    private array $examContexts = [];
+
     public function __construct(
         private readonly ResolveIsExtraOptionalSubject $resolveIsExtraOptionalSubject,
     ) {}
@@ -35,37 +38,20 @@ class BuildStudentMarksDetail
             ->get()
             ->keyBy('subject_id');
 
-        $subjectConfigs = ExamSubjectConfig::where('exam_id', $ranking->exam_id)
-            ->get()
-            ->keyBy('subject_id');
-
-        $allResults = StudentResult::where('exam_id', $ranking->exam_id)
-            ->with('student.user')
-            ->get()
-            ->groupBy('subject_id');
-
-        $subjectBestMap = [];
-        foreach ($allResults as $subjectId => $results) {
-            $bestMarks = $results->max(fn (StudentResult $r) => $r->effective_marks);
-            $subjectBestMap[$subjectId] = [
-                'best_marks' => $bestMarks,
-                'best_students' => $results
-                    ->filter(fn (StudentResult $r) => (float) $r->effective_marks === (float) $bestMarks && ! $r->is_absent)
-                    ->map(fn ($r) => $r->student?->user?->name)
-                    ->filter()
-                    ->implode(', '),
-            ];
-        }
+        [
+            'subjectConfigs' => $subjectConfigs,
+            'subjectBestMap' => $subjectBestMap,
+            'subjectTypeRecords' => $subjectTypeRecords,
+            'topRanking' => $topRanking,
+            'sessionYear' => $sessionYear,
+            'workingDays' => $workingDays,
+        ] = $this->examContext($ranking);
 
         $gradeScales = GradeScale::cached();
 
         $groupId = $ranking->student?->current_group_id
             ? (int) $ranking->student->current_group_id
             : null;
-
-        $subjectTypeRecords = ClassGroupSubject::where('class_id', $ranking->class_id)
-            ->get()
-            ->groupBy('subject_id');
 
         $studentOptionalSelections = StudentOptionalSubject::where('class_id', $ranking->class_id)
             ->where('student_id', $ranking->student_id)
@@ -133,26 +119,13 @@ class BuildStudentMarksDetail
         $overallGrade = GradeScale::fromGpa((float) $ranking->gpa, $gradeScales);
 
         // "1st position" means class_rank = 1 (the top exam performer), never roll_no = 1.
-        $topRanking = StudentMeritRanking::where('exam_id', $ranking->exam_id)
-            ->where('class_id', $ranking->class_id)
-            ->where('class_rank', 1)
-            ->first();
-
         $topRankGrade = $topRanking ? GradeScale::fromGpa((float) $topRanking->gpa, $gradeScales) : null;
-
-        $sessionYear = $ranking->exam?->session_year;
-
-        $workingDays = Attendance::where('attendable_type', StudentProfile::class)
-            ->where('class_id', $ranking->class_id)
-            ->whereYear('date', $sessionYear)
-            ->distinct('date')
-            ->count('date');
 
         $presentDays = Attendance::where('attendable_type', StudentProfile::class)
             ->where('attendable_id', $ranking->student_id)
             ->where('class_id', $ranking->class_id)
             ->countedPresent(StudentProfile::class)
-            ->whereYear('date', $sessionYear)
+            ->inYear($sessionYear)
             ->count();
 
         $summary = [
@@ -170,5 +143,54 @@ class BuildStudentMarksDetail
         ];
 
         return ['rows' => $rows, 'summary' => $summary];
+    }
+
+    /**
+     * Everything that is the same for every student of one exam + class
+     * (subject configs, per-subject top scorers, the class topper, working
+     * days). Kept on the instance so a whole-class marksheet PDF computes it
+     * once instead of once per student.
+     *
+     * @return array{subjectConfigs: Collection, subjectBestMap: array<int, array{best_marks: mixed, best_students: string}>, subjectTypeRecords: Collection, topRanking: ?StudentMeritRanking, sessionYear: ?int, workingDays: int}
+     */
+    private function examContext(StudentMeritRanking $ranking): array
+    {
+        return $this->examContexts["{$ranking->exam_id}-{$ranking->class_id}"] ??= (function () use ($ranking): array {
+            $allResults = StudentResult::where('exam_id', $ranking->exam_id)
+                ->with(['student:id,user_id', 'student.user:id,name'])
+                ->get(['id', 'subject_id', 'student_id', 'total_marks', 'final_marks', 'is_absent'])
+                ->groupBy('subject_id');
+
+            $subjectBestMap = [];
+            foreach ($allResults as $subjectId => $results) {
+                $bestMarks = $results->max(fn (StudentResult $r) => $r->effective_marks);
+                $subjectBestMap[$subjectId] = [
+                    'best_marks' => $bestMarks,
+                    'best_students' => $results
+                        ->filter(fn (StudentResult $r) => (float) $r->effective_marks === (float) $bestMarks && ! $r->is_absent)
+                        ->map(fn ($r) => $r->student?->user?->name)
+                        ->filter()
+                        ->implode(', '),
+                ];
+            }
+
+            $sessionYear = $ranking->exam?->session_year;
+
+            return [
+                'subjectConfigs' => ExamSubjectConfig::where('exam_id', $ranking->exam_id)->get()->keyBy('subject_id'),
+                'subjectBestMap' => $subjectBestMap,
+                'subjectTypeRecords' => ClassGroupSubject::where('class_id', $ranking->class_id)->get()->groupBy('subject_id'),
+                'topRanking' => StudentMeritRanking::where('exam_id', $ranking->exam_id)
+                    ->where('class_id', $ranking->class_id)
+                    ->where('class_rank', 1)
+                    ->first(),
+                'sessionYear' => $sessionYear,
+                'workingDays' => Attendance::where('attendable_type', StudentProfile::class)
+                    ->where('class_id', $ranking->class_id)
+                    ->inYear($sessionYear)
+                    ->distinct('date')
+                    ->count('date'),
+            ];
+        })();
     }
 }

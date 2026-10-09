@@ -181,10 +181,10 @@ class StudentProfile extends Model
     protected function activityLogRelationLabels(): array
     {
         return [
-            'user_id' => fn (int|string|null $id): ?string => $id === null ? null : User::find($id)?->name,
-            'current_class_id' => fn (int|string|null $id): ?string => $id === null ? null : Classes::find($id)?->name,
-            'current_section_id' => fn (int|string|null $id): ?string => $id === null ? null : Section::find($id)?->name,
-            'current_group_id' => fn (int|string|null $id): ?string => $id === null ? null : Group::find($id)?->name,
+            'user_id' => fn (int|string|null $id): ?string => $id === null ? null : self::activityNameLabel(User::class, $id),
+            'current_class_id' => fn (int|string|null $id): ?string => $id === null ? null : self::activityNameLabel(Classes::class, $id),
+            'current_section_id' => fn (int|string|null $id): ?string => $id === null ? null : self::activityNameLabel(Section::class, $id),
+            'current_group_id' => fn (int|string|null $id): ?string => $id === null ? null : self::activityNameLabel(Group::class, $id),
         ];
     }
 
@@ -196,7 +196,7 @@ class StudentProfile extends Model
             return $name;
         }
 
-        $classLabel = $this->class?->name ?? "Class #{$this->current_class_id}";
+        $classLabel = self::activityNameLabel(Classes::class, $this->current_class_id) ?? "Class #{$this->current_class_id}";
 
         return "{$name} - {$classLabel}";
     }

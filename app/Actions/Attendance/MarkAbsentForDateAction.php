@@ -114,8 +114,8 @@ class MarkAbsentForDateAction
     {
         return LeaveApplication::query()
             ->where('status', LeaveApplicationStatus::Approved)
-            ->whereDate('from_date', '<=', $day)
-            ->whereDate('to_date', '>=', $day)
+            ->where('from_date', '<', $day->copy()->addDay()->toDateString())
+            ->where('to_date', '>=', $day->toDateString())
             ->get(['applicant_type', 'applicant_id'])
             ->groupBy('applicant_type')
             ->map(fn (Collection $applications): Collection => $applications->pluck('applicant_id'));

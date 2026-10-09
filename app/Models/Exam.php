@@ -79,6 +79,22 @@ class Exam extends Model
         return "{$this->examType?->name} - {$this->class?->name} ({$this->session_year})";
     }
 
+    /**
+     * displayLabel() of an exam (trashed included), resolved once per request
+     * for the activity log.
+     */
+    public static function activityLabelFor(int|string|null $examId): ?string
+    {
+        if ($examId === null) {
+            return null;
+        }
+
+        return self::cachedActivityLabel(
+            "exam_label|{$examId}",
+            fn (): ?string => self::withTrashed()->with(['examType', 'class'])->find($examId)?->displayLabel(),
+        );
+    }
+
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
@@ -92,8 +108,8 @@ class Exam extends Model
     protected function activityLogRelationLabels(): array
     {
         return [
-            'exam_type_id' => fn (int|string|null $id): ?string => $id === null ? null : ExamType::find($id)?->name,
-            'class_id' => fn (int|string|null $id): ?string => $id === null ? null : Classes::find($id)?->name,
+            'exam_type_id' => fn (int|string|null $id): ?string => $id === null ? null : self::activityNameLabel(ExamType::class, $id),
+            'class_id' => fn (int|string|null $id): ?string => $id === null ? null : self::activityNameLabel(Classes::class, $id),
         ];
     }
 }

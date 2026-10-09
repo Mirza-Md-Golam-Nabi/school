@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Support\Carbon;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
@@ -49,6 +50,38 @@ class Attendance extends Model
     protected function countedPresent(Builder $query, string $attendableType): void
     {
         $query->whereIn('status', AttendanceSetting::current()->presentStatusesFor($attendableType));
+    }
+
+    /**
+     * Rows dated within a calendar year. Written as a date range (instead of
+     * whereYear()) so the indexes on `date` can be used.
+     */
+    #[Scope]
+    protected function inYear(Builder $query, int|string|null $year): void
+    {
+        if ($year === null) {
+            $query->whereRaw('1 = 0');
+
+            return;
+        }
+
+        $start = Carbon::create((int) $year, 1, 1);
+
+        $query->where($query->qualifyColumn('date'), '>=', $start->toDateString())
+            ->where($query->qualifyColumn('date'), '<', $start->copy()->addYear()->toDateString());
+    }
+
+    /**
+     * Rows dated within one month of a year — index-friendly replacement for
+     * whereYear() + whereMonth().
+     */
+    #[Scope]
+    protected function inMonth(Builder $query, int $year, int $month): void
+    {
+        $start = Carbon::create($year, $month, 1);
+
+        $query->where($query->qualifyColumn('date'), '>=', $start->toDateString())
+            ->where($query->qualifyColumn('date'), '<', $start->copy()->addMonth()->toDateString());
     }
 
     public function attendable(): MorphTo
@@ -99,8 +132,8 @@ class Attendance extends Model
     protected function activityLogRelationLabels(): array
     {
         return [
-            'class_id' => fn (int|string|null $id): ?string => $id === null ? null : Classes::find($id)?->name,
-            'subject_id' => fn (int|string|null $id): ?string => $id === null ? null : Subject::find($id)?->name,
+            'class_id' => fn (int|string|null $id): ?string => $id === null ? null : self::activityNameLabel(Classes::class, $id),
+            'subject_id' => fn (int|string|null $id): ?string => $id === null ? null : self::activityNameLabel(Subject::class, $id),
         ];
     }
 
@@ -112,7 +145,7 @@ class Attendance extends Model
 
         $classSegment = $this->class_id === null
             ? ''
-            : ' in "'.($this->class?->name ?? "Class #{$this->class_id}").'"';
+            : ' in "'.(self::activityNameLabel(Classes::class, $this->class_id) ?? "Class #{$this->class_id}").'"';
 
         return ucfirst($eventName)." attendance for \"{$personLabel}\"{$classSegment} on {$dateLabel} ({$statusLabel}).";
     }

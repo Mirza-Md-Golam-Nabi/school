@@ -66,7 +66,7 @@ class StaffAttendanceHistory extends Page
 
     public function getHistory(): Collection
     {
-        $staffIds = StaffProfile::withTrashed()->pluck('id');
+        $staffIds = StaffProfile::withTrashed()->select('id');
 
         $presentStatuses = AttendanceSetting::current()->presentStatusValuesFor(StaffProfile::class);
         $presentPlaceholders = implode(', ', array_fill(0, count($presentStatuses), '?'));

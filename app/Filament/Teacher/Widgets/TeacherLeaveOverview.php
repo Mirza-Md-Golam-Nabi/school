@@ -41,7 +41,8 @@ class TeacherLeaveOverview extends Widget
             ->where('applicant_type', TeacherProfile::class)
             ->where('applicant_id', $profile->id)
             ->where('status', LeaveApplicationStatus::Approved)
-            ->whereYear('from_date', now()->year)
+            ->where('from_date', '>=', now()->startOfYear()->toDateString())
+            ->where('from_date', '<', now()->startOfYear()->addYear()->toDateString())
             ->sum('total_days');
 
         return [

@@ -32,7 +32,7 @@ class PendingAlertsWidget extends Widget
         $unpublishedExams = Exam::query()
             ->where('session_year', now()->year)
             ->where('is_published', false)
-            ->whereDate('end_date', '<=', today())
+            ->where('end_date', '<', today()->addDay()->toDateString())
             ->count();
 
         $pendingLeaves = LeaveApplication::query()

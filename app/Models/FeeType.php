@@ -102,7 +102,7 @@ class FeeType extends Model
     protected function activityLogRelationLabels(): array
     {
         return [
-            'school_account_id' => fn (int|string|null $id): ?string => $id === null ? null : SchoolAccount::find($id)?->name,
+            'school_account_id' => fn (int|string|null $id): ?string => $id === null ? null : self::activityNameLabel(SchoolAccount::class, $id),
         ];
     }
 

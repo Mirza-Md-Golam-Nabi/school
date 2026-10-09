@@ -20,7 +20,7 @@ class BuildClassAttendanceReportRows
      */
     public function handle(Classes $class, int $year, int $month): array
     {
-        $students = StudentProfile::with('user')
+        $students = StudentProfile::with('user:id,name')
             ->active()
             ->where('current_class_id', $class->id)
             ->orderBy('roll_no')
@@ -33,9 +33,8 @@ class BuildClassAttendanceReportRows
         $attendanceByStudent = Attendance::where('attendable_type', StudentProfile::class)
             ->whereIn('attendable_id', $students->pluck('id'))
             ->where('class_id', $class->id)
-            ->whereYear('date', $year)
-            ->whereMonth('date', $month)
-            ->get()
+            ->inMonth($year, $month)
+            ->get(['id', 'attendable_id', 'date', 'status'])
             ->groupBy('attendable_id');
 
         $rows = $students->map(function (StudentProfile $student) use ($attendanceByStudent, $daysInMonth): array {

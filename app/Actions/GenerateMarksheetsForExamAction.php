@@ -34,16 +34,21 @@ class GenerateMarksheetsForExamAction
 
         $rankedStudentIds = StudentMeritRanking::where('exam_id', $exam->id)
             ->pluck('student_id')
-            ->all();
+            ->flip();
+
+        $existingMarksheets = Marksheet::where('exam_id', $exam->id)
+            ->whereIn('student_id', $students->pluck('id'))
+            ->get()
+            ->keyBy('student_id');
 
         foreach ($students as $student) {
-            if (! in_array($student->id, $rankedStudentIds, true)) {
+            if (! $rankedStudentIds->has($student->id)) {
                 $skippedNoRanking++;
 
                 continue;
             }
 
-            $marksheet = Marksheet::firstOrCreate(
+            $marksheet = $existingMarksheets->get($student->id) ?? Marksheet::firstOrCreate(
                 ['student_id' => $student->id, 'exam_id' => $exam->id],
                 ['generated_by' => $generatedBy, 'generated_at' => now()],
             );

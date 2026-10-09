@@ -46,13 +46,13 @@ class SalaryStructureComponent extends Model
     protected function activityLogRelationLabels(): array
     {
         return [
-            'salary_component_id' => fn (int|string|null $id): ?string => $id === null ? null : SalaryComponent::find($id)?->name,
+            'salary_component_id' => fn (int|string|null $id): ?string => $id === null ? null : self::activityNameLabel(SalaryComponent::class, $id),
         ];
     }
 
     private function activityLogDescription(string $eventName): string
     {
-        $componentLabel = $this->component?->name ?? "Component #{$this->salary_component_id}";
+        $componentLabel = self::activityNameLabel(SalaryComponent::class, $this->salary_component_id) ?? "Component #{$this->salary_component_id}";
         $structureLabel = $this->resolveStructureLabel();
         $amountLabel = number_format((float) $this->amount, 2);
 

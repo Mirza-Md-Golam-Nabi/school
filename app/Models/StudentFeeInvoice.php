@@ -63,8 +63,22 @@ class StudentFeeInvoice extends Model
         return $this->hasMany(FeePayment::class, 'invoice_id');
     }
 
+    /**
+     * Uses an eager-loaded sum / relation when the query provided one
+     * (withSum('payments', 'amount_paid') or with('payments')), and only
+     * falls back to its own query otherwise — so lists never run one
+     * query per invoice.
+     */
     public function getTotalPaidAttribute(): float
     {
+        if (array_key_exists('payments_sum_amount_paid', $this->attributes)) {
+            return (float) $this->attributes['payments_sum_amount_paid'];
+        }
+
+        if ($this->relationLoaded('payments')) {
+            return (float) $this->payments->sum('amount_paid');
+        }
+
         return (float) $this->payments()->sum('amount_paid');
     }
 
@@ -87,8 +101,8 @@ class StudentFeeInvoice extends Model
     {
         return [
             'student_id' => fn (int|string|null $id): ?string => $id === null ? null : self::studentLabel($id),
-            'fee_type_id' => fn (int|string|null $id): ?string => $id === null ? null : FeeType::find($id)?->name,
-            'waiver_by' => fn (int|string|null $id): ?string => $id === null ? null : User::find($id)?->name,
+            'fee_type_id' => fn (int|string|null $id): ?string => $id === null ? null : self::activityNameLabel(FeeType::class, $id),
+            'waiver_by' => fn (int|string|null $id): ?string => $id === null ? null : self::activityNameLabel(User::class, $id),
             'status' => fn (?string $value): ?string => $value === null ? null : InvoiceStatus::tryFrom($value)?->getLabel(),
         ];
     }
@@ -96,7 +110,7 @@ class StudentFeeInvoice extends Model
     private function activityLogDescription(string $eventName): string
     {
         $studentLabel = self::studentLabel($this->student_id) ?? "Student #{$this->student_id}";
-        $feeTypeLabel = $this->feeType?->name ?? "Fee Type #{$this->fee_type_id}";
+        $feeTypeLabel = self::activityNameLabel(FeeType::class, $this->fee_type_id) ?? "Fee Type #{$this->fee_type_id}";
         $periodLabel = $this->month
             ? Carbon::create()->month($this->month)->format('F').' '.$this->year
             : (string) $this->year;
@@ -106,20 +120,24 @@ class StudentFeeInvoice extends Model
 
     private static function studentLabel(int|string $studentId): ?string
     {
-        $student = StudentProfile::withTrashed()->with(['user', 'class'])->find($studentId);
+        return self::cachedActivityLabel("student_label_with_class|{$studentId}", function () use ($studentId): ?string {
+            $student = StudentProfile::withTrashed()
+                ->with(['user:id,name', 'class:id,name'])
+                ->find($studentId, ['id', 'user_id', 'roll_no', 'current_class_id']);
 
-        if (! $student) {
-            return null;
-        }
+            if (! $student) {
+                return null;
+            }
 
-        $name = trim("{$student->user?->name} (Roll: {$student->roll_no})");
+            $name = trim("{$student->user?->name} (Roll: {$student->roll_no})");
 
-        if ($student->current_class_id === null) {
-            return $name;
-        }
+            if ($student->current_class_id === null) {
+                return $name;
+            }
 
-        $classLabel = $student->class?->name ?? "Class #{$student->current_class_id}";
+            $classLabel = $student->class?->name ?? "Class #{$student->current_class_id}";
 
-        return "{$classLabel} - {$name}";
+            return "{$classLabel} - {$name}";
+        });
     }
 }

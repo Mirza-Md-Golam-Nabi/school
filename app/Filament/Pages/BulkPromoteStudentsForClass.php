@@ -11,7 +11,9 @@ use App\Models\ClassGroupSubject;
 use App\Models\Exam;
 use App\Models\Section;
 use App\Models\StudentMeritRanking;
+use App\Models\StudentOptionalSubject;
 use App\Models\StudentProfile;
+use Closure;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
@@ -42,6 +44,29 @@ class BulkPromoteStudentsForClass extends Page
     /** Class rank keyed by student_id — also read by the blade to show graduating students their final merit rank. */
     public Collection $meritRanks;
 
+    /**
+     * Per-request memo. The blade asks for the same class / section / group /
+     * optional-subject options once per student row, so without this every
+     * render ran several queries per student.
+     *
+     * @var array<string, mixed>
+     */
+    private array $memo = [];
+
+    private function memoize(string $key, Closure $resolver): mixed
+    {
+        if (! array_key_exists($key, $this->memo)) {
+            $this->memo[$key] = $resolver();
+        }
+
+        return $this->memo[$key];
+    }
+
+    private function classById(?int $classId): ?Classes
+    {
+        return $classId ? $this->memoize("class.{$classId}", fn (): ?Classes => Classes::find($classId)) : null;
+    }
+
     public function mount(): void
     {
         abort_unless($this->classId && $this->year, 404);
@@ -53,9 +78,19 @@ class BulkPromoteStudentsForClass extends Page
 
         $this->hasMainExamResults = $this->meritRanks->isNotEmpty();
 
+        $currentSelections = StudentOptionalSubject::where('class_id', $this->classId)
+            ->whereIn('student_id', $students->pluck('id'))
+            ->get()
+            ->groupBy('student_id');
+
         foreach ($students as $student) {
             $groupId = $this->resolveDefaultGroupId($student, $nextClass?->id);
-            $optionalDefaults = $this->resolveDefaultOptionalSubjects($student, $nextClass?->id, $groupId);
+            $optionalDefaults = $this->resolveDefaultOptionalSubjects(
+                $student,
+                $nextClass?->id,
+                $groupId,
+                $currentSelections->get($student->id, new EloquentCollection),
+            );
 
             $this->promotions[$student->id] = [
                 'status' => $defaultStatus->value,
@@ -81,26 +116,19 @@ class BulkPromoteStudentsForClass extends Page
             return null;
         }
 
-        $targetClass = Classes::find($targetClassId);
-
-        if (! $targetClass?->has_group) {
-            return null;
-        }
-
-        $hasSameGroup = $targetClass->groups()
-            ->where('groups.id', $student->current_group_id)
-            ->where('groups.is_active', true)
-            ->exists();
-
-        return $hasSameGroup ? $student->current_group_id : null;
+        return $this->getGroupOptions($targetClassId)->has($student->current_group_id)
+            ? $student->current_group_id
+            : null;
     }
 
     /**
+     * @param  EloquentCollection<int, StudentOptionalSubject>|null  $currentSelections  preloaded current-class selections of this student
      * @return array{main_optional_subject_id: ?int, extra_optional_subject_id: ?int}
      */
-    private function resolveDefaultOptionalSubjects(StudentProfile $student, ?int $classId, ?int $groupId): array
+    private function resolveDefaultOptionalSubjects(StudentProfile $student, ?int $classId, ?int $groupId, ?EloquentCollection $currentSelections = null): array
     {
-        return app(ResolveDefaultPromotionOptionalSubjects::class)->execute($student, $classId, $groupId);
+        return $this->memoize('optionalSubjectsResolver', fn () => app(ResolveDefaultPromotionOptionalSubjects::class))
+            ->execute($student, $classId, $groupId, $currentSelections);
     }
 
     /**
@@ -175,17 +203,17 @@ class BulkPromoteStudentsForClass extends Page
 
     public function getStudents(): EloquentCollection
     {
-        return StudentProfile::with('user')
+        return $this->memoize('students', fn (): EloquentCollection => StudentProfile::with('user')
             ->where('current_class_id', $this->classId)
             ->where('session_year', $this->year)
             ->active()
             ->orderBy('roll_no')
-            ->get();
+            ->get());
     }
 
     public function resolveClass(): ?Classes
     {
-        return Classes::find($this->classId);
+        return $this->classById($this->classId);
     }
 
     public function getNextClass(): ?Classes
@@ -196,20 +224,22 @@ class BulkPromoteStudentsForClass extends Page
             return null;
         }
 
-        return Classes::active()
+        return $this->memoize('nextClass', fn (): ?Classes => Classes::active()
             ->where('order', '>', $current->order)
             ->orderBy('order')
-            ->first();
+            ->first());
     }
 
     public function getTargetClassOptions(): Collection
     {
-        return Classes::active()->orderBy('order')->pluck('name', 'id');
+        return $this->memoize('targetClassOptions', fn (): Collection => Classes::active()->orderBy('order')->pluck('name', 'id'));
     }
 
     public function getSectionOptions(?int $classId): Collection
     {
-        return $classId ? Section::dropdownOptionsByClass($classId) : collect();
+        return $classId
+            ? $this->memoize("sections.{$classId}", fn (): Collection => Section::dropdownOptionsByClass($classId))
+            : collect();
     }
 
     public function getGroupOptions(?int $classId): Collection
@@ -218,13 +248,15 @@ class BulkPromoteStudentsForClass extends Page
             return collect();
         }
 
-        $class = Classes::find($classId);
+        return $this->memoize("groups.{$classId}", function () use ($classId): Collection {
+            $class = $this->classById($classId);
 
-        if (! $class?->has_group) {
-            return collect();
-        }
+            if (! $class?->has_group) {
+                return collect();
+            }
 
-        return $class->groups()->where('groups.is_active', true)->pluck('groups.name', 'groups.id');
+            return $class->groups()->where('groups.is_active', true)->pluck('groups.name', 'groups.id');
+        });
     }
 
     /**
@@ -232,7 +264,7 @@ class BulkPromoteStudentsForClass extends Page
      */
     public function getMainOptionalSubjectOptions(?int $classId, ?int $groupId): Collection
     {
-        return ClassGroupSubject::optionalSubjectOptions($classId, $groupId, includeAllGroups: false);
+        return $this->memoize("mainOptional.{$classId}.{$groupId}", fn (): Collection => ClassGroupSubject::optionalSubjectOptions($classId, $groupId, includeAllGroups: false));
     }
 
     /**
@@ -240,7 +272,7 @@ class BulkPromoteStudentsForClass extends Page
      */
     public function getExtraOptionalSubjectOptions(?int $classId, ?int $groupId): Collection
     {
-        return ClassGroupSubject::optionalSubjectOptions($classId, $groupId);
+        return $this->memoize("extraOptional.{$classId}.{$groupId}", fn (): Collection => ClassGroupSubject::optionalSubjectOptions($classId, $groupId));
     }
 
     /**

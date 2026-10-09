@@ -4,6 +4,7 @@ namespace App\Actions;
 
 use App\Models\FeePayment;
 use App\Models\FeeType;
+use App\Models\StudentFeeInvoice;
 
 class SyncFeeTypeAccountTransactionsAction
 {
@@ -21,14 +22,12 @@ class SyncFeeTypeAccountTransactionsAction
     {
         $syncPayment = app(SyncFeePaymentAccountTransactionAction::class);
 
-        FeePayment::whereHas('invoice', function ($query) use ($feeType, $years) {
-            $query->where('fee_type_id', $feeType->id);
+        $invoiceIds = StudentFeeInvoice::where('fee_type_id', $feeType->id)
+            ->when($years !== [], fn ($query) => $query->whereIn('year', $years))
+            ->select('id');
 
-            if ($years !== []) {
-                $query->whereIn('year', $years);
-            }
-        })
-            ->get()
+        FeePayment::whereIn('invoice_id', $invoiceIds)
+            ->lazyById(200)
             ->each(fn (FeePayment $payment) => $syncPayment->sync($payment));
     }
 

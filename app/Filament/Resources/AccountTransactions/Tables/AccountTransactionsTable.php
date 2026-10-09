@@ -16,9 +16,15 @@ use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
+use WeakMap;
 
 class AccountTransactionsTable
 {
+    /** @var WeakMap<object, array<int, string|null>>|null */
+    private static ?WeakMap $partyLabels = null;
+
     public static function configure(Table $table): Table
     {
         return $table
@@ -42,7 +48,7 @@ class AccountTransactionsTable
                     ->color('gray'),
                 TextColumn::make('party')
                     ->label('Party')
-                    ->state(fn (AccountTransaction $record): ?string => $record->resolvePartyLabel())
+                    ->state(fn (AccountTransaction $record, Table $table): ?string => self::partyLabel($record, $table))
                     ->description(fn (AccountTransaction $record): string => $record->partyRoleLabel())
                     ->placeholder('—')
                     ->wrap()
@@ -81,11 +87,11 @@ class AccountTransactionsTable
                         return $query
                             ->when(
                                 $data['from'] ?? null,
-                                fn (Builder $query, $date): Builder => $query->whereDate('transaction_date', '>=', $date),
+                                fn (Builder $query, $date): Builder => $query->where('transaction_date', '>=', Carbon::parse($date)->toDateString()),
                             )
                             ->when(
                                 $data['until'] ?? null,
-                                fn (Builder $query, $date): Builder => $query->whereDate('transaction_date', '<=', $date),
+                                fn (Builder $query, $date): Builder => $query->where('transaction_date', '<', Carbon::parse($date)->addDay()->toDateString()),
                             );
                     }),
             ])
@@ -116,5 +122,27 @@ class AccountTransactionsTable
                     ->modalSubmitAction(false)
                     ->modalCancelActionLabel('Close'),
             ]);
+    }
+
+    /**
+     * The party label of one row, resolved together with every other row on
+     * the current page (see AccountTransaction::resolvePartyLabels()) and
+     * remembered for as long as that page of records is alive.
+     */
+    private static function partyLabel(AccountTransaction $record, Table $table): ?string
+    {
+        $records = $table->getRecords();
+
+        self::$partyLabels ??= new WeakMap;
+
+        self::$partyLabels[$records] ??= AccountTransaction::resolvePartyLabels(
+            $records instanceof Collection ? $records : $records->items()
+        );
+
+        $labels = self::$partyLabels[$records];
+
+        return array_key_exists($record->getKey(), $labels)
+            ? $labels[$record->getKey()]
+            : $record->resolvePartyLabel();
     }
 }

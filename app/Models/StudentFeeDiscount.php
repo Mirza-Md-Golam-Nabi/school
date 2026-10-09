@@ -60,37 +60,41 @@ class StudentFeeDiscount extends Model
     {
         return [
             'student_id' => fn (int|string|null $id): ?string => $id === null ? null : self::studentLabel($id),
-            'fee_type_id' => fn (int|string|null $id): ?string => $id === null ? null : FeeType::find($id)?->name,
-            'discount_id' => fn (int|string|null $id): ?string => $id === null ? null : FeeDiscount::find($id)?->name,
-            'approved_by' => fn (int|string|null $id): ?string => $id === null ? null : User::find($id)?->name,
+            'fee_type_id' => fn (int|string|null $id): ?string => $id === null ? null : self::activityNameLabel(FeeType::class, $id),
+            'discount_id' => fn (int|string|null $id): ?string => $id === null ? null : self::activityNameLabel(FeeDiscount::class, $id),
+            'approved_by' => fn (int|string|null $id): ?string => $id === null ? null : self::activityNameLabel(User::class, $id),
         ];
     }
 
     private function activityLogDescription(string $eventName): string
     {
         $studentLabel = self::studentLabel($this->student_id) ?? "Student #{$this->student_id}";
-        $discountLabel = $this->discount?->name ?? "Discount #{$this->discount_id}";
-        $feeTypeLabel = $this->feeType?->name ?? "Fee Type #{$this->fee_type_id}";
+        $discountLabel = self::activityNameLabel(FeeDiscount::class, $this->discount_id) ?? "Discount #{$this->discount_id}";
+        $feeTypeLabel = self::activityNameLabel(FeeType::class, $this->fee_type_id) ?? "Fee Type #{$this->fee_type_id}";
 
         return ucfirst($eventName)." fee discount \"{$discountLabel}\" for \"{$studentLabel}\" on \"{$feeTypeLabel}\".";
     }
 
     private static function studentLabel(int|string $studentId): ?string
     {
-        $student = StudentProfile::withTrashed()->with(['user', 'class'])->find($studentId);
+        return self::cachedActivityLabel("student_label_with_class|{$studentId}", function () use ($studentId): ?string {
+            $student = StudentProfile::withTrashed()
+                ->with(['user:id,name', 'class:id,name'])
+                ->find($studentId, ['id', 'user_id', 'roll_no', 'current_class_id']);
 
-        if (! $student) {
-            return null;
-        }
+            if (! $student) {
+                return null;
+            }
 
-        $name = trim("{$student->user?->name} (Roll: {$student->roll_no})");
+            $name = trim("{$student->user?->name} (Roll: {$student->roll_no})");
 
-        if ($student->current_class_id === null) {
-            return $name;
-        }
+            if ($student->current_class_id === null) {
+                return $name;
+            }
 
-        $classLabel = $student->class?->name ?? "Class #{$student->current_class_id}";
+            $classLabel = $student->class?->name ?? "Class #{$student->current_class_id}";
 
-        return "{$classLabel} - {$name}";
+            return "{$classLabel} - {$name}";
+        });
     }
 }

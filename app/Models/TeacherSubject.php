@@ -59,18 +59,18 @@ class TeacherSubject extends Model
     {
         return [
             'teacher_id' => fn (int|string|null $id): ?string => $id === null ? null : TeacherProfile::find($id)?->user?->name,
-            'subject_id' => fn (int|string|null $id): ?string => $id === null ? null : Subject::find($id)?->name,
-            'class_id' => fn (int|string|null $id): ?string => $id === null ? null : Classes::find($id)?->name,
-            'section_id' => fn (int|string|null $id): ?string => $id === null ? 'No Section' : Section::find($id)?->name,
+            'subject_id' => fn (int|string|null $id): ?string => $id === null ? null : self::activityNameLabel(Subject::class, $id),
+            'class_id' => fn (int|string|null $id): ?string => $id === null ? null : self::activityNameLabel(Classes::class, $id),
+            'section_id' => fn (int|string|null $id): ?string => $id === null ? 'No Section' : self::activityNameLabel(Section::class, $id),
         ];
     }
 
     private function activityLogDescription(string $eventName): string
     {
         $teacherLabel = $this->teacher?->user?->name ?? "Teacher #{$this->teacher_id}";
-        $subjectLabel = $this->subject?->name ?? "Subject #{$this->subject_id}";
-        $classLabel = $this->class?->name ?? "Class #{$this->class_id}";
-        $sectionLabel = $this->section_id === null ? 'No Section' : ($this->section?->name ?? "Section #{$this->section_id}");
+        $subjectLabel = self::activityNameLabel(Subject::class, $this->subject_id) ?? "Subject #{$this->subject_id}";
+        $classLabel = self::activityNameLabel(Classes::class, $this->class_id) ?? "Class #{$this->class_id}";
+        $sectionLabel = $this->section_id === null ? 'No Section' : (self::activityNameLabel(Section::class, $this->section_id) ?? "Section #{$this->section_id}");
 
         return match ($eventName) {
             'created' => "Assigned teacher \"{$teacherLabel}\" to teach \"{$subjectLabel}\" in class \"{$classLabel}\" ({$sectionLabel}).",

@@ -107,7 +107,7 @@ class FeePayment extends Model
         return [
             'student_id' => fn (int|string|null $id): ?string => $id === null ? null : self::studentLabel($id),
             'invoice_id' => fn (int|string|null $id): ?string => $id === null ? null : self::invoiceLabel($id),
-            'received_by' => fn (int|string|null $id): ?string => $id === null ? null : User::find($id)?->name,
+            'received_by' => fn (int|string|null $id): ?string => $id === null ? null : self::activityNameLabel(User::class, $id),
             'payment_method' => fn (?string $value): ?string => $value === null ? null : PaymentMethod::tryFrom($value)?->getLabel(),
         ];
     }
@@ -123,21 +123,25 @@ class FeePayment extends Model
 
     private static function studentLabel(int|string $studentId): ?string
     {
-        $student = StudentProfile::withTrashed()->with(['user', 'class'])->find($studentId);
+        return self::cachedActivityLabel("student_label_with_class|{$studentId}", function () use ($studentId): ?string {
+            $student = StudentProfile::withTrashed()
+                ->with(['user:id,name', 'class:id,name'])
+                ->find($studentId, ['id', 'user_id', 'roll_no', 'current_class_id']);
 
-        if (! $student) {
-            return null;
-        }
+            if (! $student) {
+                return null;
+            }
 
-        $name = trim("{$student->user?->name} (Roll: {$student->roll_no})");
+            $name = trim("{$student->user?->name} (Roll: {$student->roll_no})");
 
-        if ($student->current_class_id === null) {
-            return $name;
-        }
+            if ($student->current_class_id === null) {
+                return $name;
+            }
 
-        $classLabel = $student->class?->name ?? "Class #{$student->current_class_id}";
+            $classLabel = $student->class?->name ?? "Class #{$student->current_class_id}";
 
-        return "{$classLabel} - {$name}";
+            return "{$classLabel} - {$name}";
+        });
     }
 
     private static function invoiceLabel(int|string $invoiceId): ?string

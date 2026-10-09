@@ -25,7 +25,18 @@ class GenerateAdmitCardsForExamAction
             ->where('current_class_id', $exam->class_id)
             ->get(['id']);
 
+        $alreadyGeneratedStudentIds = AdmitCard::where('exam_id', $exam->id)
+            ->whereIn('student_id', $students->pluck('id'))
+            ->pluck('student_id')
+            ->flip();
+
         foreach ($students as $student) {
+            if ($alreadyGeneratedStudentIds->has($student->id)) {
+                $skipped++;
+
+                continue;
+            }
+
             $admitCard = AdmitCard::firstOrCreate(
                 ['student_id' => $student->id, 'exam_id' => $exam->id],
                 ['generated_by' => $generatedBy, 'generated_at' => now(), 'page_size' => $pageSize],

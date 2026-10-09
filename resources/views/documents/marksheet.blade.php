@@ -6,7 +6,7 @@
 
     $student = $marksheet->student;
     $exam = $marksheet->exam;
-    $hasSections = $exam->class?->sections()->exists() ?? false;
+    $hasSections ??= $exam->class?->sections()->exists() ?? false;
 
     $gradeScales = GradeScale::cached();
     $formatMark = fn (float $mark): string => rtrim(rtrim(number_format($mark, 2), '0'), '.');

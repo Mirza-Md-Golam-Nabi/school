@@ -42,7 +42,7 @@ class CalculateExamRankings
         $studentIds = $results->keys()->map(fn ($id) => (int) $id);
 
         $profiles = StudentProfile::whereIn('id', $studentIds)
-            ->get()
+            ->get(['id', 'current_group_id', 'current_section_id'])
             ->keyBy('id');
 
         // subject_id → Collection of ClassGroupSubject records (grouped by subject)
@@ -71,21 +71,23 @@ class CalculateExamRankings
         $classRankMap = $this->calculateTieredRanks(collect($studentData));
         $sectionRankMap = $this->calculateSectionRanks($studentData);
 
+        $existingRankings = StudentMeritRanking::where('exam_id', $exam->id)
+            ->whereIn('student_id', $studentIds)
+            ->get()
+            ->keyBy('student_id');
+
         foreach ($studentData as $data) {
-            StudentMeritRanking::updateOrCreate(
-                [
-                    'exam_id' => $exam->id,
-                    'student_id' => $data['student_id'],
-                ],
-                [
-                    'class_id' => $data['class_id'],
-                    'section_id' => $data['section_id'],
-                    'total_marks' => $data['total_marks'],
-                    'gpa' => $data['gpa'],
-                    'class_rank' => $classRankMap[$data['student_id']] ?? null,
-                    'section_rank' => $sectionRankMap[$data['student_id']] ?? null,
-                ]
-            );
+            $ranking = $existingRankings->get($data['student_id'])
+                ?? new StudentMeritRanking(['exam_id' => $exam->id, 'student_id' => $data['student_id']]);
+
+            $ranking->fill([
+                'class_id' => $data['class_id'],
+                'section_id' => $data['section_id'],
+                'total_marks' => $data['total_marks'],
+                'gpa' => $data['gpa'],
+                'class_rank' => $classRankMap[$data['student_id']] ?? null,
+                'section_rank' => $sectionRankMap[$data['student_id']] ?? null,
+            ])->save();
         }
 
         $this->logCalculation($exam, count($studentData));

@@ -5,6 +5,7 @@ namespace App\Actions;
 use App\Models\AdmitCard;
 use App\Models\Exam;
 use App\Models\ExamType;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 
 class GenerateAdmitCardsForExamTypeAction
@@ -42,22 +43,26 @@ class GenerateAdmitCardsForExamTypeAction
 
     protected function clearAdmitCardsForOtherExamTypes(ExamType $examType): void
     {
-        $otherAdmitCards = AdmitCard::whereHas('exam', fn ($query) => $query->where('exam_type_id', '!=', $examType->id))
-            ->get();
+        $clearedCount = 0;
 
-        if ($otherAdmitCards->isEmpty()) {
+        AdmitCard::whereIn('exam_id', Exam::where('exam_type_id', '!=', $examType->id)->select('id'))
+            ->select(['id', 'file_path'])
+            ->chunkById(500, function (Collection $admitCards) use (&$clearedCount): void {
+                foreach ($admitCards as $admitCard) {
+                    if ($admitCard->file_path && Storage::disk('local')->exists($admitCard->file_path)) {
+                        Storage::disk('local')->delete($admitCard->file_path);
+                    }
+
+                    $admitCard->delete();
+                    $clearedCount++;
+                }
+            });
+
+        if ($clearedCount === 0) {
             return;
         }
 
-        foreach ($otherAdmitCards as $admitCard) {
-            if ($admitCard->file_path && Storage::disk('local')->exists($admitCard->file_path)) {
-                Storage::disk('local')->delete($admitCard->file_path);
-            }
-
-            $admitCard->delete();
-        }
-
-        $this->logClear($examType, $otherAdmitCards->count());
+        $this->logClear($examType, $clearedCount);
     }
 
     private function logClear(ExamType $examType, int $clearedCount): void

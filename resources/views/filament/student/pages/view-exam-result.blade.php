@@ -89,7 +89,7 @@
                             @foreach ($rankings as $ranking)
                                 @php
                                     $isMe = (int) $ranking->student_id === (int) $myStudentId;
-                                    $grade = \App\Models\GradeScale::fromGpa((float) $ranking->gpa);
+                                    $grade = \App\Models\GradeScale::fromGpa((float) $ranking->gpa, $gradeScales ??= \App\Models\GradeScale::cached());
                                     $gradeColor = $grade?->color ?? 'gray';
                                     $rankLabel = match ((int) $ranking->class_rank) {
                                         1 => '🥇 1st',

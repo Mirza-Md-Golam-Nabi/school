@@ -46,7 +46,7 @@ class GradeScale extends Model
      */
     public static function cached(): Collection
     {
-        $rows = Cache::remember(
+        $rows = Cache::memo()->remember(
             self::CACHE_KEY,
             self::CACHE_TTL_SECONDS,
             fn (): array => static::query()
@@ -65,7 +65,7 @@ class GradeScale extends Model
      */
     public static function flushCache(): void
     {
-        Cache::forget(self::CACHE_KEY);
+        Cache::memo()->forget(self::CACHE_KEY);
     }
 
     /**

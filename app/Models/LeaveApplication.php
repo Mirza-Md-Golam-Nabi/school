@@ -106,9 +106,9 @@ class LeaveApplication extends Model
     protected function activityLogRelationLabels(): array
     {
         return [
-            'leave_type_id' => fn (int|string|null $id): ?string => $id === null ? null : LeaveType::find($id)?->name,
-            'applied_by' => fn (int|string|null $id): ?string => $id === null ? null : User::find($id)?->name,
-            'actioned_by' => fn (int|string|null $id): ?string => $id === null ? null : User::find($id)?->name,
+            'leave_type_id' => fn (int|string|null $id): ?string => $id === null ? null : self::activityNameLabel(LeaveType::class, $id),
+            'applied_by' => fn (int|string|null $id): ?string => $id === null ? null : self::activityNameLabel(User::class, $id),
+            'actioned_by' => fn (int|string|null $id): ?string => $id === null ? null : self::activityNameLabel(User::class, $id),
             'applicant_id' => fn (int|string|null $id): ?string => $id === null ? null : $this->resolveApplicantLabel(),
         ];
     }

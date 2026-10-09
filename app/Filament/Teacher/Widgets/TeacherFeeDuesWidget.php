@@ -37,17 +37,15 @@ class TeacherFeeDuesWidget extends Widget
             ->classesAsClassTeacher()
             ->pluck('id');
 
-        $studentIds = StudentProfile::whereIn('current_class_id', $classIds)->pluck('id');
+        // Subqueries instead of plucking every student / invoice ID into PHP
+        // and sending them back as huge IN (...) lists.
+        $payableInvoices = fn () => StudentFeeInvoice::payable()
+            ->whereIn('student_id', StudentProfile::whereIn('current_class_id', $classIds)->select('id'));
 
-        $payableInvoiceIds = StudentFeeInvoice::payable()
-            ->whereIn('student_id', $studentIds)
-            ->pluck('id');
+        $netDue = (float) $payableInvoices()->sum('net_amount');
+        $paid = (float) FeePayment::whereIn('invoice_id', $payableInvoices()->select('id'))->sum('amount_paid');
 
-        $netDue = (float) StudentFeeInvoice::whereIn('id', $payableInvoiceIds)->sum('net_amount');
-        $paid = (float) FeePayment::whereIn('invoice_id', $payableInvoiceIds)->sum('amount_paid');
-
-        $studentsWithDues = StudentFeeInvoice::payable()
-            ->whereIn('student_id', $studentIds)
+        $studentsWithDues = $payableInvoices()
             ->distinct('student_id')
             ->count('student_id');
 

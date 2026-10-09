@@ -49,7 +49,7 @@ class BuildExamTabulationSheetDetail
         $subjectConfigs = $exam->subjectConfigs()->with('subject')->get()->keyBy('subject_id');
 
         $resultsByStudent = StudentResult::where('exam_id', $exam->id)
-            ->get()
+            ->get(['id', 'student_id', 'subject_id', 'total_marks', 'final_marks', 'is_absent'])
             ->groupBy('student_id')
             ->map(fn (Collection $results): Collection => $results->keyBy('subject_id'));
 

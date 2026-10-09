@@ -100,8 +100,8 @@ class ActingAdmin extends Model
     protected function activityLogRelationLabels(): array
     {
         return [
-            'user_id' => fn (int|string|null $id): ?string => $id === null ? null : User::find($id)?->name,
-            'assigned_by' => fn (int|string|null $id): ?string => $id === null ? null : User::find($id)?->name,
+            'user_id' => fn (int|string|null $id): ?string => $id === null ? null : self::activityNameLabel(User::class, $id),
+            'assigned_by' => fn (int|string|null $id): ?string => $id === null ? null : self::activityNameLabel(User::class, $id),
         ];
     }
 

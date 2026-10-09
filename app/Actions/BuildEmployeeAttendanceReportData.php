@@ -38,15 +38,15 @@ class BuildEmployeeAttendanceReportData
     {
         $monthStart = Carbon::create($year, $month, 1)->startOfDay();
         $monthEnd = $monthStart->copy()->endOfMonth()->startOfDay();
-        $scheduledEntry = AttendanceSetting::current()->entry_time;
+        $setting = AttendanceSetting::current();
+        $scheduledEntry = $setting->entry_time;
 
         $records = Attendance::query()
             ->where('attendable_type', $person->getMorphClass())
             ->where('attendable_id', $person->getKey())
             ->whereNull('subject_id')
-            ->whereYear('date', $year)
-            ->whereMonth('date', $month)
-            ->get()
+            ->inMonth($year, $month)
+            ->get(['id', 'date', 'status', 'entry_time', 'exit_time'])
             ->keyBy(fn (Attendance $attendance): int => $attendance->date->day);
 
         $days = [];
@@ -74,7 +74,7 @@ class BuildEmployeeAttendanceReportData
             'type' => DeviceUser::personTypes()[$person::class],
             'summary' => [
                 'working_days' => $countedUntil->gte($monthStart) ? $this->workingDays->count($monthStart, $countedUntil) : 0,
-                'present' => $records->whereIn('status', AttendanceSetting::current()->presentStatusesFor($person::class))->count(),
+                'present' => $records->whereIn('status', $setting->presentStatusesFor($person::class))->count(),
                 'late' => $records->where('status', AttendanceStatus::Late)->count(),
                 'absent' => $records->where('status', AttendanceStatus::Absent)->count(),
                 'leave' => $records->where('status', AttendanceStatus::Leave)->count(),

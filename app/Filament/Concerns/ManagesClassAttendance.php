@@ -24,6 +24,9 @@ trait ManagesClassAttendance
     /** @var array<string> */
     public array $presentIds = [];
 
+    /** @var array<string, Collection> */
+    private array $studentsCache = [];
+
     public function mount(): void
     {
         if (blank($this->date)) {
@@ -72,7 +75,17 @@ trait ManagesClassAttendance
             ->send();
     }
 
+    /**
+     * Students of the class for the selected date. The page asks for the list
+     * several times per request (mount, blade, yesterday's attendance), so it
+     * is loaded once per class + date.
+     */
     public function getStudents(): Collection
+    {
+        return $this->studentsCache["{$this->classId}|{$this->date}"] ??= $this->loadStudents();
+    }
+
+    private function loadStudents(): Collection
     {
         $idsWithAttendance = Attendance::where('attendable_type', StudentProfile::class)
             ->where('date', $this->date)

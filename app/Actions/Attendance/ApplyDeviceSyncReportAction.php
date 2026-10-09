@@ -22,6 +22,7 @@ class ApplyDeviceSyncReportAction
         $roster = $device->deviceUsers()->active()->get()->keyBy('enroll_id');
         $updated = 0;
         $unknown = [];
+        $unchangedIds = [];
 
         foreach ($report['users'] ?? [] as $reported) {
             $enrollment = $roster->get((string) $reported['enroll_id']);
@@ -39,10 +40,22 @@ class ApplyDeviceSyncReportAction
             $enrollment->forceFill([
                 'card_number' => $this->normalizeCard($reported['card_number'] ?? null),
                 'fingerprint_count' => (int) ($reported['fingerprint_count'] ?? 0),
-                'last_seen_on_device_at' => now(),
-            ])->save();
+            ]);
+
+            // Most reports change nothing but the "last seen" stamp — those
+            // rows are stamped together below instead of one UPDATE each.
+            if ($enrollment->isDirty()) {
+                $enrollment->forceFill(['last_seen_on_device_at' => now()])->save();
+            } else {
+                $unchangedIds[] = $enrollment->id;
+                $enrollment->forceFill(['last_seen_on_device_at' => now()])->syncOriginal();
+            }
 
             $updated++;
+        }
+
+        foreach (array_chunk($unchangedIds, 500) as $ids) {
+            DeviceUser::query()->whereKey($ids)->update(['last_seen_on_device_at' => now()]);
         }
 
         $removed = 0;

@@ -161,23 +161,30 @@ class EnterStudentMarks extends Page
 
         $this->validateMarks();
 
+        // One query for the rows that already exist, instead of the SELECT
+        // that updateOrCreate() would run for every student.
+        $existingResults = StudentResult::where('exam_id', $this->examId)
+            ->where('subject_id', $this->subjectId)
+            ->whereIn('student_id', array_map('intval', array_keys($this->marks)))
+            ->get()
+            ->keyBy('student_id');
+
         foreach ($this->marks as $studentId => $mark) {
             $isAbsent = (bool) ($mark['is_absent'] ?? false);
 
-            StudentResult::updateOrCreate(
-                [
-                    'exam_id' => $this->examId,
-                    'subject_id' => $this->subjectId,
-                    'student_id' => (int) $studentId,
-                ],
-                [
-                    'class_id' => $this->classId,
-                    'mcq_marks' => $isAbsent ? null : (isset($mark['mcq_marks']) && $mark['mcq_marks'] !== '' ? $mark['mcq_marks'] : null),
-                    'written_marks' => $isAbsent ? null : (isset($mark['written_marks']) && $mark['written_marks'] !== '' ? $mark['written_marks'] : null),
-                    'practical_marks' => $isAbsent ? null : (isset($mark['practical_marks']) && $mark['practical_marks'] !== '' ? $mark['practical_marks'] : null),
-                    'is_absent' => $isAbsent,
-                ]
-            );
+            $result = $existingResults->get((int) $studentId) ?? new StudentResult([
+                'exam_id' => $this->examId,
+                'subject_id' => $this->subjectId,
+                'student_id' => (int) $studentId,
+            ]);
+
+            $result->fill([
+                'class_id' => $this->classId,
+                'mcq_marks' => $isAbsent ? null : (isset($mark['mcq_marks']) && $mark['mcq_marks'] !== '' ? $mark['mcq_marks'] : null),
+                'written_marks' => $isAbsent ? null : (isset($mark['written_marks']) && $mark['written_marks'] !== '' ? $mark['written_marks'] : null),
+                'practical_marks' => $isAbsent ? null : (isset($mark['practical_marks']) && $mark['practical_marks'] !== '' ? $mark['practical_marks'] : null),
+                'is_absent' => $isAbsent,
+            ])->save();
         }
 
         Notification::make()

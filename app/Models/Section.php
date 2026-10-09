@@ -57,7 +57,7 @@ class Section extends Model
     protected function activityLogRelationLabels(): array
     {
         return [
-            'class_id' => fn (int|string|null $id): ?string => $id === null ? null : Classes::find($id)?->name,
+            'class_id' => fn (int|string|null $id): ?string => $id === null ? null : self::activityNameLabel(Classes::class, $id),
         ];
     }
 }

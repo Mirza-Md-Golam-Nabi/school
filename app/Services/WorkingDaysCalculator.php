@@ -96,7 +96,7 @@ class WorkingDaysCalculator
     {
         $currentYear = now()->year;
 
-        return PublicHoliday::all()->flatMap(function (PublicHoliday $holiday) use ($currentYear) {
+        return PublicHoliday::query()->get(['id', 'start_date', 'end_date', 'is_recurring'])->flatMap(function (PublicHoliday $holiday) use ($currentYear) {
             $start = $holiday->start_date;
             $end = $holiday->end_date ?? $holiday->start_date;
 

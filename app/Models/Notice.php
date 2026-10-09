@@ -63,7 +63,9 @@ class Notice extends Model
 
     public function scopeCurrentYear(Builder $query): Builder
     {
-        return $query->whereYear('published_at', now()->year);
+        return $query
+            ->where('published_at', '>=', now()->startOfYear())
+            ->where('published_at', '<', now()->startOfYear()->addYear());
     }
 
     public function isPublished(): bool
@@ -143,7 +145,7 @@ class Notice extends Model
     protected function activityLogRelationLabels(): array
     {
         return [
-            'created_by' => fn (int|string|null $id): ?string => $id === null ? null : User::find($id)?->name,
+            'created_by' => fn (int|string|null $id): ?string => $id === null ? null : self::activityNameLabel(User::class, $id),
         ];
     }
 

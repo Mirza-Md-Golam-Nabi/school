@@ -76,8 +76,22 @@ class SalaryInvoice extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    /**
+     * Uses an eager-loaded sum / relation when the query provided one
+     * (withSum('payments', 'amount_paid') or with('payments')), and only
+     * falls back to its own query otherwise — so lists never run one
+     * query per invoice.
+     */
     public function getTotalPaidAttribute(): float
     {
+        if (array_key_exists('payments_sum_amount_paid', $this->attributes)) {
+            return (float) $this->attributes['payments_sum_amount_paid'];
+        }
+
+        if ($this->relationLoaded('payments')) {
+            return (float) $this->payments->sum('amount_paid');
+        }
+
         return (float) $this->payments()->sum('amount_paid');
     }
 
@@ -88,6 +102,10 @@ class SalaryInvoice extends Model
 
     public function isLocked(): bool
     {
+        if (array_key_exists('payments_exists', $this->attributes)) {
+            return (bool) $this->attributes['payments_exists'];
+        }
+
         return $this->payments()->exists();
     }
 

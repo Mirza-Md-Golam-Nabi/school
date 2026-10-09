@@ -56,6 +56,8 @@ class PromoteStudentsForClass extends Page implements HasTable
     #[Url(as: 'year')]
     public int $year = 0;
 
+    private ?CollectPromotionFeesAction $collectPromotionFees = null;
+
     public function mount(): void
     {
         abort_unless($this->classId && $this->year, 404);
@@ -466,7 +468,7 @@ class PromoteStudentsForClass extends Page implements HasTable
      */
     private function feeStructureOptions(Get $get, StudentProfile $record): array
     {
-        return app(CollectPromotionFeesAction::class)
+        return $this->collectPromotionFees()
             ->availableStructures($get('class_id') ? (int) $get('class_id') : null, $this->feeSessionYear($record))
             ->mapWithKeys(fn (FeeStructure $structure): array => [
                 $structure->id => $structure->feeType->name
@@ -474,6 +476,15 @@ class PromoteStudentsForClass extends Page implements HasTable
                     .' — ৳'.number_format((float) $structure->amount, 2),
             ])
             ->all();
+    }
+
+    /**
+     * One action instance per request, so its per-class fee structure lookup
+     * is reused by every form closure instead of being re-queried each time.
+     */
+    private function collectPromotionFees(): CollectPromotionFeesAction
+    {
+        return $this->collectPromotionFees ??= app(CollectPromotionFeesAction::class);
     }
 
     private function hasFeeSelected(Get $get): bool
@@ -502,7 +513,7 @@ class PromoteStudentsForClass extends Page implements HasTable
             return 0;
         }
 
-        return app(CollectPromotionFeesAction::class)->payableTotal(
+        return $this->collectPromotionFees()->payableTotal(
             $record,
             (int) $get('class_id'),
             $this->feeSessionYear($record),

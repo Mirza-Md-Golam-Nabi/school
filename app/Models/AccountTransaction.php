@@ -7,6 +7,7 @@ use App\Enums\TransactionType;
 use App\Traits\LogsRelationLabels;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Collection;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
@@ -68,9 +69,80 @@ class AccountTransaction extends Model
         };
     }
 
+    /**
+     * Party labels for a whole page of transactions, keyed by transaction ID.
+     * Resolves each source type with one batched query, so a ledger table
+     * doesn't run several queries per row.
+     *
+     * @param  iterable<int, self>  $transactions
+     * @return array<int, string|null>
+     */
+    public static function resolvePartyLabels(iterable $transactions): array
+    {
+        $transactions = collect($transactions);
+
+        $sourceIdsFor = fn (TransactionSource $source): Collection => $transactions
+            ->filter(fn (self $transaction): bool => $transaction->source_type === $source)
+            ->pluck('source_id')
+            ->filter()
+            ->unique()
+            ->values();
+
+        $feePaymentIds = $sourceIdsFor(TransactionSource::FeePayment);
+        $salaryPaymentIds = $sourceIdsFor(TransactionSource::Salary);
+        $fundTransactionIds = $sourceIdsFor(TransactionSource::Other);
+
+        $feePayments = $feePaymentIds->isEmpty() ? collect() : FeePayment::query()
+            ->with(['student:id,user_id,roll_no,current_class_id', 'student.user:id,name', 'student.class:id,name'])
+            ->whereIn('id', $feePaymentIds)
+            ->get(['id', 'student_id'])
+            ->keyBy('id');
+
+        $salaryPayments = $salaryPaymentIds->isEmpty() ? collect() : SalaryPayment::query()
+            ->with('invoice.profileable.user')
+            ->whereIn('id', $salaryPaymentIds)
+            ->get(['id', 'salary_invoice_id'])
+            ->keyBy('id');
+
+        $fundTransactions = $fundTransactionIds->isEmpty() ? collect() : FundTransaction::query()
+            ->whereIn('id', $fundTransactionIds)
+            ->get(['id', 'party_name', 'title'])
+            ->keyBy('id');
+
+        return $transactions
+            ->mapWithKeys(fn (self $transaction): array => [
+                $transaction->getKey() => match ($transaction->source_type) {
+                    TransactionSource::FeePayment => self::feePaymentPartyLabel($feePayments->get($transaction->source_id)),
+                    TransactionSource::Salary => self::salaryPartyLabel($salaryPayments->get($transaction->source_id)),
+                    TransactionSource::Other => self::fundTransactionPartyLabel($fundTransactions->get($transaction->source_id)),
+                    default => null,
+                },
+            ])
+            ->all();
+    }
+
     private function resolveFeePaymentPartyLabel(): ?string
     {
-        $student = FeePayment::with(['student.user', 'student.class'])->find($this->source_id)?->student;
+        return self::feePaymentPartyLabel(
+            FeePayment::with(['student.user', 'student.class'])->find($this->source_id)
+        );
+    }
+
+    private function resolveSalaryPartyLabel(): ?string
+    {
+        return self::salaryPartyLabel(
+            SalaryPayment::with('invoice.profileable.user')->find($this->source_id)
+        );
+    }
+
+    private function resolveFundTransactionPartyLabel(): ?string
+    {
+        return self::fundTransactionPartyLabel(FundTransaction::find($this->source_id));
+    }
+
+    private static function feePaymentPartyLabel(?FeePayment $payment): ?string
+    {
+        $student = $payment?->student;
 
         if (! $student) {
             return null;
@@ -82,9 +154,9 @@ class AccountTransaction extends Model
         return $classLabel ? "{$classLabel} - {$name}" : $name;
     }
 
-    private function resolveSalaryPartyLabel(): ?string
+    private static function salaryPartyLabel(?SalaryPayment $payment): ?string
     {
-        $profileable = SalaryPayment::with('invoice.profileable.user')->find($this->source_id)?->invoice?->profileable;
+        $profileable = $payment?->invoice?->profileable;
 
         if ($profileable instanceof TeacherProfile || $profileable instanceof StaffProfile) {
             return $profileable->user?->name;
@@ -93,10 +165,8 @@ class AccountTransaction extends Model
         return null;
     }
 
-    private function resolveFundTransactionPartyLabel(): ?string
+    private static function fundTransactionPartyLabel(?FundTransaction $fundTransaction): ?string
     {
-        $fundTransaction = FundTransaction::find($this->source_id);
-
         return $fundTransaction?->party_name ?: $fundTransaction?->title;
     }
 
@@ -113,8 +183,8 @@ class AccountTransaction extends Model
     protected function activityLogRelationLabels(): array
     {
         return [
-            'account_id' => fn (int|string|null $id): ?string => $id === null ? null : SchoolAccount::find($id)?->name,
-            'created_by' => fn (int|string|null $id): ?string => $id === null ? null : User::find($id)?->name,
+            'account_id' => fn (int|string|null $id): ?string => $id === null ? null : self::activityNameLabel(SchoolAccount::class, $id),
+            'created_by' => fn (int|string|null $id): ?string => $id === null ? null : self::activityNameLabel(User::class, $id),
             'source_type' => fn (?string $value): ?string => $value === null ? null : TransactionSource::tryFrom($value)?->getLabel(),
             'transaction_type' => fn (?string $value): ?string => $value === null ? null : TransactionType::tryFrom($value)?->getLabel(),
         ];

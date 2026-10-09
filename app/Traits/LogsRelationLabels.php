@@ -2,6 +2,9 @@
 
 namespace App\Traits;
 
+use App\Support\ActivityLogLabelCache;
+use Closure;
+use Illuminate\Database\Eloquent\Model;
 use Spatie\Activitylog\Contracts\Activity;
 
 trait LogsRelationLabels
@@ -40,10 +43,37 @@ trait LogsRelationLabels
                     continue;
                 }
 
-                $values["{$column}_label"] = $resolver($values[$column]);
+                $value = $values[$column];
+
+                $values["{$column}_label"] = is_scalar($value) || $value === null
+                    ? static::cachedActivityLabel(static::class."|{$column}|".var_export($value, true), fn () => $resolver($value))
+                    : $resolver($value);
             }
 
             $activity->properties = $activity->properties->put($propertyKey, $values);
         }
+    }
+
+    /**
+     * Memoizes a label lookup for the current request, so logging many rows
+     * that share the same related record resolves it only once.
+     */
+    protected static function cachedActivityLabel(string $key, Closure $resolver): mixed
+    {
+        return app(ActivityLogLabelCache::class)->remember($key, $resolver);
+    }
+
+    /**
+     * The `name` of a related model, looked up once per request.
+     *
+     * @param  class-string<Model>  $modelClass
+     */
+    protected static function activityNameLabel(string $modelClass, int|string|null $id): ?string
+    {
+        if ($id === null) {
+            return null;
+        }
+
+        return static::cachedActivityLabel("name|{$modelClass}|{$id}", fn (): ?string => $modelClass::find($id)?->name);
     }
 }

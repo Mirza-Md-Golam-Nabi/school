@@ -26,7 +26,7 @@ class BuildCombinedClassMarksheetPdfAction
         $marksheets = Marksheet::where('exam_id', $exam->id)
             ->where('is_generated', true)
             ->whereHas('student', fn ($query) => $query->where('current_class_id', $class->id))
-            ->with(['student.user', 'student.class', 'student.section', 'exam.examType'])
+            ->with(['student.user', 'student.class', 'student.section', 'exam.examType', 'exam.class'])
             ->get()
             ->sortBy(fn (Marksheet $marksheet) => $marksheet->student?->roll_no)
             ->values();
@@ -38,22 +38,34 @@ class BuildCombinedClassMarksheetPdfAction
         $currentLocale = App::getLocale();
         App::setLocale(array_key_exists($subjectLanguage, config('app.available_locales')) ? $subjectLanguage : 'en');
 
+        // Loaded once for the whole class — the loop below used to query the
+        // ranking, the exam-wide results and the section check per student.
+        $rankings = StudentMeritRanking::where('exam_id', $exam->id)
+            ->whereIn('student_id', $marksheets->pluck('student_id'))
+            ->get()
+            ->keyBy('student_id');
+
+        $hasSections = $marksheets->first()->exam?->class?->sections()->exists() ?? false;
+        $buildStudentMarksDetail = app(BuildStudentMarksDetail::class);
+
         try {
             foreach ($marksheets as $index => $marksheet) {
-                $ranking = StudentMeritRanking::where('exam_id', $marksheet->exam_id)
-                    ->where('student_id', $marksheet->student_id)
-                    ->first();
+                $ranking = $rankings->get($marksheet->student_id);
 
                 if (! $ranking) {
                     continue;
                 }
 
-                ['rows' => $rows, 'summary' => $summary] = app(BuildStudentMarksDetail::class)->handle($ranking);
+                $ranking->setRelation('student', $marksheet->student);
+                $ranking->setRelation('exam', $marksheet->exam);
+
+                ['rows' => $rows, 'summary' => $summary] = $buildStudentMarksDetail->handle($ranking);
 
                 $html = view('documents.marksheet', [
                     'marksheet' => $marksheet,
                     'rows' => $rows,
                     'summary' => $summary,
+                    'hasSections' => $hasSections,
                 ])->render();
 
                 if ($index > 0) {

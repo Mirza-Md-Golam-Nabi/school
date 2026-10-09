@@ -11,6 +11,7 @@ use App\Models\LeaveExcessLog;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
+use Illuminate\Support\Carbon;
 
 #[Signature('hr:check-leave-excess')]
 #[Description('Check approved leaves whose to_date has passed and record excess logs for absent employees.')]
@@ -59,27 +60,25 @@ class CheckLeaveExcess extends Command
      */
     private function countAbsentDaysAfterToDate(LeaveApplication $leave): int
     {
-        $startDate = $leave->to_date->copy()->addDay();
+        $startDate = $leave->to_date->copy()->addDay()->startOfDay();
         $today = today();
-        $absentDays = 0;
-        $current = $startDate->copy();
 
-        while ($current->lt($today)) {
-            $hasAttendance = Attendance::where('attendable_type', $leave->applicant_type)
-                ->where('attendable_id', $leave->applicant_id)
-                ->where('date', $current->toDateString())
-                ->whereIn('status', ['present', 'late'])
-                ->exists();
-
-            if ($hasAttendance) {
-                break;
-            }
-
-            $absentDays++;
-            $current->addDay();
+        if ($startDate->gte($today)) {
+            return 0;
         }
 
-        return $absentDays;
+        // The first day back at work ends the count — one query instead of
+        // one per calendar day since the leave ended.
+        $firstPresentDate = Attendance::where('attendable_type', $leave->applicant_type)
+            ->where('attendable_id', $leave->applicant_id)
+            ->where('date', '>=', $startDate->toDateString())
+            ->where('date', '<', $today->toDateString())
+            ->whereIn('status', ['present', 'late'])
+            ->min('date');
+
+        $countUntil = $firstPresentDate ? Carbon::parse($firstPresentDate)->startOfDay() : $today;
+
+        return (int) $startDate->diffInDays($countUntil);
     }
 
     private function createExcessAbsentLogs(LeaveApplication $leave, int $days): void

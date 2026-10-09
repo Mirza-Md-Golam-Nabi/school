@@ -8,6 +8,7 @@ use App\Filament\Resources\AccountTransactions\Widgets\TransactionTypeBreakdownW
 use Filament\Resources\Pages\ListRecords;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Carbon;
 use Livewire\Attributes\Url;
 
 class ListAccountTransactions extends ListRecords
@@ -28,8 +29,8 @@ class ListAccountTransactions extends ListRecords
         return parent::table($table)
             ->modifyQueryUsing(fn (Builder $query) => $query
                 ->when($this->type, fn (Builder $query, string $type) => $query->where('transaction_type', $type))
-                ->when($this->from, fn (Builder $query, string $date) => $query->whereDate('transaction_date', '>=', $date))
-                ->when($this->until, fn (Builder $query, string $date) => $query->whereDate('transaction_date', '<=', $date))
+                ->when($this->from, fn (Builder $query, string $date) => $query->where('transaction_date', '>=', Carbon::parse($date)->toDateString()))
+                ->when($this->until, fn (Builder $query, string $date) => $query->where('transaction_date', '<', Carbon::parse($date)->addDay()->toDateString()))
             );
     }
 

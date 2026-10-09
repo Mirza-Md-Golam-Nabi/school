@@ -6,6 +6,7 @@ use App\Actions\Concerns\ResolvesFeeDiscount;
 use App\Enums\InvoiceStatus;
 use App\Models\FeePayment;
 use App\Models\FeeStructure;
+use App\Models\FeeType;
 use App\Models\StudentFeeInvoice;
 use App\Models\StudentProfile;
 use App\Notifications\Concerns\NotifiesStudentFeeInvoice;
@@ -15,6 +16,14 @@ class CollectPromotionFeesAction
 {
     use NotifiesStudentFeeInvoice;
     use ResolvesFeeDiscount;
+
+    /**
+     * Available structures per "class-session", remembered for the lifetime
+     * of this instance — the promotion form asks for them many times per render.
+     *
+     * @var array<string, Collection<int, FeeStructure>>
+     */
+    private array $structures = [];
 
     public function __construct(private ProcessFeePaymentAction $processFeePayment) {}
 
@@ -31,11 +40,11 @@ class CollectPromotionFeesAction
             return collect();
         }
 
-        return FeeStructure::with('feeType:id,name,is_monthly')
+        return $this->structures["{$classId}-{$sessionYear}"] ??= FeeStructure::with('feeType:id,name,is_monthly')
             ->where('class_id', $classId)
             ->where('session_year', $sessionYear)
             ->where('is_active', true)
-            ->whereHas('feeType', fn ($query) => $query->where('is_active', true))
+            ->whereIn('fee_type_id', FeeType::where('is_active', true)->select('id'))
             ->get()
             ->sortBy(fn (FeeStructure $structure): string => $structure->feeType->name)
             ->values();

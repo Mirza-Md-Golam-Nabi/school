@@ -7,7 +7,6 @@ use App\Filament\Pages\StudentAttendanceRanking;
 use App\Models\Attendance;
 use App\Models\StudentProfile;
 use Filament\Widgets\Widget;
-use Illuminate\Support\Carbon;
 
 class StudentAttendanceRankingWidget extends Widget
 {
@@ -28,24 +27,22 @@ class StudentAttendanceRankingWidget extends Widget
         $year = (int) now()->year;
 
         $workingDays = Attendance::where('attendable_type', StudentProfile::class)
-            ->whereYear('date', $year)
-            ->pluck('date')
-            ->map(fn ($date) => Carbon::parse($date)->toDateString())
-            ->unique()
-            ->count();
+            ->inYear($year)
+            ->distinct()
+            ->count('date');
 
         $counts = Attendance::where('attendable_type', StudentProfile::class)
             ->countedPresent(StudentProfile::class)
-            ->whereYear('date', $year)
+            ->inYear($year)
             ->selectRaw('attendable_id, count(*) as present_count')
             ->groupBy('attendable_id')
             ->orderByDesc('present_count')
             ->limit(2)
             ->get();
 
-        $students = StudentProfile::with('user')
+        $students = StudentProfile::with('user:id,name')
             ->whereIn('id', $counts->pluck('attendable_id'))
-            ->get()
+            ->get(['id', 'user_id', 'roll_no'])
             ->keyBy('id');
 
         $topStudents = $counts->map(fn ($row) => [

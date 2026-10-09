@@ -62,15 +62,15 @@ class ExamSubjectConfig extends Model
     protected function activityLogRelationLabels(): array
     {
         return [
-            'exam_id' => fn (int|string|null $id): ?string => $id === null ? null : Exam::withTrashed()->with(['examType', 'class'])->find($id)?->displayLabel(),
-            'subject_id' => fn (int|string|null $id): ?string => $id === null ? null : Subject::find($id)?->name,
+            'exam_id' => fn (int|string|null $id): ?string => Exam::activityLabelFor($id),
+            'subject_id' => fn (int|string|null $id): ?string => $id === null ? null : self::activityNameLabel(Subject::class, $id),
         ];
     }
 
     private function activityLogDescription(string $eventName): string
     {
-        $subjectLabel = $this->subject?->name ?? "Subject #{$this->subject_id}";
-        $examLabel = Exam::withTrashed()->with(['examType', 'class'])->find($this->exam_id)?->displayLabel() ?? "Exam #{$this->exam_id}";
+        $subjectLabel = self::activityNameLabel(Subject::class, $this->subject_id) ?? "Subject #{$this->subject_id}";
+        $examLabel = Exam::activityLabelFor($this->exam_id) ?? "Exam #{$this->exam_id}";
 
         return ucfirst($eventName)." subject config for \"{$subjectLabel}\" in \"{$examLabel}\".";
     }

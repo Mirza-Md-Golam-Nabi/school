@@ -66,7 +66,7 @@ class TeacherAttendanceHistory extends Page
 
     public function getHistory(): Collection
     {
-        $teacherIds = TeacherProfile::withTrashed()->pluck('id');
+        $teacherIds = TeacherProfile::withTrashed()->select('id');
 
         $presentStatuses = AttendanceSetting::current()->presentStatusValuesFor(TeacherProfile::class);
         $presentPlaceholders = implode(', ', array_fill(0, count($presentStatuses), '?'));

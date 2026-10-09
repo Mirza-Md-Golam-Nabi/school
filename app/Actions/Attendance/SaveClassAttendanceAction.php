@@ -39,6 +39,15 @@ class SaveClassAttendanceAction
 
         $countsLate = AttendanceSetting::current()->countsLateFor(StudentProfile::class);
 
+        $existingByStudent = Attendance::query()
+            ->where('attendable_type', StudentProfile::class)
+            ->whereIn('attendable_id', $students->pluck('id'))
+            ->where('date', $date)
+            ->where('class_id', $classId)
+            ->whereNull('subject_id')
+            ->get()
+            ->keyBy('attendable_id');
+
         foreach ($students as $student) {
             $isPresent = in_array((string) $student->id, $presentIds);
             $newStatus = $isPresent ? AttendanceStatus::Present : AttendanceStatus::Absent;
@@ -51,7 +60,7 @@ class SaveClassAttendanceAction
                 'subject_id' => null,
             ];
 
-            $existing = Attendance::where($keys)->first();
+            $existing = $existingByStudent->get($student->id);
 
             // While late arrivals are counted they show as ticked, so resaving the
             // list must leave them Late instead of turning them into a plain Present.
@@ -63,6 +72,10 @@ class SaveClassAttendanceAction
             $statusChanged = $existing && $oldStatus !== $newStatus;
 
             $attendance = $existing ?? new Attendance($keys);
+
+            // The activity log describes the student — hand it the already-loaded
+            // model instead of letting every row lazy-load it again.
+            $attendance->setRelation('attendable', $student);
 
             $attendance->fill([
                 'status' => $newStatus,

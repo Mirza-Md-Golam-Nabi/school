@@ -59,8 +59,8 @@ class SalaryBulkPayment extends Model
     protected function activityLogRelationLabels(): array
     {
         return [
-            'school_account_id' => fn (int|string|null $id): ?string => $id === null ? null : SchoolAccount::find($id)?->name,
-            'paid_by' => fn (int|string|null $id): ?string => $id === null ? null : User::find($id)?->name,
+            'school_account_id' => fn (int|string|null $id): ?string => $id === null ? null : self::activityNameLabel(SchoolAccount::class, $id),
+            'paid_by' => fn (int|string|null $id): ?string => $id === null ? null : self::activityNameLabel(User::class, $id),
             'payment_method' => fn (?string $value): ?string => $value === null ? null : PaymentMethod::tryFrom($value)?->getLabel(),
         ];
     }

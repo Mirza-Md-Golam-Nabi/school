@@ -21,6 +21,7 @@ class SalaryStructuresTable
     public static function configure(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query->withSum('components', 'amount'))
             ->defaultSort(fn (Builder $query): Builder => self::orderByOpenEndedFirst($query))
             ->columns([
                 TextColumn::make('profileable.user.name')
@@ -35,7 +36,9 @@ class SalaryStructuresTable
                 TextColumn::make('amount')
                     ->label('Amount')
                     ->state(fn (SalaryStructure $record): float => $record->use_components
-                        ? (float) $record->components()->sum('amount')
+                        ? (float) (array_key_exists('components_sum_amount', $record->getAttributes())
+                            ? $record->components_sum_amount
+                            : $record->components()->sum('amount'))
                         : (float) $record->flat_amount)
                     ->money('BDT')
                     ->alignEnd()

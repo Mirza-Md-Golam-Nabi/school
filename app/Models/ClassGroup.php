@@ -49,15 +49,15 @@ class ClassGroup extends Pivot
     protected function activityLogRelationLabels(): array
     {
         return [
-            'class_id' => fn (int|string|null $id): ?string => $id === null ? null : Classes::find($id)?->name,
-            'group_id' => fn (int|string|null $id): ?string => $id === null ? null : Group::find($id)?->name,
+            'class_id' => fn (int|string|null $id): ?string => $id === null ? null : self::activityNameLabel(Classes::class, $id),
+            'group_id' => fn (int|string|null $id): ?string => $id === null ? null : self::activityNameLabel(Group::class, $id),
         ];
     }
 
     private function activityLogDescription(string $eventName): string
     {
-        $classLabel = $this->schoolClass?->name ?? "Class #{$this->class_id}";
-        $groupLabel = $this->group?->name ?? "Group #{$this->group_id}";
+        $classLabel = self::activityNameLabel(Classes::class, $this->class_id) ?? "Class #{$this->class_id}";
+        $groupLabel = self::activityNameLabel(Group::class, $this->group_id) ?? "Group #{$this->group_id}";
 
         return match ($eventName) {
             'created' => "Attached group \"{$groupLabel}\" to class \"{$classLabel}\".",

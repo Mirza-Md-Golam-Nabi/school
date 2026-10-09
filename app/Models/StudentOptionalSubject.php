@@ -70,16 +70,16 @@ class StudentOptionalSubject extends Model
     {
         return [
             'student_id' => fn (int|string|null $id): ?string => $id === null ? null : StudentProfile::withTrashed()->with('user')->find($id)?->user?->name,
-            'class_id' => fn (int|string|null $id): ?string => $id === null ? null : Classes::find($id)?->name,
-            'group_id' => fn (int|string|null $id): ?string => $id === null ? null : Group::find($id)?->name,
-            'subject_id' => fn (int|string|null $id): ?string => $id === null ? null : Subject::find($id)?->name,
+            'class_id' => fn (int|string|null $id): ?string => $id === null ? null : self::activityNameLabel(Classes::class, $id),
+            'group_id' => fn (int|string|null $id): ?string => $id === null ? null : self::activityNameLabel(Group::class, $id),
+            'subject_id' => fn (int|string|null $id): ?string => $id === null ? null : self::activityNameLabel(Subject::class, $id),
         ];
     }
 
     private function activityLogDescription(string $eventName): string
     {
         $studentLabel = $this->student?->user?->name ?? "Student #{$this->student_id}";
-        $subjectLabel = $this->subject?->name ?? "Subject #{$this->subject_id}";
+        $subjectLabel = self::activityNameLabel(Subject::class, $this->subject_id) ?? "Subject #{$this->subject_id}";
         $roleLabel = $this->role?->getLabel() ?? $this->role?->value;
 
         return match ($eventName) {

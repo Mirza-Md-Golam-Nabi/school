@@ -57,6 +57,24 @@ class ApplyExamSubjectContributions
 
         $contributionPercent = (int) $rule->contribution_percent;
 
+        $contributingSubjectIds = $targetSubjectConfigs->keys()->intersect($sourceSubjectConfigs->keys());
+
+        if ($contributingSubjectIds->isEmpty()) {
+            return;
+        }
+
+        $sourceResultsBySubject = StudentResult::whereIn('exam_id', $sourceExamIds)
+            ->whereIn('subject_id', $contributingSubjectIds)
+            ->where('is_absent', false)
+            ->get(['id', 'exam_id', 'subject_id', 'student_id', 'total_marks'])
+            ->groupBy('subject_id');
+
+        $targetResultsBySubject = StudentResult::where('exam_id', $exam->id)
+            ->whereIn('subject_id', $contributingSubjectIds)
+            ->where('is_absent', false)
+            ->get()
+            ->groupBy('subject_id');
+
         foreach ($targetSubjectConfigs as $subjectId => $targetConfig) {
             $eligibleSourceConfigs = $sourceSubjectConfigs->get($subjectId);
 
@@ -66,16 +84,11 @@ class ApplyExamSubjectContributions
 
             $eligibleSourceExamIds = $eligibleSourceConfigs->pluck('exam_id');
 
-            $sourceResultsByStudent = StudentResult::whereIn('exam_id', $eligibleSourceExamIds)
-                ->where('subject_id', $subjectId)
-                ->where('is_absent', false)
-                ->get()
+            $sourceResultsByStudent = ($sourceResultsBySubject->get($subjectId) ?? collect())
+                ->whereIn('exam_id', $eligibleSourceExamIds)
                 ->groupBy('student_id');
 
-            $targetResults = StudentResult::where('exam_id', $exam->id)
-                ->where('subject_id', $subjectId)
-                ->where('is_absent', false)
-                ->get();
+            $targetResults = $targetResultsBySubject->get($subjectId) ?? collect();
 
             foreach ($targetResults as $targetResult) {
                 $studentSourceResults = $sourceResultsByStudent->get($targetResult->student_id);

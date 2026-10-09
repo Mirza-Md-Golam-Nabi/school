@@ -79,9 +79,9 @@ class FundTransaction extends Model
     protected function activityLogRelationLabels(): array
     {
         return [
-            'transaction_category_id' => fn (int|string|null $id): ?string => $id === null ? null : TransactionCategory::find($id)?->name,
-            'school_account_id' => fn (int|string|null $id): ?string => $id === null ? null : SchoolAccount::find($id)?->name,
-            'created_by' => fn (int|string|null $id): ?string => $id === null ? null : User::find($id)?->name,
+            'transaction_category_id' => fn (int|string|null $id): ?string => $id === null ? null : self::activityNameLabel(TransactionCategory::class, $id),
+            'school_account_id' => fn (int|string|null $id): ?string => $id === null ? null : self::activityNameLabel(SchoolAccount::class, $id),
+            'created_by' => fn (int|string|null $id): ?string => $id === null ? null : self::activityNameLabel(User::class, $id),
             'type' => fn (?string $value): ?string => $value === null ? null : TransactionType::tryFrom($value)?->getLabel(),
         ];
     }

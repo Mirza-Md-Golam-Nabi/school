@@ -74,6 +74,14 @@ class ImportStudentsFromSpreadsheetAction
      */
     private array $groupsByClass = [];
 
+    /**
+     * Optional subject options, cached per class/group so a 1000-row file
+     * doesn't re-query them for every row.
+     *
+     * @var array<string, Collection>
+     */
+    private array $optionalSubjectsByClassGroup = [];
+
     public function __construct(private CreateStudentProfileAction $createStudentProfile) {}
 
     /**
@@ -264,14 +272,14 @@ class ImportStudentsFromSpreadsheetAction
         if ($class && $groupId) {
             $mainOptionalSubjectId = $this->resolveByName(
                 $row['main_optional_subject'],
-                ClassGroupSubject::optionalSubjectOptions($class->id, $groupId, includeAllGroups: false),
+                $this->optionalSubjectsOf($class->id, $groupId, includeAllGroups: false),
                 'main_optional_subject',
                 $class->name,
                 $errors,
             );
             $extraOptionalSubjectId = $this->resolveByName(
                 $row['extra_optional_subject'],
-                ClassGroupSubject::optionalSubjectOptions($class->id, $groupId),
+                $this->optionalSubjectsOf($class->id, $groupId, includeAllGroups: true),
                 'extra_optional_subject',
                 $class->name,
                 $errors,
@@ -359,6 +367,15 @@ class ImportStudentsFromSpreadsheetAction
 
     /**
      * @return Collection<int, string>
+     */
+    private function optionalSubjectsOf(int $classId, int $groupId, bool $includeAllGroups): Collection
+    {
+        return $this->optionalSubjectsByClassGroup["{$classId}-{$groupId}-".(int) $includeAllGroups]
+            ??= ClassGroupSubject::optionalSubjectOptions($classId, $groupId, $includeAllGroups);
+    }
+
+    /**
+     * Groups of a class, keyed by ID — loaded once per class.
      */
     private function groupsOf(Classes $class): Collection
     {

@@ -123,8 +123,8 @@ class StaffProfile extends Model
     protected function activityLogRelationLabels(): array
     {
         return [
-            'user_id' => fn (int|string|null $id): ?string => $id === null ? null : User::find($id)?->name,
-            'default_school_account_id' => fn (int|string|null $id): ?string => $id === null ? null : SchoolAccount::find($id)?->name,
+            'user_id' => fn (int|string|null $id): ?string => $id === null ? null : self::activityNameLabel(User::class, $id),
+            'default_school_account_id' => fn (int|string|null $id): ?string => $id === null ? null : self::activityNameLabel(SchoolAccount::class, $id),
         ];
     }
 

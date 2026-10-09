@@ -14,11 +14,14 @@ use App\Models\DeviceUser;
 use App\Models\StudentProfile;
 use App\Notifications\StudentDevicePunchNotification;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 class ProcessAttendancePunchesAction
 {
+    private ?AttendanceSetting $setting = null;
+
     /**
      * Turns this device's not-yet-processed punches into daily attendance rows.
      * Each affected person-day is recomputed from ALL of that person's punches
@@ -32,7 +35,9 @@ class ProcessAttendancePunchesAction
      */
     public function handle(AttendanceDevice $device): int
     {
-        if (AttendanceSetting::current()->attendance_mode !== AttendanceMode::Daily) {
+        $this->setting = AttendanceSetting::current();
+
+        if ($this->setting->attendance_mode !== AttendanceMode::Daily) {
             return 0;
         }
 
@@ -43,7 +48,7 @@ class ProcessAttendancePunchesAction
         }
 
         $deviceUsers = $device->deviceUsers()
-            ->with('enrollable')
+            ->with(['enrollable' => fn (MorphTo $morph) => $morph->morphWith([StudentProfile::class => ['user']])])
             ->whereIn('enroll_id', $pending->pluck('enroll_id')->unique())
             ->get()
             ->keyBy('enroll_id');
@@ -57,8 +62,16 @@ class ProcessAttendancePunchesAction
                 'date' => $group->first()->punched_at->copy()->startOfDay(),
             ]);
 
+        $enrollmentsByPerson = $this->enrollmentsByPerson($personDays->pluck('deviceUser'));
+
         foreach ($personDays as $personDay) {
-            $this->recomputePersonDay($personDay['deviceUser'], $personDay['date']);
+            $deviceUser = $personDay['deviceUser'];
+
+            $this->recomputePersonDay(
+                $deviceUser,
+                $personDay['date'],
+                $enrollmentsByPerson->get($deviceUser->enrollable_type.'|'.$deviceUser->enrollable_id, collect()),
+            );
         }
 
         AttendancePunch::query()
@@ -68,11 +81,43 @@ class ProcessAttendancePunchesAction
         return $personDays->count();
     }
 
-    private function recomputePersonDay(DeviceUser $deviceUser, Carbon $day): void
+    /**
+     * Every enrollment (across all devices) of the people being processed,
+     * keyed by "type|id" — one query instead of one per person-day.
+     *
+     * @param  Collection<int, DeviceUser>  $deviceUsers
+     * @return Collection<string, Collection<int, DeviceUser>>
+     */
+    private function enrollmentsByPerson(Collection $deviceUsers): Collection
+    {
+        $idsByType = $deviceUsers
+            ->groupBy('enrollable_type')
+            ->map(fn (Collection $group): Collection => $group->pluck('enrollable_id')->unique()->values());
+
+        if ($idsByType->isEmpty()) {
+            return collect();
+        }
+
+        return DeviceUser::query()
+            ->where(function ($query) use ($idsByType): void {
+                foreach ($idsByType as $type => $ids) {
+                    $query->orWhere(fn ($match) => $match
+                        ->where('enrollable_type', $type)
+                        ->whereIn('enrollable_id', $ids));
+                }
+            })
+            ->get(['id', 'attendance_device_id', 'enroll_id', 'enrollable_type', 'enrollable_id'])
+            ->groupBy(fn (DeviceUser $enrollment): string => $enrollment->enrollable_type.'|'.$enrollment->enrollable_id);
+    }
+
+    /**
+     * @param  Collection<int, DeviceUser>  $enrollments
+     */
+    private function recomputePersonDay(DeviceUser $deviceUser, Carbon $day, Collection $enrollments): void
     {
         $person = $deviceUser->enrollable;
 
-        $punches = $this->punchesFor($person, $day);
+        $punches = $this->punchesFor($day, $enrollments);
 
         if ($punches->isEmpty()) {
             return;
@@ -117,12 +162,11 @@ class ProcessAttendancePunchesAction
      *
      * @return Collection<int, AttendancePunch>
      */
-    private function punchesFor(Model $person, Carbon $day): Collection
+    private function punchesFor(Carbon $day, Collection $enrollments): Collection
     {
-        $enrollments = DeviceUser::query()
-            ->where('enrollable_type', $person->getMorphClass())
-            ->where('enrollable_id', $person->getKey())
-            ->get();
+        if ($enrollments->isEmpty()) {
+            return collect();
+        }
 
         return AttendancePunch::query()
             ->whereBetween('punched_at', [$day->copy()->startOfDay(), $day->copy()->endOfDay()])
@@ -192,7 +236,7 @@ class ProcessAttendancePunchesAction
 
     private function resolveStatus(Carbon $entry): AttendanceStatus
     {
-        $setting = AttendanceSetting::current();
+        $setting = $this->setting ??= AttendanceSetting::current();
 
         $lateAfter = $entry->copy()
             ->setTimeFromTimeString($setting->entry_time)

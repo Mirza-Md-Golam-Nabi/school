@@ -98,7 +98,7 @@ class SalaryStructure extends Model
     protected function activityLogRelationLabels(): array
     {
         return [
-            'created_by' => fn (int|string|null $id): ?string => $id === null ? null : User::find($id)?->name,
+            'created_by' => fn (int|string|null $id): ?string => $id === null ? null : self::activityNameLabel(User::class, $id),
         ];
     }
 

@@ -39,27 +39,35 @@ class GenerateMonthlySalaryInvoicesAction
                 ->where(function ($query) use ($referenceDate) {
                     $query->whereNull('joining_date')->orWhere('joining_date', '<=', $referenceDate);
                 })
+                ->with('user')
                 ->get(['id', 'user_id']);
 
-            foreach ($profiles as $profile) {
-                $alreadyExists = SalaryInvoice::where('profileable_type', $profileClass)
-                    ->where('profileable_id', $profile->id)
-                    ->where('month', $month)
-                    ->where('year', $year)
-                    ->exists();
+            $invoicedProfileIds = SalaryInvoice::where('profileable_type', $profileClass)
+                ->whereIn('profileable_id', $profiles->pluck('id'))
+                ->where('month', $month)
+                ->where('year', $year)
+                ->pluck('profileable_id')
+                ->flip();
 
-                if ($alreadyExists) {
+            // Latest effective structure per profile, loaded in one query
+            // instead of one per teacher/staff member.
+            $structuresByProfile = SalaryStructure::where('profileable_type', $profileClass)
+                ->whereIn('profileable_id', $profiles->pluck('id')->diff($invoicedProfileIds->keys()))
+                ->effectiveOn($referenceDate)
+                ->with('components.component')
+                ->latest('effective_from')
+                ->get()
+                ->unique('profileable_id')
+                ->keyBy('profileable_id');
+
+            foreach ($profiles as $profile) {
+                if ($invoicedProfileIds->has($profile->id)) {
                     $skipped++;
 
                     continue;
                 }
 
-                $structure = SalaryStructure::where('profileable_type', $profileClass)
-                    ->where('profileable_id', $profile->id)
-                    ->effectiveOn($referenceDate)
-                    ->with('components.component')
-                    ->latest('effective_from')
-                    ->first();
+                $structure = $structuresByProfile->get($profile->id);
 
                 if (! $structure) {
                     $noStructure++;
