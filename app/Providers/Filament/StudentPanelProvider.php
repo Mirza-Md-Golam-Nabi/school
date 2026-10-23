@@ -9,6 +9,7 @@ use App\Filament\Student\Pages\Auth\RequestPinPasswordReset;
 use App\Filament\Student\Pages\Dashboard;
 use App\Http\Middleware\EnsurePasswordIsChanged;
 use App\Http\Middleware\SetLocale;
+use App\Support\QuestionBankConnection;
 use Filament\Actions\Action;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -63,6 +64,9 @@ class StudentPanelProvider extends PanelProvider
                 'History',
             ])
             ->databaseNotifications()
+            ->navigationItems([
+                QuestionBankConnection::navigationItem('student'),
+            ])
             ->discoverResources(in: app_path('Filament/Student/Resources'), for: 'App\Filament\Student\Resources')
             ->discoverPages(in: app_path('Filament/Student/Pages'), for: 'App\Filament\Student\Pages')
             ->pages([

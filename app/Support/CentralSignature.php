@@ -4,8 +4,9 @@ namespace App\Support;
 
 /**
  * Signs and verifies the requests exchanged with the central app. Both sides
- * hold the same secret and sign "{timestamp}.{payload}" with HMAC-SHA256, so
- * neither a forged report nor a forged pull request can pass without it.
+ * hold the same secret and sign "{timestamp}.{payload}" with HMAC-SHA256
+ * (HmacSignature), so neither a forged report nor a forged pull request can
+ * pass without it.
  */
 class CentralSignature
 {
@@ -16,7 +17,7 @@ class CentralSignature
 
     public static function sign(string $timestamp, string $payload): string
     {
-        return hash_hmac('sha256', "{$timestamp}.{$payload}", (string) config('central.secret'));
+        return HmacSignature::sign((string) config('central.secret'), $timestamp, $payload);
     }
 
     /**
@@ -25,14 +26,7 @@ class CentralSignature
      */
     public static function verify(?string $timestamp, string $payload, ?string $signature): bool
     {
-        if (! self::isConfigured() || blank($timestamp) || blank($signature) || ! ctype_digit($timestamp)) {
-            return false;
-        }
-
-        if (abs(now()->timestamp - (int) $timestamp) > config('central.signature_tolerance_seconds')) {
-            return false;
-        }
-
-        return hash_equals(self::sign($timestamp, $payload), $signature);
+        return self::isConfigured()
+            && HmacSignature::verify((string) config('central.secret'), $timestamp, $payload, $signature, (int) config('central.signature_tolerance_seconds'));
     }
 }

@@ -7,6 +7,7 @@ use App\Filament\Admin\Pages\Auth\Login;
 use App\Filament\Admin\Pages\Auth\Register;
 use App\Filament\Admin\Pages\Dashboard;
 use App\Http\Middleware\SetLocale;
+use App\Support\QuestionBankConnection;
 use Filament\Actions\Action;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -73,6 +74,9 @@ class AdminPanelProvider extends PanelProvider
                 'User Management',
                 'Activity Log',
                 'School Settings',
+            ])
+            ->navigationItems([
+                QuestionBankConnection::navigationItem('school'),
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')

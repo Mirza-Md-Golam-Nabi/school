@@ -7,6 +7,7 @@ use App\Filament\Teacher\Pages\Auth\Login;
 use App\Filament\Teacher\Pages\Auth\Register;
 use App\Filament\Teacher\Pages\Dashboard;
 use App\Http\Middleware\SetLocale;
+use App\Support\QuestionBankConnection;
 use Filament\Actions\Action;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -56,6 +57,9 @@ class TeacherPanelProvider extends PanelProvider
                 PanelsRenderHook::USER_MENU_PROFILE_AFTER,
                 fn (): string => view('filament.shared.locale-switcher')->render(),
             )
+            ->navigationItems([
+                QuestionBankConnection::navigationItem('teacher'),
+            ])
             ->discoverResources(in: app_path('Filament/Teacher/Resources'), for: 'App\Filament\Teacher\Resources')
             ->discoverPages(in: app_path('Filament/Teacher/Pages'), for: 'App\Filament\Teacher\Pages')
             ->pages([
