@@ -474,7 +474,7 @@ php artisan permission:cache-reset
 
 ### 3. Academic Structure
 `classes`, `sections`, `groups`, `subjects`, `class_group_subjects`, `teacher_subjects`,
-`exam_types`, `exam_type_config`, `exam_contribution_rules`, `exams`, `exam_subject_config`,
+`exam_types`, `exam_type_config`, `result_rules`, `result_rule_components`, `result_rule_classes`, `exams`, `exam_subject_config`,
 `student_results`, `student_merit_rankings`, `student_class_history`
 
 ### 4. Attendance

@@ -2,6 +2,7 @@
 
 namespace App\Actions;
 
+use App\Enums\AdmitCardDesign;
 use App\Models\AdmitCard;
 use App\Models\Exam;
 use App\Models\ExamType;
@@ -20,25 +21,35 @@ class GenerateAdmitCardsForExamTypeAction
      * included, regardless of generated/pending status) for any other exam
      * type before generating the new batch.
      *
-     * @return array{created: int, skipped: int}
+     * With the routine design, a class whose exam has no Exam Schedule gets
+     * no cards; its name is listed in `classes_without_routine`.
+     *
+     * @return array{created: int, updated: int, skipped: int, classes_without_routine: list<string>}
      */
-    public function handle(ExamType $examType, ?int $generatedBy = null, string $pageSize = 'A4'): array
+    public function handle(ExamType $examType, ?int $generatedBy = null, string $pageSize = 'A4', AdmitCardDesign $design = AdmitCardDesign::Simple): array
     {
         $this->clearAdmitCardsForOtherExamTypes($examType);
 
         $created = 0;
+        $updated = 0;
         $skipped = 0;
+        $classesWithoutRoutine = [];
 
-        $exams = Exam::where('exam_type_id', $examType->id)->get();
+        $exams = Exam::where('exam_type_id', $examType->id)->with('class:id,name')->get();
 
         foreach ($exams as $exam) {
-            $result = app(GenerateAdmitCardsForExamAction::class)->handle($exam, $generatedBy, $pageSize);
+            $result = app(GenerateAdmitCardsForExamAction::class)->handle($exam, $generatedBy, $pageSize, $design);
 
             $created += $result['created'];
+            $updated += $result['updated'];
             $skipped += $result['skipped'];
+
+            if ($result['without_routine']) {
+                $classesWithoutRoutine[] = $exam->class?->name ?? "Class #{$exam->class_id}";
+            }
         }
 
-        return ['created' => $created, 'skipped' => $skipped];
+        return ['created' => $created, 'updated' => $updated, 'skipped' => $skipped, 'classes_without_routine' => $classesWithoutRoutine];
     }
 
     protected function clearAdmitCardsForOtherExamTypes(ExamType $examType): void

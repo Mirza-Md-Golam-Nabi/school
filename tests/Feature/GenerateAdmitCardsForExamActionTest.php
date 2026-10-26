@@ -56,7 +56,7 @@ it('creates an admit card for every active student in the exam class and dispatc
 
     $result = app(GenerateAdmitCardsForExamAction::class)->handle($exam, $admin->id);
 
-    expect($result)->toBe(['created' => 2, 'skipped' => 0]);
+    expect($result)->toBe(['created' => 2, 'updated' => 0, 'skipped' => 0, 'without_routine' => false]);
 
     $card1 = AdmitCard::where('student_id', $student1->id)->where('exam_id', $exam->id)->first();
 
@@ -106,7 +106,7 @@ it('skips students outside the exam class and inactive students', function () {
 
     $result = app(GenerateAdmitCardsForExamAction::class)->handle($exam);
 
-    expect($result)->toBe(['created' => 1, 'skipped' => 0]);
+    expect($result)->toBe(['created' => 1, 'updated' => 0, 'skipped' => 0, 'without_routine' => false]);
 
     Queue::assertPushed(GenerateAdmitCardPdfJob::class, 1);
 });
@@ -122,7 +122,7 @@ it('skips students who already have an admit card for the exam and does not redi
 
     $result = app(GenerateAdmitCardsForExamAction::class)->handle($exam);
 
-    expect($result)->toBe(['created' => 0, 'skipped' => 1])
+    expect($result)->toBe(['created' => 0, 'updated' => 0, 'skipped' => 1, 'without_routine' => false])
         ->and(AdmitCard::where('student_id', $student->id)->where('exam_id', $exam->id)->count())->toBe(1);
 
     Queue::assertNotPushed(GenerateAdmitCardPdfJob::class);

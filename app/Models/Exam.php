@@ -24,6 +24,7 @@ class Exam extends Model
         'start_date',
         'end_date',
         'is_published',
+        'result_rule_snapshot',
     ];
 
     protected $casts = [
@@ -31,6 +32,7 @@ class Exam extends Model
         'end_date' => 'date:Y-m-d',
         'is_published' => 'boolean',
         'session_year' => 'integer',
+        'result_rule_snapshot' => 'array',
     ];
 
     protected static function booted(): void
@@ -74,6 +76,29 @@ class Exam extends Model
         return $this->hasMany(StudentMeritRanking::class);
     }
 
+    /**
+     * The exam routine as an admit card prints it: in date order, numbered,
+     * split into two columns — the first half (rounded up) on the left, so
+     * 7 subjects are 4 + 3.
+     *
+     * @return array{0: list<array{serial: int, date: ?string, subject: string}>, 1: list<array{serial: int, date: ?string, subject: string}>}
+     */
+    public function admitCardRoutineColumns(): array
+    {
+        $rows = $this->schedules
+            ->sortBy(fn (ExamSchedule $schedule): string => $schedule->exam_date?->format('Y-m-d').'-'.str_pad((string) $schedule->id, 10, '0', STR_PAD_LEFT))
+            ->values()
+            ->map(fn (ExamSchedule $schedule, int $index): array => [
+                'serial' => $index + 1,
+                'date' => $schedule->exam_date?->format('d M Y'),
+                'subject' => $schedule->subject?->display_name ?? '—',
+            ]);
+
+        $leftCount = (int) ceil($rows->count() / 2);
+
+        return [$rows->take($leftCount)->values()->all(), $rows->slice($leftCount)->values()->all()];
+    }
+
     public function displayLabel(): string
     {
         return "{$this->examType?->name} - {$this->class?->name} ({$this->session_year})";
@@ -99,6 +124,8 @@ class Exam extends Model
     {
         return LogOptions::defaults()
             ->logFillable()
+            // A copy of the result rule, saved by the result calculation — not an edit.
+            ->logExcept(['result_rule_snapshot'])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs()
             ->useLogName('exam')

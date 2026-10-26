@@ -66,6 +66,14 @@ class Classes extends Model
             ->withTimestamps();
     }
 
+    /**
+     * The result rule this class follows — at most one (a unique class_id on the pivot).
+     */
+    public function resultRules(): BelongsToMany
+    {
+        return $this->belongsToMany(ResultRule::class, 'result_rule_classes', 'class_id', 'result_rule_id')->withTimestamps();
+    }
+
     public function studentProfiles(): HasMany
     {
         return $this->hasMany(StudentProfile::class, 'current_class_id');

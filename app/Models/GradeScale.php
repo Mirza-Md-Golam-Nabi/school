@@ -88,6 +88,19 @@ class GradeScale extends Model
     }
 
     /**
+     * The lowest grade (F) — what a subject shows when the student missed a
+     * pass mark although the percentage alone would have given a pass grade.
+     *
+     * @param  Collection<int, self>|null  $scales
+     */
+    public static function failing(?Collection $scales = null): ?self
+    {
+        $scales ??= static::cached();
+
+        return $scales->sortBy('min_mark')->first();
+    }
+
+    /**
      * Resolve the grade for a GPA value, matching by grade_point (highest first).
      *
      * @param  Collection<int, self>|null  $scales

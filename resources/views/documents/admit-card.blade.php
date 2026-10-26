@@ -224,9 +224,12 @@
             </tr>
         </table>
 
-        @if ($footerText)
-            <div class="footer">{{ $footerText }}</div>
-        @endif
+        <div class="footer">
+            @if ($footerText)
+                {{ $footerText }}<br>
+            @endif
+            Powered by: Next Fusion
+        </div>
     </div>
 </body>
 

@@ -6,7 +6,6 @@ use App\Filament\Resources\Exams\Pages\EditExam;
 use App\Filament\Resources\Exams\RelationManagers\SubjectConfigsRelationManager;
 use App\Models\Classes;
 use App\Models\Exam;
-use App\Models\ExamContributeRule;
 use App\Models\ExamSubjectConfig;
 use App\Models\ExamType;
 use App\Models\Subject;
@@ -187,7 +186,7 @@ it('defaults the applicable toggle to on when editing a config that already has 
         ]);
 });
 
-it('shows the contributes_to_target toggle, defaulted on, when the exam type is an active contribution source', function () {
+it('shows the contributes_to_target toggle, defaulted on, when the exam type is part of the class result rule', function () {
     $admin = User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]);
     $this->actingAs($admin);
 
@@ -196,13 +195,7 @@ it('shows the contributes_to_target toggle, defaulted on, when the exam type is 
     $classTestType = ExamType::create(['name' => 'Class Test', 'is_active' => true]);
     $halfYearlyType = ExamType::create(['name' => 'Half Yearly', 'is_active' => true]);
 
-    ExamContributeRule::create([
-        'class_id' => $class->id,
-        'source_exam_type_id' => $classTestType->id,
-        'target_exam_type_id' => $halfYearlyType->id,
-        'contribution_percent' => 20,
-        'session_year' => now()->year,
-    ]);
+    makeResultRule($class, $halfYearlyType, [[$classTestType, 20], [$halfYearlyType, 80]]);
 
     $exam = createExamOfType($class, $classTestType);
     $subject = Subject::create(['name' => 'Bangla', 'has_mcq' => false, 'has_written' => true, 'has_practical' => false, 'is_active' => true]);
@@ -233,13 +226,7 @@ it('lets an admin turn off contributes_to_target for a specific subject', functi
     $classTestType = ExamType::create(['name' => 'Class Test', 'is_active' => true]);
     $halfYearlyType = ExamType::create(['name' => 'Half Yearly', 'is_active' => true]);
 
-    ExamContributeRule::create([
-        'class_id' => $class->id,
-        'source_exam_type_id' => $classTestType->id,
-        'target_exam_type_id' => $halfYearlyType->id,
-        'contribution_percent' => 20,
-        'session_year' => now()->year,
-    ]);
+    makeResultRule($class, $halfYearlyType, [[$classTestType, 20], [$halfYearlyType, 80]]);
 
     $exam = createExamOfType($class, $classTestType);
     $subject = Subject::create(['name' => 'Bangla', 'has_mcq' => false, 'has_written' => true, 'has_practical' => false, 'is_active' => true]);
@@ -262,7 +249,7 @@ it('lets an admin turn off contributes_to_target for a specific subject', functi
     ]);
 });
 
-it('does not show the contributes_to_target toggle when the exam type has no active contribution rule', function () {
+it('does not show the contributes_to_target toggle when the exam type is not part of a result rule', function () {
     $admin = User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]);
     $this->actingAs($admin);
 
@@ -276,4 +263,24 @@ it('does not show the contributes_to_target toggle when the exam type has no act
         ->mountAction(TestAction::make(CreateAction::class)->table())
         ->fillForm(['subject_id' => $subject->id])
         ->assertFormFieldDoesNotExist('contributes_to_target');
+});
+
+it('shows how the result is made, not the toggle, on the exam a result rule builds', function () {
+    $admin = User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]);
+    $this->actingAs($admin);
+
+    $class = Classes::create(['name' => 'Class 14', 'order' => 14, 'is_active' => true]);
+    $classTestType = ExamType::create(['name' => 'Class Test', 'is_active' => true]);
+    $halfYearlyType = ExamType::create(['name' => 'Half Yearly', 'is_active' => true]);
+    makeResultRule($class, $halfYearlyType, [[$classTestType, 20], [$halfYearlyType, 80]]);
+
+    $exam = createExamOfType($class, $halfYearlyType);
+    $subject = Subject::create(['name' => 'Bangla', 'has_mcq' => false, 'has_written' => true, 'has_practical' => false, 'is_active' => true]);
+    attachExamConfigTestSubjectToClass($subject, $class);
+
+    Livewire::test(SubjectConfigsRelationManager::class, ['ownerRecord' => $exam, 'pageClass' => EditExam::class])
+        ->mountAction(TestAction::make(CreateAction::class)->table())
+        ->fillForm(['subject_id' => $subject->id])
+        ->assertFormFieldDoesNotExist('contributes_to_target')
+        ->assertSchemaComponentExists('result_rule_info', checkComponentUsing: fn ($entry): bool => $entry->getState() === '100 মার্কে: Class Test 20% + Half Yearly 80%');
 });

@@ -15,8 +15,9 @@ use Illuminate\Support\Collection;
 class CalculateExamRankings
 {
     public function __construct(
-        private readonly ApplyExamSubjectContributions $applyExamSubjectContributions,
+        private readonly CalculateWeightedResults $calculateWeightedResults,
         private readonly ResolveIsExtraOptionalSubject $resolveIsExtraOptionalSubject,
+        private readonly ResolveSubjectOutcome $resolveSubjectOutcome,
     ) {}
 
     public function execute(Exam $exam): int
@@ -29,7 +30,7 @@ class CalculateExamRankings
             return 0;
         }
 
-        $this->applyExamSubjectContributions->execute($exam);
+        $this->calculateWeightedResults->execute($exam);
 
         $results = StudentResult::where('exam_id', $exam->id)
             ->get()
@@ -150,34 +151,18 @@ class CalculateExamRankings
                     $studentGroupId
                 );
 
-                if ($result->is_absent) {
-                    // Absent counts as F; extra_optional absence is excluded entirely
-                    if (! $isExtraOptional) {
-                        $isOverallFail = true;
-                    }
+                $outcome = $this->resolveSubjectOutcome->execute($result, $subjectConfigs->get($result->subject_id), $gradeScales);
 
-                    continue;
-                }
-
-                $config = $subjectConfigs->get($result->subject_id);
-                $fullMarks = $result->resolveFullMarks($config?->total_marks ?? 100);
-                $percentage = $fullMarks > 0
-                    ? ($result->effective_marks / $fullMarks) * 100
-                    : 0.0;
-
-                $grade = GradeScale::fromMarks($percentage, $gradeScales);
-                $isFailingGrade = $grade === null || $grade->grade_point <= 0.0;
-
-                if ($isFailingGrade) {
+                if ($outcome['is_fail']) {
                     if ($isExtraOptional) {
-                        // Extra optional fail → exclude subject from GPA, no penalty
+                        // Extra optional fail (or absence) → exclude subject from GPA, no penalty
                         continue;
                     }
-                    // Compulsory or main_optional fail → overall fail
+                    // Compulsory or main_optional fail (or absence) → overall fail
                     $isOverallFail = true;
                 }
 
-                $includedGpas[] = $grade->grade_point ?? 0.0;
+                $includedGpas[] = $outcome['is_fail'] ? 0.0 : (float) $outcome['grade']->grade_point;
             }
 
             if ($isOverallFail || empty($includedGpas)) {

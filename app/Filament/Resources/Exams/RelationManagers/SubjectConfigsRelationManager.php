@@ -2,8 +2,8 @@
 
 namespace App\Filament\Resources\Exams\RelationManagers;
 
-use App\Models\ExamContributeRule;
 use App\Models\ExamSubjectConfig;
+use App\Models\ResultRule;
 use App\Models\Subject;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
@@ -47,17 +47,9 @@ class SubjectConfigsRelationManager extends RelationManager
             fn (Builder $q) => $q->where('classes.id', $classId)
         )->get()->pluck('display_name', 'id')->toArray();
 
-        $sourceRule = ExamContributeRule::where('source_exam_type_id', $exam->exam_type_id)
-            ->where('class_id', $classId)
-            ->where('session_year', $exam->session_year)
-            ->with('targetExamType')
-            ->first();
-
-        $targetRule = ExamContributeRule::where('target_exam_type_id', $exam->exam_type_id)
-            ->where('class_id', $classId)
-            ->where('session_year', $exam->session_year)
-            ->with('sourceExamType')
-            ->first();
+        $resultRule = ResultRule::forClass($classId)->with('targetExamType', 'components.examType')->first();
+        $isResultTarget = $resultRule?->target_exam_type_id === $exam->exam_type_id;
+        $isResultComponent = $resultRule !== null && ! $isResultTarget && $resultRule->components->contains('exam_type_id', $exam->exam_type_id);
 
         return $schema
             ->columns(1)
@@ -213,9 +205,10 @@ class SubjectConfigsRelationManager extends RelationManager
                     ->visible(fn (Get $get): bool => self::subjectHas($get, 'has_practical')),
 
                 Toggle::make('contributes_to_target')
-                    ->label("এই subject-এর মার্কস কি {$sourceRule?->targetExamType?->name}-এ যোগ হবে?")
+                    ->label("এই subject-এর মার্কস কি {$resultRule?->targetExamType?->name}-এর রেজাল্টে যোগ হবে?")
+                    ->helperText('বন্ধ করলে এই পরীক্ষার ভাগ রেজাল্টের বাকি অংশগুলোর মধ্যে ভাগ হয়ে যাবে')
                     ->default(true)
-                    ->visible($sourceRule !== null),
+                    ->visible($isResultComponent),
 
                 Grid::make(2)
                     ->schema([
@@ -234,10 +227,12 @@ class SubjectConfigsRelationManager extends RelationManager
                             ->required(),
                     ]),
 
-                TextEntry::make('contribution_grand_total_info')
-                    ->label('Grand Total (contribution সহ)')
-                    ->state(fn (Get $get): string => self::grandTotalHelperText($get, $targetRule))
-                    ->visible($targetRule !== null),
+                TextEntry::make('result_rule_info')
+                    ->label('Result')
+                    ->state(fn (): string => $resultRule
+                        ? "{$resultRule->resolvedFullMarks()} মার্কে: {$resultRule->componentsSummary()}"
+                        : '')
+                    ->visible($isResultTarget),
             ]);
     }
 
@@ -398,19 +393,5 @@ class SubjectConfigsRelationManager extends RelationManager
         if ($total > 0) {
             $set('total_marks', $total);
         }
-    }
-
-    private static function grandTotalHelperText(Get $get, ?ExamContributeRule $targetRule): string
-    {
-        if (! $targetRule) {
-            return '';
-        }
-
-        $ownTotal = (float) ($get('total_marks') ?? 0);
-        $percent = (int) $targetRule->contribution_percent;
-        $grandTotal = $percent < 100 ? $ownTotal / (1 - ($percent / 100)) : $ownTotal;
-        $sourceName = $targetRule->sourceExamType?->name ?? 'Source Exam';
-
-        return "নিজের Total: {$ownTotal} + {$sourceName} ({$percent}%) = Grand Total: ".round($grandTotal, 2);
     }
 }

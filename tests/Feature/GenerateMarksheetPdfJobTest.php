@@ -1,7 +1,7 @@
 <?php
 
-use App\Actions\ApplyExamSubjectContributions;
 use App\Actions\BuildStudentMarksDetail;
+use App\Actions\CalculateWeightedResults;
 use App\Enums\Gender;
 use App\Enums\StudentStatus;
 use App\Enums\SubjectType;
@@ -9,7 +9,6 @@ use App\Enums\UserType;
 use App\Jobs\GenerateMarksheetPdfJob;
 use App\Models\Classes;
 use App\Models\Exam;
-use App\Models\ExamContributeRule;
 use App\Models\ExamSubjectConfig;
 use App\Models\ExamType;
 use App\Models\Marksheet;
@@ -162,7 +161,7 @@ it('deletes the previously stored file before writing the regenerated pdf', func
     expect($marksheet->file_path)->toBe($expectedPath);
 });
 
-it('renders the contribution breakdown into the pdf html when a rule applied', function () {
+it('renders the result rule components into the pdf when a rule applied', function () {
     Storage::fake('local');
 
     $class = Classes::create(['name' => 'Class One', 'order' => 1]);
@@ -173,13 +172,7 @@ it('renders the contribution breakdown into the pdf html when a rule applied', f
     $classTestType = ExamType::create(['name' => 'Class Test', 'is_active' => true]);
     $halfYearlyType = ExamType::create(['name' => 'Half Yearly', 'is_active' => true]);
 
-    ExamContributeRule::create([
-        'class_id' => $class->id,
-        'source_exam_type_id' => $classTestType->id,
-        'target_exam_type_id' => $halfYearlyType->id,
-        'contribution_percent' => 20,
-        'session_year' => now()->year,
-    ]);
+    makeResultRule($class, $halfYearlyType, [[$classTestType, 20], [$halfYearlyType, 80]]);
 
     $student = makeMarksheetJobTestStudent($class->id);
 
@@ -215,7 +208,7 @@ it('renders the contribution breakdown into the pdf html when a rule applied', f
         'written_marks' => 65,
     ]);
 
-    app(ApplyExamSubjectContributions::class)->execute($halfYearly);
+    app(CalculateWeightedResults::class)->execute($halfYearly);
 
     StudentMeritRanking::create([
         'exam_id' => $halfYearly->id,

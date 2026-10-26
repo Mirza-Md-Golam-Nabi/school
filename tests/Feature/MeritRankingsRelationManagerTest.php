@@ -1,6 +1,6 @@
 <?php
 
-use App\Actions\ApplyExamSubjectContributions;
+use App\Actions\CalculateWeightedResults;
 use App\Enums\Gender;
 use App\Enums\StudentStatus;
 use App\Enums\SubjectType;
@@ -9,7 +9,6 @@ use App\Filament\Resources\Exams\Pages\EditExam;
 use App\Filament\Resources\Exams\RelationManagers\MeritRankingsRelationManager;
 use App\Models\Classes;
 use App\Models\Exam;
-use App\Models\ExamContributeRule;
 use App\Models\ExamSubjectConfig;
 use App\Models\ExamType;
 use App\Models\StudentMeritRanking;
@@ -42,7 +41,7 @@ function makeMeritRankingTestStudent(int $classId): StudentProfile
     ]);
 }
 
-it('opens the marks detail modal without error when no contribution rule applies', function () {
+it('opens the marks detail modal without error when no result rule applies', function () {
     $admin = User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]);
     $this->actingAs($admin);
 
@@ -92,7 +91,7 @@ it('opens the marks detail modal without error when no contribution rule applies
         ->assertOk();
 });
 
-it('opens the marks detail modal without error when a contribution rule applies', function () {
+it('opens the marks detail modal without error when a result rule applies', function () {
     $admin = User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]);
     $this->actingAs($admin);
 
@@ -104,13 +103,7 @@ it('opens the marks detail modal without error when a contribution rule applies'
     $classTestType = ExamType::create(['name' => 'Class Test', 'is_active' => true]);
     $halfYearlyType = ExamType::create(['name' => 'Half Yearly', 'is_active' => true]);
 
-    ExamContributeRule::create([
-        'class_id' => $class->id,
-        'source_exam_type_id' => $classTestType->id,
-        'target_exam_type_id' => $halfYearlyType->id,
-        'contribution_percent' => 20,
-        'session_year' => now()->year,
-    ]);
+    makeResultRule($class, $halfYearlyType, [[$classTestType, 20], [$halfYearlyType, 80]]);
 
     $student = makeMeritRankingTestStudent($class->id);
 
@@ -160,7 +153,7 @@ it('opens the marks detail modal without error when a contribution rule applies'
         'written_marks' => 65,
     ]);
 
-    app(ApplyExamSubjectContributions::class)->execute($halfYearly);
+    app(CalculateWeightedResults::class)->execute($halfYearly);
 
     $ranking = StudentMeritRanking::create([
         'exam_id' => $halfYearly->id,

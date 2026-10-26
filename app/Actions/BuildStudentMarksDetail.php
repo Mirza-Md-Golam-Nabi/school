@@ -20,10 +20,11 @@ class BuildStudentMarksDetail
 
     public function __construct(
         private readonly ResolveIsExtraOptionalSubject $resolveIsExtraOptionalSubject,
+        private readonly ResolveSubjectOutcome $resolveSubjectOutcome,
     ) {}
 
     /**
-     * Build the per-subject marks rows (own/contributed/final, grade, top-scorer)
+     * Build the per-subject marks rows (own marks, result-rule components, final, grade, top-scorer)
      * and the overall summary for a student's ranking in one exam. Shared between
      * the student-facing result view and the marksheet PDF generator so both
      * always show identical numbers.
@@ -34,7 +35,7 @@ class BuildStudentMarksDetail
     {
         $myResults = StudentResult::where('exam_id', $ranking->exam_id)
             ->where('student_id', $ranking->student_id)
-            ->with(['subject', 'contributionSourceExamType'])
+            ->with('subject')
             ->get()
             ->keyBy('subject_id');
 
@@ -59,15 +60,7 @@ class BuildStudentMarksDetail
 
         $rows = $myResults->map(function (StudentResult $result) use ($subjectConfigs, $subjectBestMap, $gradeScales, $subjectTypeRecords, $studentOptionalSelections, $groupId): array {
             $subjectId = $result->subject_id;
-            $config = $subjectConfigs->get($subjectId);
-            $ownTotal = $config?->total_marks ?: 100;
-            $fullMarks = $result->resolveFullMarks((float) $ownTotal);
-            $percentage = (! $result->is_absent && $fullMarks > 0)
-                ? ($result->effective_marks / $fullMarks) * 100
-                : 0.0;
-            $grade = (! $result->is_absent && $result->effective_marks > 0)
-                ? GradeScale::fromMarks($percentage, $gradeScales)
-                : null;
+            $grade = $this->resolveSubjectOutcome->execute($result, $subjectConfigs->get($subjectId), $gradeScales)['grade'];
             $best = $subjectBestMap[$subjectId] ?? null;
 
             $isExtraOptional = $this->resolveIsExtraOptionalSubject->execute(
@@ -83,24 +76,10 @@ class BuildStudentMarksDetail
                 $subjectName .= ' (Additional)';
             }
 
-            $contribution = null;
-
-            if (! $result->is_absent && $result->contribution_percent) {
-                $contribution = [
-                    'own_marks' => $result->total_marks,
-                    'own_total' => $ownTotal,
-                    'contributed_marks' => $result->contributed_marks,
-                    'source_name' => $result->contributionSourceExamType?->name ?? 'Source Exam',
-                    'source_percent' => $result->contribution_percent,
-                    'breakdown' => collect($result->contribution_source_breakdown ?? [])
-                        ->map(fn (array $item) => $item['marks'])
-                        ->implode(', '),
-                ];
-            }
-
             return [
                 'subject_name' => $subjectName,
-                'is_absent' => $result->is_absent,
+                // A result-rule result has marks even when this exam itself was missed.
+                'is_absent' => $result->is_absent && ! $result->hasWeightedResult(),
                 'mcq_marks' => $result->mcq_marks,
                 'written_marks' => $result->written_marks,
                 'practical_marks' => $result->practical_marks,
@@ -108,11 +87,11 @@ class BuildStudentMarksDetail
                 'grade_label' => $grade?->letter_grade,
                 'grade_color' => $grade?->color,
                 'is_top_scorer' => $best !== null
-                    && ! $result->is_absent
+                    && (! $result->is_absent || $result->hasWeightedResult())
                     && (float) $result->effective_marks === (float) $best['best_marks'],
                 'best_marks' => $best['best_marks'] ?? null,
                 'best_students' => $best['best_students'] ?? null,
-                'contribution' => $contribution,
+                'components' => $this->components($result),
             ];
         })->values();
 
@@ -146,6 +125,31 @@ class BuildStudentMarksDetail
     }
 
     /**
+     * The result-rule components of a weighted result, each with the marks
+     * it gave (out of the rule's full marks) — empty for an exam's own result.
+     *
+     * @return list<array{name: string, weight: float, marks: float, is_absent: bool, passed: ?bool}>
+     */
+    private function components(StudentResult $result): array
+    {
+        if (! $result->hasWeightedResult()) {
+            return [];
+        }
+
+        return collect($result->result_breakdown ?? [])
+            ->where('held', true)
+            ->map(fn (array $component): array => [
+                'name' => $component['name'],
+                'weight' => (float) $component['effective_weight'],
+                'marks' => (float) $component['marks'],
+                'is_absent' => (bool) $component['is_absent'],
+                'passed' => $component['passed'],
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
      * Everything that is the same for every student of one exam + class
      * (subject configs, per-subject top scorers, the class topper, working
      * days). Kept on the instance so a whole-class marksheet PDF computes it
@@ -167,7 +171,7 @@ class BuildStudentMarksDetail
                 $subjectBestMap[$subjectId] = [
                     'best_marks' => $bestMarks,
                     'best_students' => $results
-                        ->filter(fn (StudentResult $r) => (float) $r->effective_marks === (float) $bestMarks && ! $r->is_absent)
+                        ->filter(fn (StudentResult $r) => (float) $r->effective_marks === (float) $bestMarks && (! $r->is_absent || $r->hasWeightedResult()))
                         ->map(fn ($r) => $r->student?->user?->name)
                         ->filter()
                         ->implode(', '),

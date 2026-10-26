@@ -43,13 +43,15 @@ class AdmitCardInfolist
                     ]),
 
                 Section::make('Generation Status')
-                    ->columns(4)
+                    ->columns(5)
                     ->schema([
                         IconEntry::make('is_generated')
                             ->label('Generated')
                             ->boolean(),
                         TextEntry::make('page_size')
                             ->label('Page Size'),
+                        TextEntry::make('design')
+                            ->label('Design'),
                         TextEntry::make('file_generated_at')
                             ->label('Generated At')
                             ->dateTime('d M Y, h:i A'),

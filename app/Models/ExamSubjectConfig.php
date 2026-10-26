@@ -49,6 +49,42 @@ class ExamSubjectConfig extends Model
         return $this->belongsTo(Subject::class);
     }
 
+    /**
+     * Whether the student passed this subject by its pass marks: the overall
+     * pass mark, and the MCQ / written / practical pass marks where those are
+     * checked on their own. Absent never passes.
+     */
+    public function isPassedBy(StudentResult $result): bool
+    {
+        if ($result->is_absent) {
+            return false;
+        }
+
+        $parts = [
+            [true, $result->total_marks, $this->pass_mark],
+            [$this->check_mcq_pass, $result->mcq_marks, $this->mcq_pass_mark],
+            [$this->check_written_pass, $result->written_marks, $this->written_pass_mark],
+            [$this->check_practical_pass, $result->practical_marks, $this->practical_pass_mark],
+        ];
+
+        foreach ($parts as [$isChecked, $obtained, $passMark]) {
+            if ($isChecked && $passMark !== null && (float) $obtained < (float) $passMark) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * The overall pass mark as a percentage of the subject's total — how a
+     * pass is judged where several exams' marks are combined into one.
+     */
+    public function passPercentage(): float
+    {
+        return (float) $this->total_marks > 0 ? (float) $this->pass_mark / (float) $this->total_marks * 100 : 0.0;
+    }
+
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()

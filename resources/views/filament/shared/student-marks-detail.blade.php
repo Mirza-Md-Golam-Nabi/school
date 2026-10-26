@@ -24,14 +24,12 @@
                                 <span class="block whitespace-normal break-words">
                                     {{ $row['subject_name'] }}
                                 </span>
-                                @if ($row['contribution'])
-                                    @php $c = $row['contribution']; @endphp
+                                {{-- A result made by a result rule: what each exam gave. --}}
+                                @if ($row['components'])
                                     <span class="mt-0.5 block text-[9px] font-normal text-gray-500 dark:text-gray-400 sm:text-[11px]">
-                                        নিজের: {{ $c['own_marks'] }}/{{ $c['own_total'] }}
-                                        + {{ $c['source_name'] }} ({{ $c['source_percent'] }}%): {{ $c['contributed_marks'] }}
-                                        @if ($c['breakdown'])
-                                            <span class="italic">(সেরা: {{ $c['breakdown'] }})</span>
-                                        @endif
+                                        @foreach ($row['components'] as $component)
+                                            <span @class(['whitespace-nowrap', 'text-red-600 dark:text-red-400' => $component['passed'] === false])>{{ $component['name'] }} ({{ $component['weight'] + 0 }}%): {{ $component['is_absent'] ? 'Absent' : $component['marks'] + 0 }}</span>@if (! $loop->last) · @endif
+                                        @endforeach
                                     </span>
                                 @endif
                             </td>

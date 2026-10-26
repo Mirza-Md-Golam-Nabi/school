@@ -5,18 +5,21 @@ namespace App\Enums;
 use Filament\Support\Contracts\HasColor;
 use Filament\Support\Contracts\HasLabel;
 
+/**
+ * Whether an exam type's results count as a main result (Academic History,
+ * Promotion). Which exams add marks to which result is not decided here but
+ * by a ResultRule — so any type, Main or General, can be one of its parts.
+ */
 enum ExamConfigType: string implements HasColor, HasLabel
 {
     case Main = 'main';
-    case Supporting = 'supporting';
-    case NotSupporting = 'not_supporting';
+    case General = 'general';
 
     public function getLabel(): string
     {
         return match ($this) {
             self::Main => 'Main',
-            self::Supporting => 'Supporting',
-            self::NotSupporting => 'Not Supporting',
+            self::General => 'General',
         };
     }
 
@@ -24,17 +27,15 @@ enum ExamConfigType: string implements HasColor, HasLabel
     {
         return match ($this) {
             self::Main => 'primary',
-            self::Supporting => 'info',
-            self::NotSupporting => 'warning',
+            self::General => 'gray',
         };
     }
 
     public static function options(): array
     {
         return [
-            self::Main->value => 'Main — মূল পরীক্ষা (রেজাল্ট ও মেরিট হবে)',
-            self::Supporting->value => 'Supporting — অন্য পরীক্ষায় মার্কস যোগ করে',
-            self::NotSupporting->value => 'Not Supporting — অন্য পরীক্ষায় কোনো প্রভাব পড়বে না',
+            self::Main->value => 'Main — মূল পরীক্ষা (রেজাল্ট Academic History ও Promotion-এ আসে)',
+            self::General->value => 'General — নিজের রেজাল্ট হয়, কিন্তু Academic History ও Promotion-এ আসে না',
         ];
     }
 }

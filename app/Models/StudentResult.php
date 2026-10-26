@@ -23,11 +23,9 @@ class StudentResult extends Model
         'practical_marks',
         'total_marks',
         'is_absent',
-        'contributed_marks',
-        'contribution_percent',
-        'contribution_source_exam_type_id',
-        'contribution_source_breakdown',
+        'result_breakdown',
         'final_marks',
+        'final_full_marks',
     ];
 
     protected $casts = [
@@ -36,10 +34,9 @@ class StudentResult extends Model
         'written_marks' => 'float',
         'practical_marks' => 'float',
         'total_marks' => 'float',
-        'contributed_marks' => 'float',
-        'contribution_percent' => 'integer',
-        'contribution_source_breakdown' => 'array',
+        'result_breakdown' => 'array',
         'final_marks' => 'float',
+        'final_full_marks' => 'float',
     ];
 
     protected static function booted(): void
@@ -81,14 +78,9 @@ class StudentResult extends Model
         return $this->belongsTo(StudentProfile::class, 'student_id');
     }
 
-    public function contributionSourceExamType(): BelongsTo
-    {
-        return $this->belongsTo(ExamType::class, 'contribution_source_exam_type_id');
-    }
-
     /**
-     * Marks to use for ranking/GPA/display: the contribution-blended value when a
-     * rule applied, otherwise this exam's own total.
+     * Marks to use for ranking/GPA/display: the result rule's weighted marks
+     * where one built this result, otherwise this exam's own total.
      */
     public function getEffectiveMarksAttribute(): float
     {
@@ -96,17 +88,31 @@ class StudentResult extends Model
     }
 
     /**
-     * The full-marks scale to compare `effective_marks` against. When a contribution
-     * rule applied, the subject's own configured total no longer represents 100% —
-     * it only represents (100 - contribution_percent)% of the grand total.
+     * Whether a result rule built this result from several exams
+     * (CalculateWeightedResults) — then `final_marks` / `final_full_marks`
+     * and `result_breakdown` hold it.
+     */
+    public function hasWeightedResult(): bool
+    {
+        return $this->final_marks !== null;
+    }
+
+    /**
+     * The full marks `effective_marks` is out of: the rule's full marks for a
+     * weighted result, otherwise the subject's own total in this exam.
      */
     public function resolveFullMarks(float $ownTotalMarks): float
     {
-        if (! $this->contribution_percent) {
-            return $ownTotalMarks;
-        }
+        return $this->hasWeightedResult() ? (float) $this->final_full_marks : $ownTotalMarks;
+    }
 
-        return $ownTotalMarks / (1 - ($this->contribution_percent / 100));
+    /**
+     * Whether the student missed the pass mark of a result-rule component
+     * that has to be passed on its own.
+     */
+    public function failsARequiredComponent(): bool
+    {
+        return collect($this->result_breakdown ?? [])->contains(fn (array $component): bool => ($component['passed'] ?? null) === false);
     }
 
     public function getActivitylogOptions(): LogOptions
@@ -126,7 +132,6 @@ class StudentResult extends Model
             'class_id' => fn (int|string|null $id): ?string => $id === null ? null : self::activityNameLabel(Classes::class, $id),
             'subject_id' => fn (int|string|null $id): ?string => $id === null ? null : self::activityNameLabel(Subject::class, $id),
             'student_id' => fn (int|string|null $id): ?string => $id === null ? null : self::studentLabel($id),
-            'contribution_source_exam_type_id' => fn (int|string|null $id): ?string => $id === null ? null : self::activityNameLabel(ExamType::class, $id),
         ];
     }
 

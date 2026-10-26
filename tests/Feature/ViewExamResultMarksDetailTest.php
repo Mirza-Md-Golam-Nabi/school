@@ -1,6 +1,6 @@
 <?php
 
-use App\Actions\ApplyExamSubjectContributions;
+use App\Actions\CalculateWeightedResults;
 use App\Enums\Gender;
 use App\Enums\StudentStatus;
 use App\Enums\SubjectType;
@@ -8,7 +8,6 @@ use App\Enums\UserType;
 use App\Filament\Student\Resources\ExamResults\Pages\ViewExamResult;
 use App\Models\Classes;
 use App\Models\Exam;
-use App\Models\ExamContributeRule;
 use App\Models\ExamSubjectConfig;
 use App\Models\ExamType;
 use App\Models\StudentMeritRanking;
@@ -90,7 +89,7 @@ it('403s when viewing marks detail for a ranking that is not the logged-in stude
         ->toThrow(HttpException::class);
 });
 
-it('builds marks-detail rows with plain marks when no contribution rule applies', function () {
+it('builds marks-detail rows with plain marks when no result rule applies', function () {
     $class = makeMarksDetailTestClass();
     $subject = makeMarksDetailTestSubject($class);
     $examType = ExamType::create(['name' => 'Half Yearly', 'is_active' => true]);
@@ -135,25 +134,19 @@ it('builds marks-detail rows with plain marks when no contribution rule applies'
 
     expect($row['subject_name'])->toBe('Bangla')
         ->and($row['total_marks'])->toBe(65.0)
-        ->and($row['contribution'])->toBeNull()
+        ->and($row['components'])->toBe([])
         ->and($data['summary']['total_marks'])->toBe(65.0)
         ->and($data['summary']['class_rank'])->toBe(1);
 });
 
-it('includes the contribution breakdown in marks-detail rows when a rule applied', function () {
+it('includes what each result-rule component gave in marks-detail rows when a rule applied', function () {
     $class = makeMarksDetailTestClass();
     $subject = makeMarksDetailTestSubject($class);
 
     $classTestType = ExamType::create(['name' => 'Class Test', 'is_active' => true]);
     $halfYearlyType = ExamType::create(['name' => 'Half Yearly', 'is_active' => true]);
 
-    ExamContributeRule::create([
-        'class_id' => $class->id,
-        'source_exam_type_id' => $classTestType->id,
-        'target_exam_type_id' => $halfYearlyType->id,
-        'contribution_percent' => 20,
-        'session_year' => now()->year,
-    ]);
+    makeResultRule($class, $halfYearlyType, [[$classTestType, 20], [$halfYearlyType, 80]]);
 
     $student = makeMarksDetailTestStudent($class);
 
@@ -189,10 +182,9 @@ it('includes the contribution breakdown in marks-detail rows when a rule applied
         'written_marks' => 65,
     ]);
 
-    app(ApplyExamSubjectContributions::class)->execute($halfYearly);
+    app(CalculateWeightedResults::class)->execute($halfYearly);
 
-    // own% = 65/80 = 81.25, source% = 9/10 = 90 (only one Class Test instance),
-    // blended = 81.25*0.8 + 90*0.2 = 83; contributed = 90% of the 20-mark reserved slot = 18.
+    // Class Test 9/10 = 90% of 20 = 18, Half Yearly 65/80 = 81.25% of 80 = 65 → 83 out of 100.
     $ranking = StudentMeritRanking::create([
         'exam_id' => $halfYearly->id,
         'student_id' => $student->id,
@@ -211,9 +203,6 @@ it('includes the contribution breakdown in marks-detail rows when a rule applied
     $row = $data['rows'][0];
 
     expect($row['total_marks'])->toBe(83.0)
-        ->and($row['contribution'])->not->toBeNull()
-        ->and($row['contribution']['own_marks'])->toBe(65.0)
-        ->and($row['contribution']['own_total'])->toBe(80)
-        ->and($row['contribution']['contributed_marks'])->toBe(18.0)
-        ->and($row['contribution']['source_name'])->toBe('Class Test');
+        ->and(collect($row['components'])->map(fn (array $component): array => [$component['name'], $component['weight'], $component['marks']])->all())
+        ->toBe([['Class Test', 20.0, 18.0], ['Half Yearly', 80.0, 65.0]]);
 });

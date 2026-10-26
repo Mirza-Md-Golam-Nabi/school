@@ -59,7 +59,7 @@ it('generates admit cards across every class that has an exam of the selected ty
 
     $result = app(GenerateAdmitCardsForExamTypeAction::class)->handle($examType);
 
-    expect($result)->toBe(['created' => 2, 'skipped' => 0]);
+    expect($result)->toBe(['created' => 2, 'updated' => 0, 'skipped' => 0, 'classes_without_routine' => []]);
 
     expect(AdmitCard::where('student_id', $studentA->id)->where('exam_id', $examA->id)->exists())->toBeTrue()
         ->and(AdmitCard::where('student_id', $studentB->id)->where('exam_id', $examB->id)->exists())->toBeTrue();
@@ -94,7 +94,7 @@ it('generates admit cards even for unpublished exams of the selected type', func
 
     $result = app(GenerateAdmitCardsForExamTypeAction::class)->handle($examType);
 
-    expect($result)->toBe(['created' => 1, 'skipped' => 0]);
+    expect($result)->toBe(['created' => 1, 'updated' => 0, 'skipped' => 0, 'classes_without_routine' => []]);
 
     expect(AdmitCard::where('student_id', $student->id)->where('exam_id', $exam->id)->exists())->toBeTrue();
 
@@ -113,7 +113,7 @@ it('does not recreate admit cards for students who already have one', function (
 
     $result = app(GenerateAdmitCardsForExamTypeAction::class)->handle($examType);
 
-    expect($result)->toBe(['created' => 0, 'skipped' => 1])
+    expect($result)->toBe(['created' => 0, 'updated' => 0, 'skipped' => 1, 'classes_without_routine' => []])
         ->and(AdmitCard::where('student_id', $student->id)->where('exam_id', $exam->id)->count())->toBe(1);
 
     Queue::assertNotPushed(GenerateAdmitCardPdfJob::class);
@@ -145,7 +145,7 @@ it('wipes a previously generated exam type\'s admit cards and files when switchi
 
     $result = app(GenerateAdmitCardsForExamTypeAction::class)->handle($annual);
 
-    expect($result)->toBe(['created' => 1, 'skipped' => 0])
+    expect($result)->toBe(['created' => 1, 'updated' => 0, 'skipped' => 0, 'classes_without_routine' => []])
         ->and(AdmitCard::find($oldAdmitCard->id))->toBeNull()
         ->and(AdmitCard::where('student_id', $student->id)->where('exam_id', $annualExam->id)->exists())->toBeTrue();
 

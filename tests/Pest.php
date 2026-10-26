@@ -1,6 +1,9 @@
 <?php
 
 use App\Enums\UserType;
+use App\Models\Classes;
+use App\Models\ExamType;
+use App\Models\ResultRule;
 use App\Models\User;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -77,4 +80,28 @@ function makeStudent(array $attributes = []): User
     $user->assignRole('student');
 
     return $user;
+}
+
+/**
+ * A result rule for the class: its target exam type and the components, each
+ * [exam type, share %, must pass?] — e.g. [[$classTest, 20], [$halfYearly, 80]].
+ *
+ * @param  list<array{0: ExamType, 1: float|int, 2?: bool}>  $components
+ * @param  array<string, mixed>  $attributes
+ */
+function makeResultRule(Classes $class, ExamType $target, array $components, array $attributes = []): ResultRule
+{
+    $rule = ResultRule::factory()->create(['target_exam_type_id' => $target->id, 'full_marks' => 100, ...$attributes]);
+    $rule->classes()->attach($class);
+
+    foreach ($components as $order => $component) {
+        $rule->components()->create([
+            'exam_type_id' => $component[0]->id,
+            'weight_percent' => $component[1],
+            'must_pass' => $component[2] ?? false,
+            'sort_order' => $order,
+        ]);
+    }
+
+    return $rule;
 }

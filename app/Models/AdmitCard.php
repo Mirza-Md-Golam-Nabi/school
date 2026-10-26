@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\AdmitCardDesign;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -12,6 +13,7 @@ class AdmitCard extends Model
         'exam_id',
         'is_generated',
         'page_size',
+        'design',
         'generated_by',
         'generated_at',
         'file_path',
@@ -20,6 +22,7 @@ class AdmitCard extends Model
 
     protected $casts = [
         'is_generated' => 'boolean',
+        'design' => AdmitCardDesign::class,
         'generated_at' => 'datetime',
         'file_generated_at' => 'datetime',
     ];

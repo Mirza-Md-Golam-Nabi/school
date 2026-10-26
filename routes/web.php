@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AdmitCardPdfController;
+use App\Http\Controllers\AdmitCardSamplePdfController;
 use App\Http\Controllers\ClassAdmitCardsPdfController;
 use App\Http\Controllers\ClassAttendanceReportPdfController;
 use App\Http\Controllers\ClassMarksheetsPdfController;
@@ -29,6 +30,10 @@ Route::get('/email/verify/{id}/{hash}', [EmailVerificationController::class, 've
 
 Route::get('/locale/{locale}', [LocaleController::class, 'switch'])
     ->name('locale.switch');
+
+Route::get('/admit-cards/sample/{design}', AdmitCardSamplePdfController::class)
+    ->middleware('auth')
+    ->name('admit-cards.sample');
 
 Route::get('/admit-cards/{admitCard}/view', AdmitCardPdfController::class)
     ->middleware('auth')

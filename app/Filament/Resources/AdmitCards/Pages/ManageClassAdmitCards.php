@@ -4,6 +4,7 @@ namespace App\Filament\Resources\AdmitCards\Pages;
 
 use App\Actions\GenerateAdmitCardsForExamAction;
 use App\Filament\Resources\AdmitCards\AdmitCardResource;
+use App\Filament\Resources\AdmitCards\Schemas\AdmitCardDesignRadio;
 use App\Models\AdmitCard;
 use App\Models\Classes;
 use App\Models\Exam;
@@ -11,6 +12,7 @@ use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
+use Filament\Support\Enums\Width;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Contracts\Support\Htmlable;
@@ -72,18 +74,30 @@ class ManageClassAdmitCards extends ListRecords
                         ->default('A4')
                         ->native(false)
                         ->required(),
+                    ...AdmitCardDesignRadio::components(),
                 ])
+                ->modalWidth(Width::FiveExtraLarge)
                 ->modalHeading(fn (): string => 'Generate Admit Cards — '.(Classes::query()->find($this->classId)?->name ?? 'Class'))
                 ->modalSubmitActionLabel('Generate')
                 ->action(function (array $data) {
                     $exam = Exam::findOrFail($data['exam_id']);
 
                     $result = app(GenerateAdmitCardsForExamAction::class)
-                        ->handle($exam, auth()->id(), $data['page_size']);
+                        ->handle($exam, auth()->id(), $data['page_size'], $data['design']);
+
+                    if ($result['without_routine']) {
+                        Notification::make()
+                            ->title('এই পরীক্ষার রুটিন এখনো দেওয়া হয়নি')
+                            ->body('রুটিনসহ Admit Card বানাতে আগে Exam → Exam Schedule-এ বিষয় ও তারিখ দিন।')
+                            ->danger()
+                            ->send();
+
+                        return;
+                    }
 
                     Notification::make()
                         ->title('Admit card generation queued')
-                        ->body("Created: {$result['created']} | Skipped (already exists): {$result['skipped']}")
+                        ->body("Created: {$result['created']} | Switched to this design: {$result['updated']} | Skipped (already exists): {$result['skipped']}")
                         ->success()
                         ->send();
                 }),

@@ -152,10 +152,12 @@ class BuildExamTabulationSheetDetail
 
         $marks = $subjects->mapWithKeys(function (Subject $subject) use ($studentResults): array {
             $result = $studentResults->get($subject->id);
+            // A result-rule result has marks even when this exam itself was missed.
+            $isAbsent = $result !== null && $result->is_absent && ! $result->hasWeightedResult();
 
             return [$subject->id => [
-                'value' => ($result && ! $result->is_absent) ? $result->effective_marks : null,
-                'is_absent' => (bool) $result?->is_absent,
+                'value' => ($result && ! $isAbsent) ? $result->effective_marks : null,
+                'is_absent' => $isAbsent,
             ]];
         });
 

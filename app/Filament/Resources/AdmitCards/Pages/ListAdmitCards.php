@@ -4,6 +4,7 @@ namespace App\Filament\Resources\AdmitCards\Pages;
 
 use App\Actions\GenerateAdmitCardsForExamTypeAction;
 use App\Filament\Resources\AdmitCards\AdmitCardResource;
+use App\Filament\Resources\AdmitCards\Schemas\AdmitCardDesignRadio;
 use App\Models\AdmitCard;
 use App\Models\Classes;
 use App\Models\ExamType;
@@ -11,6 +12,7 @@ use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Page;
+use Filament\Support\Enums\Width;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Collection;
 
@@ -61,7 +63,9 @@ class ListAdmitCards extends Page
                         ->default('A4')
                         ->native(false)
                         ->required(),
+                    ...AdmitCardDesignRadio::components(),
                 ])
+                ->modalWidth(Width::FiveExtraLarge)
                 ->modalHeading('Generate Admit Cards')
                 ->modalDescription('Admit cards will be generated for every class that has a published exam of this type.')
                 ->modalSubmitActionLabel('Generate')
@@ -69,13 +73,22 @@ class ListAdmitCards extends Page
                     $examType = ExamType::findOrFail($data['exam_type_id']);
 
                     $result = app(GenerateAdmitCardsForExamTypeAction::class)
-                        ->handle($examType, auth()->id(), $data['page_size']);
+                        ->handle($examType, auth()->id(), $data['page_size'], $data['design']);
 
                     Notification::make()
                         ->title('Admit card generation queued')
-                        ->body("Created: {$result['created']} | Skipped (already exists): {$result['skipped']}")
+                        ->body("Created: {$result['created']} | Switched to this design: {$result['updated']} | Skipped (already exists): {$result['skipped']}")
                         ->success()
                         ->send();
+
+                    if ($result['classes_without_routine'] !== []) {
+                        Notification::make()
+                            ->title('কিছু ক্লাসের রুটিন নেই')
+                            ->body('এই ক্লাসগুলোর Exam Schedule ফাঁকা, তাই তাদের রুটিনসহ Admit Card বানানো হয়নি: '.implode(', ', $result['classes_without_routine']))
+                            ->warning()
+                            ->persistent()
+                            ->send();
+                    }
 
                     $this->redirect(AdmitCardResource::getUrl('index'));
                 }),

@@ -158,6 +158,13 @@
             text-align: center;
             font-size: 10px;
         }
+
+        .powered-by {
+            margin-top: 4px;
+            text-align: center;
+            font-size: 8px;
+            color: #777777;
+        }
     </style>
 </head>
 
@@ -258,6 +265,7 @@
                                             </td>
                                         </tr>
                                     </table>
+                                    <div class="powered-by">Powered by: Next Fusion</div>
                                 </td>
                             </tr>
                         </table>

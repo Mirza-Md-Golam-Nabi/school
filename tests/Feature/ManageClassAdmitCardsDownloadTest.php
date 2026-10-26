@@ -79,3 +79,18 @@ it('redirects to the download route when at least one admit card has been genera
         ->callMountedAction()
         ->assertRedirect(route('admit-cards.class.download', ['class' => $class->id, 'exam' => $exam->id]));
 });
+
+it('refuses routine admit cards for an exam whose exam schedule is empty, with a red notification', function () {
+    $admin = grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]));
+    test()->actingAs($admin);
+
+    $class = Classes::create(['name' => 'Routine Class', 'order' => 1]);
+    makeManageClassAdmitCardsTestStudent($class->id);
+    $exam = makeManageClassAdmitCardsTestExam($class->id);
+
+    Livewire::test(ManageClassAdmitCards::class, ['classId' => $class->id])
+        ->callAction('generateAdmitCards', ['exam_id' => $exam->id, 'page_size' => 'A4', 'design' => 'with_routine'])
+        ->assertNotified('এই পরীক্ষার রুটিন এখনো দেওয়া হয়নি');
+
+    expect(AdmitCard::count())->toBe(0);
+});

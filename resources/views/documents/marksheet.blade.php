@@ -43,7 +43,8 @@
     $sealDataUri = $toDataUri(SchoolSetting::get('school_seal'));
     $signatureDataUri = $toDataUri(SchoolSetting::get('principal_signature'));
 
-    $contributionSourceName = $rows->first(fn (array $row) => $row['contribution'] !== null)['contribution']['source_name'] ?? null;
+    // A result made by a result rule gets a column for what each of its exams gave.
+    $componentNames = $rows->flatMap(fn (array $row): array => array_column($row['components'], 'name'))->unique()->values();
 @endphp
 <!DOCTYPE html>
 <html>
@@ -314,9 +315,9 @@
                     <th>{{ __('MCQ') }}</th>
                     <th>{{ __('Written') }}</th>
                     <th>{{ __('Practical') }}</th>
-                    @if ($contributionSourceName)
-                        <th>{{ $contributionSourceName }}</th>
-                    @endif
+                    @foreach ($componentNames as $componentName)
+                        <th>{{ $componentName }}</th>
+                    @endforeach
                     <th>{{ __('Marks') }}</th>
                     <th>{{ __('Best') }}</th>
                     <th>{{ __('Grade') }}</th>
@@ -329,9 +330,18 @@
                         <td style="text-align: center;">{{ BengaliNumber::localize((string) ($row['mcq_marks'] ?? '-')) }}</td>
                         <td style="text-align: center;">{{ BengaliNumber::localize((string) ($row['written_marks'] ?? '-')) }}</td>
                         <td style="text-align: center;">{{ BengaliNumber::localize((string) ($row['practical_marks'] ?? '-')) }}</td>
-                        @if ($contributionSourceName)
-                            <td style="text-align: center;">{{ BengaliNumber::localize((string) ($row['contribution']['contributed_marks'] ?? '-')) }}</td>
-                        @endif
+                        @foreach ($componentNames as $componentName)
+                            @php $component = collect($row['components'])->firstWhere('name', $componentName); @endphp
+                            <td style="text-align: center;">
+                                @if (! $component)
+                                    -
+                                @elseif ($component['is_absent'])
+                                    {{ __('Absent') }}
+                                @else
+                                    {{ BengaliNumber::localize($formatMark($component['marks'])) }}
+                                @endif
+                            </td>
+                        @endforeach
                         <td style="text-align: center;">
                             @if ($row['is_absent'])
                                 {{ __('Absent') }}

@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Enums\WeekDay;
+use App\Models\ResultRule;
 use App\Models\SchoolSetting;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -54,6 +55,7 @@ class SchoolSettings extends Page
             'marksheet_watermark_text' => SchoolSetting::get('marksheet_watermark_text', ''),
             'marksheet_use_logo' => (bool) SchoolSetting::get('marksheet_use_logo', '1'),
             'marksheet_footer_text' => SchoolSetting::get('marksheet_footer_text', ''),
+            ResultRule::DEFAULT_FULL_MARKS_SETTING => SchoolSetting::get(ResultRule::DEFAULT_FULL_MARKS_SETTING, ResultRule::DEFAULT_FULL_MARKS),
         ]);
     }
 
@@ -119,6 +121,16 @@ class SchoolSettings extends Page
                             ->placeholder(now()->year),
                     ]),
 
+                Section::make('Result')
+                    ->schema([
+                        TextInput::make(ResultRule::DEFAULT_FULL_MARKS_SETTING)
+                            ->label('Result Full Marks')
+                            ->helperText('রেজাল্টের নিয়মে (Result Rules) পূর্ণমান না দিলে রেজাল্ট এই মানে তৈরি হবে')
+                            ->numeric()
+                            ->minValue(1)
+                            ->required(),
+                    ]),
+
                 Section::make('Admit Card')
                     ->schema([
                         TextInput::make('admit_card_footer_text')
@@ -171,6 +183,7 @@ class SchoolSettings extends Page
         SchoolSetting::set('marksheet_watermark_text', $data['marksheet_watermark_text'] ?? '');
         SchoolSetting::set('marksheet_use_logo', $data['marksheet_use_logo'] ? '1' : '0');
         SchoolSetting::set('marksheet_footer_text', $data['marksheet_footer_text'] ?? '');
+        SchoolSetting::set(ResultRule::DEFAULT_FULL_MARKS_SETTING, $data[ResultRule::DEFAULT_FULL_MARKS_SETTING]);
 
         Notification::make()
             ->title('Settings saved.')
