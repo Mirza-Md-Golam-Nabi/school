@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Subjects\Tables;
 
+use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -10,24 +11,31 @@ use Filament\Actions\ForceDeleteAction;
 use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreAction;
 use Filament\Actions\RestoreBulkAction;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
 
 class SubjectsTable
 {
     public static function configure(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn (Builder $query) => $query
-                ->orderBy('name', 'asc')
-                ->orderBy('is_active', 'desc')
-            )
+            // Drag to set the order subjects appear in on marksheets and results.
+            ->reorderable('sort_order')
+            ->reorderRecordsTriggerAction(fn (Action $action, bool $isReordering): Action => $action
+                ->button()
+                ->icon(Heroicon::ArrowsUpDown)
+                ->label($isReordering ? 'Done ordering' : 'Change subject order'))
+            ->defaultSort('sort_order')
             ->paginated(false)
             ->columns([
+                TextColumn::make('sort_order')
+                    ->label('Order')
+                    ->alignCenter(),
+
                 TextColumn::make('code')
                     ->label('Code')
                     ->badge()

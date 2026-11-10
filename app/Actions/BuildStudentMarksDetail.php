@@ -36,6 +36,7 @@ class BuildStudentMarksDetail
         $myResults = StudentResult::where('exam_id', $ranking->exam_id)
             ->where('student_id', $ranking->student_id)
             ->with('subject')
+            ->orderedBySubject()
             ->get()
             ->keyBy('subject_id');
 

@@ -21,6 +21,7 @@ class Subject extends Model
         'name',
         'name_bn',
         'code',
+        'sort_order',
         'has_mcq',
         'has_written',
         'has_practical',
@@ -28,6 +29,7 @@ class Subject extends Model
     ];
 
     protected $casts = [
+        'sort_order' => 'integer',
         'has_mcq' => 'boolean',
         'has_written' => 'boolean',
         'has_practical' => 'boolean',
@@ -53,9 +55,31 @@ class Subject extends Model
             ->withTimestamps();
     }
 
+    /**
+     * A new subject without an explicit position goes after every existing one.
+     */
+    protected static function booted(): void
+    {
+        static::creating(function (Subject $subject): void {
+            if (! $subject->sort_order) {
+                $subject->sort_order = (int) static::withTrashed()->max('sort_order') + 1;
+            }
+        });
+    }
+
     public function scopeActive(Builder $query)
     {
         return $query->where('is_active', true);
+    }
+
+    /**
+     * The school-wide subject order (marksheets, results) — the single place
+     * that defines it. Models that hold a subject_id sort by it through the
+     * OrdersBySubject trait, which reads the same columns.
+     */
+    public function scopeOrdered(Builder $query): Builder
+    {
+        return $query->orderBy('sort_order')->orderBy('id');
     }
 
     /**

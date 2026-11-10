@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Traits\LogsRelationLabels;
+use App\Traits\OrdersBySubject;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Spatie\Activitylog\LogOptions;
@@ -12,6 +13,7 @@ class StudentResult extends Model
 {
     use LogsActivity;
     use LogsRelationLabels;
+    use OrdersBySubject;
 
     protected $fillable = [
         'exam_id',
