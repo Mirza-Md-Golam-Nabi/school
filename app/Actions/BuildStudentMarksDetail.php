@@ -3,6 +3,7 @@
 namespace App\Actions;
 
 use App\Enums\AttendanceStatus;
+use App\Enums\OptionalSubjectRole;
 use App\Models\Attendance;
 use App\Models\ClassGroupSubject;
 use App\Models\ExamSubjectConfig;
@@ -71,6 +72,9 @@ class BuildStudentMarksDetail
                 $groupId
             );
 
+            $isMainOptional = ! $isExtraOptional
+                && $studentOptionalSelections->firstWhere('subject_id', $subjectId)?->role === OptionalSubjectRole::MainOptional;
+
             $subjectName = $result->subject?->display_name ?? '—';
 
             if ($isExtraOptional) {
@@ -78,6 +82,11 @@ class BuildStudentMarksDetail
             }
 
             return [
+                'position_group' => match (true) {
+                    $isExtraOptional => 2,
+                    $isMainOptional => 1,
+                    default => 0,
+                },
                 'subject_name' => $subjectName,
                 // A result-rule result has marks even when this exam itself was missed.
                 'is_absent' => $result->is_absent && ! $result->hasWeightedResult(),
@@ -94,7 +103,12 @@ class BuildStudentMarksDetail
                 'best_students' => $best['best_students'] ?? null,
                 'components' => $this->components($result),
             ];
-        })->values();
+        })
+            // Subject order from the Subjects page, except the student's main
+            // optional subject goes second-to-last and the additional one last.
+            ->sortBy('position_group')
+            ->map(fn (array $row): array => collect($row)->except('position_group')->all())
+            ->values();
 
         $overallGrade = GradeScale::fromGpa((float) $ranking->gpa, $gradeScales);
 

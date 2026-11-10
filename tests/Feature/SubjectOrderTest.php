@@ -2,13 +2,17 @@
 
 use App\Actions\BuildStudentMarksDetail;
 use App\Enums\Gender;
+use App\Enums\OptionalSubjectRole;
 use App\Enums\StudentStatus;
+use App\Enums\SubjectType;
 use App\Enums\UserType;
 use App\Filament\Resources\Subjects\Pages\ListSubjects;
 use App\Models\Classes;
 use App\Models\Exam;
 use App\Models\ExamType;
+use App\Models\Group;
 use App\Models\StudentMeritRanking;
+use App\Models\StudentOptionalSubject;
 use App\Models\StudentProfile;
 use App\Models\StudentResult;
 use App\Models\Subject;
@@ -100,4 +104,66 @@ it('lets an admin reorder subjects from the subjects table', function () {
         ->call('reorderTable', [(string) $english->id, (string) $bangla->id]);
 
     expect(Subject::ordered()->pluck('id')->all())->toBe([$english->id, $bangla->id]);
+});
+
+it('puts the main optional subject second-to-last and the additional subject last on the marksheet', function () {
+    $class = Classes::create(['name' => 'Class Ten', 'order' => 10, 'has_group' => true, 'is_active' => true]);
+    $group = Group::create(['name' => 'Science', 'is_active' => true]);
+    $class->groups()->attach($group->id);
+
+    $examType = ExamType::create(['name' => 'Annual', 'is_active' => true]);
+    $exam = Exam::create([
+        'exam_type_id' => $examType->id,
+        'class_id' => $class->id,
+        'session_year' => now()->year,
+        'start_date' => now()->toDateString(),
+        'end_date' => now()->addDay()->toDateString(),
+        'is_published' => true,
+    ]);
+
+    // Optional subjects deliberately ordered before the compulsory ones.
+    $higherMath = makeOrderTestSubject('Higher Math', 1);
+    $biology = makeOrderTestSubject('Biology', 2);
+    $bangla = makeOrderTestSubject('Bangla', 3);
+    $english = makeOrderTestSubject('English', 4);
+
+    foreach ([$bangla, $english] as $subject) {
+        $subject->classes()->attach($class->id, ['subject_type' => SubjectType::Compulsory->value]);
+    }
+
+    foreach ([$biology, $higherMath] as $subject) {
+        $subject->classes()->attach($class->id, ['group_id' => $group->id, 'subject_type' => SubjectType::Optional->value]);
+    }
+
+    $user = User::factory()->create(['user_type' => UserType::Student, 'is_active' => true]);
+    $student = StudentProfile::create([
+        'user_id' => $user->id,
+        'roll_no' => 1,
+        'current_class_id' => $class->id,
+        'current_group_id' => $group->id,
+        'session_year' => now()->year,
+        'gender' => Gender::Male,
+        'status' => StudentStatus::Active,
+    ]);
+
+    StudentOptionalSubject::create(['student_id' => $student->id, 'class_id' => $class->id, 'group_id' => $group->id, 'subject_id' => $higherMath->id, 'role' => OptionalSubjectRole::MainOptional]);
+    StudentOptionalSubject::create(['student_id' => $student->id, 'class_id' => $class->id, 'group_id' => $group->id, 'subject_id' => $biology->id, 'role' => OptionalSubjectRole::ExtraOptional]);
+
+    foreach ([$higherMath, $biology, $bangla, $english] as $subject) {
+        StudentResult::create(['exam_id' => $exam->id, 'subject_id' => $subject->id, 'class_id' => $class->id, 'student_id' => $student->id, 'written_marks' => 70]);
+    }
+
+    $ranking = StudentMeritRanking::create([
+        'exam_id' => $exam->id,
+        'student_id' => $student->id,
+        'class_id' => $class->id,
+        'total_marks' => 280,
+        'gpa' => 4.0,
+        'class_rank' => 1,
+    ]);
+
+    ['rows' => $rows] = app(BuildStudentMarksDetail::class)->handle($ranking);
+
+    expect($rows->pluck('subject_name')->all())->toBe(['Bangla', 'English', 'Higher Math', 'Biology (Additional)'])
+        ->and($rows->first())->not->toHaveKey('position_group');
 });
