@@ -52,8 +52,15 @@
 <head>
     <meta charset="utf-8">
     <style>
+        /* The signatures live in the page footer, pinned to the bottom of the
+           page; margin-bottom leaves room for it inside the page border. */
         @page {
-            margin: 28px;
+            margin-top: 12mm;
+            margin-left: 12mm;
+            margin-right: 12mm;
+            margin-bottom: 45mm;
+            margin-footer: 11mm;
+            footer: html_marksheetFooter;
         }
 
         body {
@@ -62,10 +69,15 @@
             color: #1a1a1a;
         }
 
-        .sheet {
+        /* Absolute blocks are placed against the whole A4 page (210 x 297mm),
+           so the border always reaches the bottom of the page. */
+        .page-border {
+            position: absolute;
+            top: 7mm;
+            left: 7mm;
+            width: 196mm;
+            height: 283mm;
             border: 2px solid #1a1a1a;
-            padding: 16px;
-            position: relative;
         }
 
         .header {
@@ -195,7 +207,6 @@
         }
 
         .signatures {
-            margin-top: 20px;
             width: 100%;
             table-layout: fixed;
             border-collapse: collapse;
@@ -235,6 +246,39 @@
     @if ($useWatermark && $watermarkText)
         <div class="watermark">{{ $watermarkText }}</div>
     @endif
+
+    <div class="page-border"></div>
+
+    <htmlpagefooter name="marksheetFooter">
+        <table class="signatures">
+            <tr>
+                <td>
+                    <br><br><br>
+                    {{ __('Class Teacher') }}
+                </td>
+                <td>
+                    <br><br><br>
+                    {{ __('Guardian') }}
+                </td>
+                <td>
+                    @if ($sealDataUri)
+                        <img src="{{ $sealDataUri }}" alt="Seal" width="50px"><br><br>
+                    @else
+                        <br><br>
+                    @endif
+                    {{ __('School Seal') }}
+                </td>
+                <td>
+                    @if ($signatureDataUri)
+                        <img src="{{ $signatureDataUri }}" alt="Signature" width="80px"><br><br>
+                    @else
+                        <br><br>
+                    @endif
+                    {{ __("Principal's Signature") }}
+                </td>
+            </tr>
+        </table>
+    </htmlpagefooter>
 
     <div class="sheet">
         <div class="header">
@@ -393,35 +437,6 @@
                 <td>{{ BengaliNumber::localize((string) $summary['working_days']) }}</td>
                 <td class="summary-label">{{ __('Present') }}</td>
                 <td>{{ BengaliNumber::localize((string) $summary['present_days']) }}</td>
-            </tr>
-        </table>
-
-        <table class="signatures">
-            <tr>
-                <td>
-                    <br><br><br>
-                    {{ __('Class Teacher') }}
-                </td>
-                <td>
-                    <br><br><br>
-                    {{ __('Guardian') }}
-                </td>
-                <td>
-                    @if ($sealDataUri)
-                        <img src="{{ $sealDataUri }}" alt="Seal" width="50px"><br><br>
-                    @else
-                        <br><br>
-                    @endif
-                    {{ __('School Seal') }}
-                </td>
-                <td>
-                    @if ($signatureDataUri)
-                        <img src="{{ $signatureDataUri }}" alt="Signature" width="80px"><br><br>
-                    @else
-                        <br><br>
-                    @endif
-                    {{ __("Principal's Signature") }}
-                </td>
             </tr>
         </table>
 
