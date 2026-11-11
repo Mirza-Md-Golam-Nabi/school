@@ -50,6 +50,10 @@ cp .env.example .env
 5. Run this command:
 
 ```sh
+alias php="/opt/cpanel/ea-php83/root/usr/bin/php"
+```
+
+```sh
 php artisan key:generate
 ```
 
