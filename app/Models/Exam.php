@@ -66,6 +66,14 @@ class Exam extends Model
         return $this->hasMany(ExamSchedule::class);
     }
 
+    /**
+     * Subjects counted as one in this exam's result (e.g. Bangla 1st + 2nd paper).
+     */
+    public function subjectMerges(): HasMany
+    {
+        return $this->hasMany(ExamSubjectMerge::class);
+    }
+
     public function results(): HasMany
     {
         return $this->hasMany(StudentResult::class);

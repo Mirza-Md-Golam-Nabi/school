@@ -45,3 +45,39 @@ it('loads previously saved settings back into the form', function () {
             'marksheet_footer_text' => 'Head Teacher',
         ]);
 });
+
+it('saves the school EIIN number and prints it as an EIIN line', function () {
+    $admin = grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]));
+    test()->actingAs($admin);
+
+    expect(SchoolSetting::eiinLine())->toBe('');
+
+    Livewire::test(SchoolSettings::class)
+        ->fillForm([
+            'school_name' => 'Test School',
+            SchoolSetting::EIIN_SETTING => ' 123456 ',
+        ])
+        ->call('save')
+        ->assertHasNoFormErrors()
+        ->assertNotified();
+
+    expect(SchoolSetting::get(SchoolSetting::EIIN_SETTING))->toBe('123456')
+        ->and(SchoolSetting::eiinLine())->toBe('EIIN: 123456');
+
+    Livewire::test(SchoolSettings::class)
+        ->assertSchemaStateSet([SchoolSetting::EIIN_SETTING => '123456']);
+});
+
+it('rejects an EIIN number that is not digits only', function () {
+    $admin = grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]));
+    test()->actingAs($admin);
+
+    Livewire::test(SchoolSettings::class)
+        ->fillForm([
+            'school_name' => 'Test School',
+            SchoolSetting::EIIN_SETTING => '12AB',
+        ])
+        ->call('save')
+        ->assertHasFormErrors([SchoolSetting::EIIN_SETTING => 'regex'])
+        ->assertNotNotified();
+});

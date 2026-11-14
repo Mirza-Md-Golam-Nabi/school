@@ -6,6 +6,7 @@
     $exam = $admitCard->exam;
 
     $schoolName = SchoolSetting::get('school_name', '');
+    $schoolEiinLine = SchoolSetting::eiinLine();
     $schoolAddress = SchoolSetting::get('school_address', '');
     $schoolEstablishedYear = SchoolSetting::get('school_established_year', '');
     $schoolAddressLine = collect([
@@ -160,6 +161,9 @@
     <div class="card">
         <div class="header">
             <div class="school-name">{{ $schoolName }}</div>
+            @if ($schoolEiinLine)
+                <div class="school-address">{{ $schoolEiinLine }}</div>
+            @endif
             @if ($schoolAddressLine)
                 <div class="school-address">{{ $schoolAddressLine }}</div>
             @endif
@@ -219,7 +223,7 @@
                     @if ($signatureDataUri)
                         <img src="{{ $signatureDataUri }}" alt="Signature" width="80px"><br>
                     @endif
-                    Principal's Signature
+                    {{ SchoolSetting::headSignatoryTitle() }}
                 </td>
             </tr>
         </table>

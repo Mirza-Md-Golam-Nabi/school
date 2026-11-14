@@ -67,11 +67,20 @@ class SaveQuestionBankMcqMarksAction
                 }
 
                 $result ??= new StudentResult(['exam_id' => $exam->id, 'subject_id' => $config->subject_id, 'student_id' => $studentId]);
+                $wasAbsent = (bool) $result->is_absent;
                 $result->fill([
                     'class_id' => $exam->class_id,
                     'is_absent' => (bool) $mark['absent'],
                     'mcq_marks' => $mark['absent'] ? null : round((float) $mark['mcq_marks'], 2),
-                ])->save();
+                ]);
+
+                // An MCQ mark means the student sat the theory exam (no longer
+                // absent in the whole subject clears both parts on save).
+                if (! $mark['absent'] && ! $wasAbsent) {
+                    $result->is_theory_absent = false;
+                }
+
+                $result->save();
 
                 $saved++;
             }
@@ -107,7 +116,7 @@ class SaveQuestionBankMcqMarksAction
             return self::SKIP_HAS_OTHER_MARKS;
         }
 
-        $alreadyFilled = $result !== null && ($result->mcq_marks !== null || $result->is_absent);
+        $alreadyFilled = $result !== null && ($result->mcq_marks !== null || $result->is_absent || $result->is_theory_absent);
         $isSame = $result !== null && $result->is_absent === (bool) $mark['absent']
             && ($mark['absent'] || (float) $result->mcq_marks === round((float) $mark['mcq_marks'], 2));
 

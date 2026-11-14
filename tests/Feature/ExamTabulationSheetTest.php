@@ -362,3 +362,71 @@ it('honors an explicit A3 landscape choice when building the PDF', function () {
     $response->assertOk();
     expect($response->headers->get('Content-Type'))->toBe('application/pdf');
 });
+
+it('lists a flat sheet\'s subject columns in the subject order, not by name', function () {
+    $class = Classes::create(['name' => 'Class 7', 'level' => ClassLevel::Secondary, 'order' => 7, 'has_group' => false]);
+    $exam = makeTabulationExam($class);
+
+    $bangla = makeTabulationSubject($class, 'Bangla', null, SubjectType::Compulsory);
+    $english = makeTabulationSubject($class, 'English', null, SubjectType::Compulsory);
+    $math = makeTabulationSubject($class, 'Mathematics', null, SubjectType::Compulsory);
+
+    $math->update(['sort_order' => 1]);
+    $english->update(['sort_order' => 2]);
+    $bangla->update(['sort_order' => 3]);
+
+    $student = makeTabulationStudent($class, 1);
+
+    foreach ([$bangla, $english, $math] as $subject) {
+        ExamSubjectConfig::create([
+            'exam_id' => $exam->id,
+            'subject_id' => $subject->id,
+            'written_total' => 100,
+            'total_marks' => 100,
+            'pass_mark' => 40,
+        ]);
+        recordTabulationResult($exam, $subject, $student, 70);
+    }
+
+    recordTabulationRanking($exam, $student, 210, 1);
+
+    $detail = app(BuildExamTabulationSheetDetail::class)->handle($exam);
+
+    expect($detail['subjects']->pluck('name')->all())->toBe(['Mathematics', 'English', 'Bangla'])
+        ->and($detail['columns']->pluck('label')->all())->toBe(['Mathematics', 'English', 'Bangla']);
+});
+
+it('lists each group block\'s subject columns in the subject order', function () {
+    $class = Classes::create(['name' => 'Class 9', 'level' => ClassLevel::Secondary, 'order' => 9, 'has_group' => true]);
+    $science = Group::create(['name' => 'Science']);
+    $class->groups()->attach([$science->id]);
+
+    $exam = makeTabulationExam($class);
+
+    $bangla = makeTabulationSubject($class, 'Bangla', null, SubjectType::Compulsory);
+    $physics = makeTabulationSubject($class, 'Physics', $science->id, SubjectType::Compulsory);
+    $chemistry = makeTabulationSubject($class, 'Chemistry', $science->id, SubjectType::Compulsory);
+
+    $physics->update(['sort_order' => 1]);
+    $bangla->update(['sort_order' => 2]);
+    $chemistry->update(['sort_order' => 3]);
+
+    $student = makeTabulationStudent($class, 1, $science->id);
+
+    foreach ([$bangla, $physics, $chemistry] as $subject) {
+        ExamSubjectConfig::create([
+            'exam_id' => $exam->id,
+            'subject_id' => $subject->id,
+            'written_total' => 100,
+            'total_marks' => 100,
+            'pass_mark' => 40,
+        ]);
+        recordTabulationResult($exam, $subject, $student, 70);
+    }
+
+    recordTabulationRanking($exam, $student, 210, 1);
+
+    $detail = app(BuildExamTabulationSheetDetail::class)->handle($exam);
+
+    expect($detail['blocks'][0]['subjects']->pluck('name')->all())->toBe(['Physics', 'Bangla', 'Chemistry']);
+});

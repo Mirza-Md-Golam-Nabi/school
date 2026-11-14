@@ -3,6 +3,7 @@
     use Illuminate\Support\Facades\Storage;
 
     $schoolName = SchoolSetting::get('school_name', '');
+    $schoolEiinLine = SchoolSetting::eiinLine();
     $schoolAddress = SchoolSetting::get('school_address', '');
     $schoolEstablishedYear = SchoolSetting::get('school_established_year', '');
     $schoolAddressLine = collect([
@@ -186,6 +187,9 @@
                                         <tr>
                                             <td class="header-cell">
                                                 <div class="school-name">{{ $schoolName }}</div>
+                                                @if ($schoolEiinLine)
+                                                    <div class="school-address">{{ $schoolEiinLine }}</div>
+                                                @endif
                                                 @if ($schoolAddressLine)
                                                     <div class="school-address">{{ $schoolAddressLine }}</div>
                                                 @endif
@@ -261,7 +265,7 @@
                                                     <img src="{{ $signatureDataUri }}" alt="Signature" width="50"
                                                         height="20" style="width: 50px; height: 20px;"><br>
                                                 @endif
-                                                Principal's Signature
+                                                {{ SchoolSetting::headSignatoryTitle() }}
                                             </td>
                                         </tr>
                                     </table>

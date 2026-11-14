@@ -26,7 +26,7 @@ class BuildCombinedClassMarksheetPdfAction
         $marksheets = Marksheet::where('exam_id', $exam->id)
             ->where('is_generated', true)
             ->whereHas('student', fn ($query) => $query->where('current_class_id', $class->id))
-            ->with(['student.user', 'student.class', 'student.section', 'exam.examType', 'exam.class'])
+            ->with(['student.user', 'student.class', 'student.section', 'exam.examType', 'exam.class.classTeacher'])
             ->get()
             ->sortBy(fn (Marksheet $marksheet) => $marksheet->student?->roll_no)
             ->values();

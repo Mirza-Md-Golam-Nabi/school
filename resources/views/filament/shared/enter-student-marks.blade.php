@@ -5,6 +5,7 @@
         $hasMcq = $config?->mcq_total !== null;
         $hasWritten = $config?->written_total !== null;
         $hasPractical = $config?->practical_total !== null;
+        $absencePerPart = $this->marksAbsencePerPart();
     @endphp
 
     <div class="space-y-3">
@@ -74,19 +75,31 @@
                                     </th>
                                 @endif
                                 <th class="px-4 py-2 text-center text-xs font-semibold uppercase tracking-wide text-gray-500">Total</th>
-                                <th class="px-4 py-2 text-center text-xs font-semibold uppercase tracking-wide text-gray-500">Absent</th>
+                                @if ($absencePerPart)
+                                    <th class="px-3 py-2 text-center text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                        লিখিত Absent
+                                        <span class="block text-gray-400 normal-case font-normal">MCQ + CQ</span>
+                                    </th>
+                                    <th class="px-3 py-2 text-center text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                        Practical Absent
+                                    </th>
+                                @else
+                                    <th class="px-4 py-2 text-center text-xs font-semibold uppercase tracking-wide text-gray-500">Absent</th>
+                                @endif
                             </tr>
                         </thead>
                         <tbody>
                             @foreach ($students as $student)
                                 @php
-                                    $studentMark = $marks[$student->id] ?? ['mcq_marks' => null, 'written_marks' => null, 'practical_marks' => null, 'is_absent' => false];
-                                    $isAbsent = (bool) ($studentMark['is_absent'] ?? false);
+                                    $entry = \App\Models\StudentResult::markEntryAttributes($marks[$student->id] ?? [], $absencePerPart);
+                                    $isAbsent = $entry['is_absent'];
+                                    $isTheoryAbsent = $entry['is_theory_absent'];
+                                    $isPracticalAbsent = $entry['is_practical_absent'];
                                     $computedTotal = $isAbsent
                                         ? null
-                                        : ((int) ($studentMark['mcq_marks'] ?? 0) + (int) ($studentMark['written_marks'] ?? 0) + (int) ($studentMark['practical_marks'] ?? 0));
+                                        : ((float) ($entry['mcq_marks'] ?? 0) + (float) ($entry['written_marks'] ?? 0) + (float) ($entry['practical_marks'] ?? 0));
                                 @endphp
-                                <tr class="border-b border-gray-100 transition-colors hover:bg-gray-50 last:border-0 dark:border-gray-800 dark:hover:bg-gray-800/30 {{ $isAbsent ? 'bg-danger-50/30 dark:bg-danger-900/10' : '' }}"
+                                <tr class="border-b border-gray-100 transition-colors hover:bg-gray-50 last:border-0 dark:border-gray-800 dark:hover:bg-gray-800/30 {{ $isAbsent ? 'bg-danger-50/30 dark:bg-danger-900/10' : ($isTheoryAbsent || $isPracticalAbsent ? 'bg-warning-50/40 dark:bg-warning-900/10' : '') }}"
                                     wire:key="student-{{ $student->id }}">
                                     <td class="px-4 py-2.5 text-xs text-gray-500 dark:text-gray-400">
                                         {{ $student->roll_no }}
@@ -103,7 +116,7 @@
                                                 max="{{ $config->mcq_total }}"
                                                 step="0.1"
                                                 wire:model.lazy="marks.{{ $student->id }}.mcq_marks"
-                                                @disabled($isAbsent)
+                                                @disabled($isTheoryAbsent)
                                                 class="w-20 rounded-lg border border-gray-400 bg-white px-2 py-1.5 text-center text-sm shadow-sm transition focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-100 disabled:text-gray-400 dark:border-gray-500 dark:bg-gray-800 dark:text-white dark:disabled:border-gray-700 dark:disabled:bg-gray-900 dark:disabled:text-gray-600 @error('marks.'.$student->id.'.mcq_marks') border-danger-500 dark:border-danger-500 @enderror"
                                             >
                                             @error('marks.'.$student->id.'.mcq_marks')
@@ -120,7 +133,7 @@
                                                 max="{{ $config->written_total }}"
                                                 step="0.1"
                                                 wire:model.lazy="marks.{{ $student->id }}.written_marks"
-                                                @disabled($isAbsent)
+                                                @disabled($isTheoryAbsent)
                                                 class="w-20 rounded-lg border border-gray-400 bg-white px-2 py-1.5 text-center text-sm shadow-sm transition focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-100 disabled:text-gray-400 dark:border-gray-500 dark:bg-gray-800 dark:text-white dark:disabled:border-gray-700 dark:disabled:bg-gray-900 dark:disabled:text-gray-600 @error('marks.'.$student->id.'.written_marks') border-danger-500 dark:border-danger-500 @enderror"
                                             >
                                             @error('marks.'.$student->id.'.written_marks')
@@ -137,7 +150,7 @@
                                                 max="{{ $config->practical_total }}"
                                                 step="0.1"
                                                 wire:model.lazy="marks.{{ $student->id }}.practical_marks"
-                                                @disabled($isAbsent)
+                                                @disabled($isPracticalAbsent)
                                                 class="w-20 rounded-lg border border-gray-400 bg-white px-2 py-1.5 text-center text-sm shadow-sm transition focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-100 disabled:text-gray-400 dark:border-gray-500 dark:bg-gray-800 dark:text-white dark:disabled:border-gray-700 dark:disabled:bg-gray-900 dark:disabled:text-gray-600 @error('marks.'.$student->id.'.practical_marks') border-danger-500 dark:border-danger-500 @enderror"
                                             >
                                             @error('marks.'.$student->id.'.practical_marks')
@@ -151,18 +164,40 @@
                                             <span class="text-sm font-semibold text-danger-600 dark:text-danger-400">Absent</span>
                                         @else
                                             <span class="text-sm font-semibold text-gray-900 dark:text-white">
-                                                {{ $computedTotal > 0 ? $computedTotal : '—' }}
+                                                {{ $computedTotal > 0 ? $computedTotal + 0 : '—' }}
                                             </span>
+                                            @if ($isTheoryAbsent)
+                                                <span class="block text-xs text-warning-600 dark:text-warning-400">লিখিত Absent</span>
+                                            @elseif ($isPracticalAbsent)
+                                                <span class="block text-xs text-warning-600 dark:text-warning-400">Practical Absent</span>
+                                            @endif
                                         @endif
                                     </td>
 
-                                    <td class="px-4 py-2.5 text-center">
-                                        <input
-                                            type="checkbox"
-                                            wire:model.live="marks.{{ $student->id }}.is_absent"
-                                            class="h-4 w-4 rounded border-gray-300 text-danger-600 focus:ring-danger-500 dark:border-gray-600"
-                                        >
-                                    </td>
+                                    @if ($absencePerPart)
+                                        <td class="px-3 py-2.5 text-center">
+                                            <input
+                                                type="checkbox"
+                                                wire:model.live="marks.{{ $student->id }}.is_theory_absent"
+                                                class="h-4 w-4 rounded border-gray-300 text-danger-600 focus:ring-danger-500 dark:border-gray-600"
+                                            >
+                                        </td>
+                                        <td class="px-3 py-2.5 text-center">
+                                            <input
+                                                type="checkbox"
+                                                wire:model.live="marks.{{ $student->id }}.is_practical_absent"
+                                                class="h-4 w-4 rounded border-gray-300 text-danger-600 focus:ring-danger-500 dark:border-gray-600"
+                                            >
+                                        </td>
+                                    @else
+                                        <td class="px-4 py-2.5 text-center">
+                                            <input
+                                                type="checkbox"
+                                                wire:model.live="marks.{{ $student->id }}.is_absent"
+                                                class="h-4 w-4 rounded border-gray-300 text-danger-600 focus:ring-danger-500 dark:border-gray-600"
+                                            >
+                                        </td>
+                                    @endif
                                 </tr>
                             @endforeach
                         </tbody>
@@ -174,8 +209,10 @@
             <div class="flex items-center justify-between rounded-xl bg-white p-3 shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10">
                 <div class="flex flex-wrap gap-2">
                     @php
-                        $absentCount = collect($marks)->filter(fn ($m) => $m['is_absent'] ?? false)->count();
-                        $presentCount = $students->count() - $absentCount;
+                        $entries = collect($marks)->map(fn (array $mark): array => \App\Models\StudentResult::markEntryAttributes($mark, $absencePerPart));
+                        $absentCount = $entries->filter(fn (array $entry): bool => $entry['is_absent'])->count();
+                        $partlyAbsentCount = $entries->filter(fn (array $entry): bool => ! $entry['is_absent'] && ($entry['is_theory_absent'] || $entry['is_practical_absent']))->count();
+                        $presentCount = $students->count() - $absentCount - $partlyAbsentCount;
                     @endphp
                     <x-filament::badge color="success" icon="heroicon-o-check-circle">
                         Present: {{ $presentCount }}
@@ -183,6 +220,11 @@
                     <x-filament::badge color="danger" icon="heroicon-o-x-circle">
                         Absent: {{ $absentCount }}
                     </x-filament::badge>
+                    @if ($absencePerPart)
+                        <x-filament::badge color="warning" icon="heroicon-o-exclamation-circle">
+                            আংশিক Absent: {{ $partlyAbsentCount }}
+                        </x-filament::badge>
+                    @endif
                 </div>
                 <x-filament::button
                     wire:click="save"

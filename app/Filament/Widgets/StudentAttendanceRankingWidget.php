@@ -2,9 +2,8 @@
 
 namespace App\Filament\Widgets;
 
-use App\Enums\AttendanceStatus;
+use App\Actions\Attendance\ResolveStudentAttendanceTotals;
 use App\Filament\Pages\StudentAttendanceRanking;
-use App\Models\Attendance;
 use App\Models\StudentProfile;
 use Filament\Widgets\Widget;
 
@@ -26,29 +25,23 @@ class StudentAttendanceRankingWidget extends Widget
     {
         $year = (int) now()->year;
 
-        $workingDays = Attendance::where('attendable_type', StudentProfile::class)
-            ->inYear($year)
-            ->distinct()
-            ->count('date');
+        $resolver = app(ResolveStudentAttendanceTotals::class);
 
-        $counts = Attendance::where('attendable_type', StudentProfile::class)
-            ->countedPresent(StudentProfile::class)
-            ->inYear($year)
-            ->selectRaw('attendable_id, count(*) as present_count')
-            ->groupBy('attendable_id')
-            ->orderByDesc('present_count')
-            ->limit(2)
-            ->get();
+        $workingDays = $resolver->workingDaysForYear($year);
+
+        $counts = $resolver->presentCountsForYear($year)
+            ->sortDesc()
+            ->take(2);
 
         $students = StudentProfile::with('user:id,name')
-            ->whereIn('id', $counts->pluck('attendable_id'))
+            ->whereIn('id', $counts->keys())
             ->get(['id', 'user_id', 'roll_no'])
             ->keyBy('id');
 
-        $topStudents = $counts->map(fn ($row) => [
-            'name' => $students->get($row->attendable_id)?->user?->name ?? '—',
-            'roll_no' => $students->get($row->attendable_id)?->roll_no,
-            'present_count' => $row->present_count,
+        $topStudents = $counts->map(fn (int $presentCount, int $studentId) => [
+            'name' => $students->get($studentId)?->user?->name ?? '—',
+            'roll_no' => $students->get($studentId)?->roll_no,
+            'present_count' => $presentCount,
         ])->values();
 
         return [

@@ -2,10 +2,9 @@
 
 namespace App\Filament\Pages;
 
-use App\Enums\AttendanceStatus;
+use App\Actions\Attendance\ResolveStudentAttendanceTotals;
 use App\Enums\Permissions\AttendancePermission;
 use App\Filament\Concerns\HasAttendancePagePermission;
-use App\Models\Attendance;
 use App\Models\Classes;
 use App\Models\StudentProfile;
 use BackedEnum;
@@ -40,25 +39,21 @@ class StudentAttendanceRanking extends Page
     {
         $year = (int) now()->year;
 
-        $counts = Attendance::where('attendable_type', StudentProfile::class)
-            ->countedPresent(StudentProfile::class)
-            ->inYear($year)
-            ->selectRaw('attendable_id, count(*) as present_count')
-            ->groupBy('attendable_id')
-            ->orderByDesc('present_count')
-            ->limit($limit)
-            ->get();
+        $counts = app(ResolveStudentAttendanceTotals::class)
+            ->presentCountsForYear($year)
+            ->sortDesc()
+            ->take($limit);
 
         $students = StudentProfile::with(['user', 'class'])
-            ->whereIn('id', $counts->pluck('attendable_id'))
+            ->whereIn('id', $counts->keys())
             ->get()
             ->keyBy('id');
 
-        return $counts->map(fn ($row) => [
-            'name' => $students->get($row->attendable_id)?->user?->name ?? '—',
-            'roll_no' => $students->get($row->attendable_id)?->roll_no,
-            'class_name' => $students->get($row->attendable_id)?->class?->name,
-            'present_count' => $row->present_count,
+        return $counts->map(fn (int $presentCount, int $studentId) => [
+            'name' => $students->get($studentId)?->user?->name ?? '—',
+            'roll_no' => $students->get($studentId)?->roll_no,
+            'class_name' => $students->get($studentId)?->class?->name,
+            'present_count' => $presentCount,
         ])->values();
     }
 
@@ -69,33 +64,28 @@ class StudentAttendanceRanking extends Page
     {
         $year = (int) now()->year;
 
-        $counts = Attendance::where('attendable_type', StudentProfile::class)
-            ->countedPresent(StudentProfile::class)
-            ->inYear($year)
-            ->whereNotNull('class_id')
-            ->selectRaw('class_id, attendable_id, count(*) as present_count')
-            ->groupBy('class_id', 'attendable_id')
-            ->get()
-            ->groupBy('class_id');
+        $resolver = app(ResolveStudentAttendanceTotals::class);
 
-        $studentIds = $counts->flatten(1)->pluck('attendable_id')->unique();
+        $classes = Classes::active()
+            ->orderBy('order')
+            ->get();
+
+        $counts = $classes->mapWithKeys(fn (Classes $class): array => [
+            $class->id => $resolver->presentCountsForYear($year, $class->id)->sortDesc()->take(3),
+        ]);
 
         $students = StudentProfile::with('user')
-            ->whereIn('id', $studentIds)
+            ->whereIn('id', $counts->flatMap(fn (Collection $classCounts) => $classCounts->keys())->unique())
             ->get()
             ->keyBy('id');
 
-        return Classes::active()
-            ->orderBy('order')
-            ->get()
+        return $classes
             ->map(function (Classes $class) use ($counts, $students) {
-                $top = ($counts->get($class->id) ?? collect())
-                    ->sortByDesc('present_count')
-                    ->take(3)
-                    ->map(fn ($row) => [
-                        'name' => $students->get($row->attendable_id)?->user?->name ?? '—',
-                        'roll_no' => $students->get($row->attendable_id)?->roll_no,
-                        'present_count' => $row->present_count,
+                $top = $counts->get($class->id)
+                    ->map(fn (int $presentCount, int $studentId) => [
+                        'name' => $students->get($studentId)?->user?->name ?? '—',
+                        'roll_no' => $students->get($studentId)?->roll_no,
+                        'present_count' => $presentCount,
                     ])
                     ->values();
 

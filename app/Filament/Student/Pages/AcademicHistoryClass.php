@@ -2,11 +2,10 @@
 
 namespace App\Filament\Student\Pages;
 
-use App\Enums\AttendanceStatus;
+use App\Actions\Attendance\ResolveStudentAttendanceTotals;
 use App\Enums\ExamConfigType;
 use App\Filament\Student\Resources\ExamResults\ExamResultResource;
 use App\Filament\Student\Resources\FeeInvoices\Pages\AcademicHistoryFees;
-use App\Models\Attendance;
 use App\Models\Exam;
 use App\Models\GradeScale;
 use App\Models\StudentClassHistory;
@@ -62,11 +61,9 @@ class AcademicHistoryClass extends Page
     {
         $profile = $this->getStudentProfile();
 
-        $workingDays = Attendance::where('attendable_type', StudentProfile::class)
-            ->where('class_id', $this->record->class_id)
-            ->inYear($this->record->session_year)
-            ->distinct('date')
-            ->count('date');
+        $resolver = app(ResolveStudentAttendanceTotals::class);
+
+        $workingDays = $resolver->workingDaysForYear($this->record->session_year, $this->record->class_id);
 
         // The classmate roster for that class-year comes from history, not current
         // enrollment, so a student who has since moved on still counts toward ranking.
@@ -74,14 +71,7 @@ class AcademicHistoryClass extends Page
             ->where('session_year', $this->record->session_year)
             ->pluck('student_id');
 
-        $presentCounts = Attendance::where('attendable_type', StudentProfile::class)
-            ->whereIn('attendable_id', $classmateIds)
-            ->countedPresent(StudentProfile::class)
-            ->where('class_id', $this->record->class_id)
-            ->inYear($this->record->session_year)
-            ->selectRaw('attendable_id, count(*) as present_count')
-            ->groupBy('attendable_id')
-            ->pluck('present_count', 'attendable_id');
+        $presentCounts = $resolver->presentCountsForYear($this->record->session_year, $this->record->class_id, $classmateIds);
 
         $ranking = $classmateIds
             ->mapWithKeys(fn (int $id): array => [$id => $presentCounts->get($id, 0)])

@@ -10,6 +10,7 @@ use App\Http\Controllers\ClassStudentIdCardsPdfController;
 use App\Http\Controllers\ClassStudentListPdfController;
 use App\Http\Controllers\EmailVerificationController;
 use App\Http\Controllers\EmployeeAttendanceReportPdfController;
+use App\Http\Controllers\ExamResultReportPdfController;
 use App\Http\Controllers\ExamSchedulePdfController;
 use App\Http\Controllers\ExamTabulationSheetPdfController;
 use App\Http\Controllers\FeePaymentSlipPdfController;
@@ -84,6 +85,10 @@ Route::get('/exams/{exam}/schedule/download', ExamSchedulePdfController::class)
 Route::get('/exams/{exam}/tabulation-sheet/download', ExamTabulationSheetPdfController::class)
     ->middleware('auth')
     ->name('exams.tabulation-sheet.download');
+
+Route::get('/exams/{exam}/result-report/download', ExamResultReportPdfController::class)
+    ->middleware('auth')
+    ->name('exams.result-report.download');
 
 Route::get('/fee-payments/{batchId}/slip', FeePaymentSlipPdfController::class)
     ->middleware('auth')

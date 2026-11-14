@@ -3,6 +3,7 @@
     use Illuminate\Support\Facades\Storage;
 
     $schoolName = SchoolSetting::get('school_name', '');
+    $schoolEiinLine = SchoolSetting::eiinLine();
     $schoolAddress = SchoolSetting::get('school_address', '');
     $schoolEstablishedYear = SchoolSetting::get('school_established_year', '');
     $schoolAddressLine = collect([
@@ -30,13 +31,17 @@
 
     $sealDataUri = $toDataUri(SchoolSetting::get('school_seal'));
     $signatureDataUri = $toDataUri(SchoolSetting::get('principal_signature'));
+    $classTeacherSignatureDataUri = $toDataUri($exam->class?->classTeacher?->signature);
 
     // Fixed-width columns (roll/name/total/gpa/grade/rank, + section/sec-rank
     // when the class has sections) are reserved first; whatever percentage is
     // left is split evenly across however many subjects this exam actually
     // has, so the sheet stays balanced whether it's 4 subjects or 12.
     $reservedColumnsPercent = 6 + ($hasSections ? 8 + 8 : 0) + 8 + 7 + 7 + 7 + 14;
-    $subjectColumnWidth = max((100 - $reservedColumnsPercent) / max($subjects->count(), 1), 5);
+    // A merged subject (e.g. Bangla 1st + 2nd paper) takes three columns: 1st | 2nd | merged.
+    $subjectCellCount = $columns->sum(fn (array $column): int => count($column['papers']) === 2 ? 3 : 1);
+    $headRows = $hasMerges ? 2 : 1;
+    $subjectColumnWidth = max((100 - $reservedColumnsPercent) / max($subjectCellCount, 1), 5);
 @endphp
 <!DOCTYPE html>
 <html>
@@ -44,8 +49,15 @@
 <head>
     <meta charset="utf-8">
     <style>
+        /* The signatures live in the page footer, pinned to the bottom of
+           every page; margin-bottom leaves room for it below the table. */
         @page {
-            margin: 14mm 12mm;
+            margin-top: 14mm;
+            margin-left: 12mm;
+            margin-right: 12mm;
+            margin-bottom: 36mm;
+            margin-footer: 8mm;
+            footer: html_tabulationFooter;
         }
 
         body {
@@ -150,7 +162,6 @@
         }
 
         .signatures {
-            margin-top: 25px;
             width: 100%;
             table-layout: fixed;
             border-collapse: collapse;
@@ -166,8 +177,42 @@
 </head>
 
 <body>
+    <htmlpagefooter name="tabulationFooter">
+        <table class="signatures">
+            <tr>
+                <td>
+                    @if ($classTeacherSignatureDataUri)
+                        <img src="{{ $classTeacherSignatureDataUri }}" alt="Class Teacher Signature" width="80px"><br><br>
+                    @else
+                        <br><br><br>
+                    @endif
+                    Class Teacher
+                </td>
+                <td>
+                    @if ($sealDataUri)
+                        <img src="{{ $sealDataUri }}" alt="Seal" width="50px"><br><br>
+                    @else
+                        <br><br>
+                    @endif
+                    School Seal
+                </td>
+                <td>
+                    @if ($signatureDataUri)
+                        <img src="{{ $signatureDataUri }}" alt="Signature" width="80px"><br><br>
+                    @else
+                        <br><br>
+                    @endif
+                    {{ SchoolSetting::headSignatoryTitle() }}
+                </td>
+            </tr>
+        </table>
+    </htmlpagefooter>
+
     <div class="header">
         <div class="school-name">{{ $schoolName }}</div>
+        @if ($schoolEiinLine)
+            <div class="school-address">{{ $schoolEiinLine }}</div>
+        @endif
         @if ($schoolAddressLine)
             <div class="school-address">{{ $schoolAddressLine }}</div>
         @endif
@@ -180,22 +225,37 @@
     <table class="tabulation">
         <thead>
             <tr>
-                <th class="roll-col">Roll</th>
-                <th class="name-col">Name</th>
+                <th class="roll-col" rowspan="{{ $headRows }}">Roll</th>
+                <th class="name-col" rowspan="{{ $headRows }}">Name</th>
                 @if ($hasSections)
-                    <th class="section-col">Section</th>
+                    <th class="section-col" rowspan="{{ $headRows }}">Section</th>
                 @endif
-                @foreach ($subjects as $subject)
-                    <th class="subject-col" style="width: {{ $subjectColumnWidth }}%">{{ $subject->display_name }}</th>
+                @foreach ($columns as $column)
+                    @if (count($column['papers']) === 2)
+                        <th class="subject-col" colspan="3">{{ $column['label'] }}</th>
+                    @else
+                        <th class="subject-col" rowspan="{{ $headRows }}" style="width: {{ $subjectColumnWidth }}%">{{ $column['label'] }}</th>
+                    @endif
                 @endforeach
-                <th class="total-col">Total</th>
-                <th class="gpa-col">GPA</th>
-                <th class="grade-col">Grade</th>
-                <th class="rank-col">Rank</th>
+                <th class="total-col" rowspan="{{ $headRows }}">Total</th>
+                <th class="gpa-col" rowspan="{{ $headRows }}">GPA</th>
+                <th class="grade-col" rowspan="{{ $headRows }}">Grade</th>
+                <th class="rank-col" rowspan="{{ $headRows }}">Rank</th>
                 @if ($hasSections)
-                    <th class="sec-rank-col">Sec. Rank</th>
+                    <th class="sec-rank-col" rowspan="{{ $headRows }}">Sec. Rank</th>
                 @endif
             </tr>
+            @if ($hasMerges)
+                <tr>
+                    @foreach ($columns as $column)
+                        @if (count($column['papers']) === 2)
+                            <th class="subject-col" style="width: {{ $subjectColumnWidth }}%">1st</th>
+                            <th class="subject-col" style="width: {{ $subjectColumnWidth }}%">2nd</th>
+                            <th class="subject-col" style="width: {{ $subjectColumnWidth }}%">Total</th>
+                        @endif
+                    @endforeach
+                </tr>
+            @endif
         </thead>
         <tbody>
             @foreach ($rows as $row)
@@ -205,14 +265,16 @@
                     @if ($hasSections)
                         <td class="section-col">{{ $row['section_name'] ?? '-' }}</td>
                     @endif
-                    @foreach ($subjects as $subject)
-                        <td class="subject-col" style="width: {{ $subjectColumnWidth }}%">
-                            @if ($row['marks'][$subject->id]['is_absent'] ?? false)
-                                Absent
-                            @else
-                                {{ $formatMark($row['marks'][$subject->id]['value'] ?? null) }}
-                            @endif
-                        </td>
+                    @foreach ($columns as $column)
+                        @foreach (count($column['papers']) === 2 ? [...$column['papers'], $column['key']] : $column['papers'] as $cellKey)
+                            <td class="subject-col" style="width: {{ $subjectColumnWidth }}%">
+                                @if ($row['marks'][$cellKey]['is_absent'] ?? false)
+                                    Absent
+                                @else
+                                    {{ $formatMark($row['marks'][$cellKey]['value'] ?? null) }}
+                                @endif
+                            </td>
+                        @endforeach
                     @endforeach
                     <td class="total-col">{{ $formatMark($row['total_marks']) }}</td>
                     <td class="gpa-col">{{ number_format($row['gpa'], 2) }}</td>
@@ -224,31 +286,6 @@
                 </tr>
             @endforeach
         </tbody>
-    </table>
-
-    <table class="signatures">
-        <tr>
-            <td>
-                <br><br><br>
-                Class Teacher
-            </td>
-            <td>
-                @if ($sealDataUri)
-                    <img src="{{ $sealDataUri }}" alt="Seal" width="50px"><br><br>
-                @else
-                    <br><br>
-                @endif
-                School Seal
-            </td>
-            <td>
-                @if ($signatureDataUri)
-                    <img src="{{ $signatureDataUri }}" alt="Signature" width="80px"><br><br>
-                @else
-                    <br><br>
-                @endif
-                Principal's Signature
-            </td>
-        </tr>
     </table>
 </body>
 

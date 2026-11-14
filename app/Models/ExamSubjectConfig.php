@@ -52,28 +52,53 @@ class ExamSubjectConfig extends Model
     /**
      * Whether the student passed this subject by its pass marks: the overall
      * pass mark, and the MCQ / written / practical pass marks where those are
-     * checked on their own. Absent never passes.
+     * checked on their own. Absent never passes — neither does absent in only
+     * the theory (MCQ + written) or the practical exam.
      */
     public function isPassedBy(StudentResult $result): bool
     {
-        if ($result->is_absent) {
+        if ($result->isAbsentInAnyPart()) {
             return false;
         }
 
-        $parts = [
-            [true, $result->total_marks, $this->pass_mark],
-            [$this->check_mcq_pass, $result->mcq_marks, $this->mcq_pass_mark],
-            [$this->check_written_pass, $result->written_marks, $this->written_pass_mark],
-            [$this->check_practical_pass, $result->practical_marks, $this->practical_pass_mark],
-        ];
+        if ($this->pass_mark !== null && (float) $result->total_marks < (float) $this->pass_mark) {
+            return false;
+        }
 
-        foreach ($parts as [$isChecked, $obtained, $passMark]) {
-            if ($isChecked && $passMark !== null && (float) $obtained < (float) $passMark) {
+        return $this->passesPartMarks($result);
+    }
+
+    /**
+     * Whether the result reaches the MCQ / written / practical pass marks
+     * that are checked on their own (the overall pass mark is not looked at).
+     */
+    public function passesPartMarks(StudentResult $result): bool
+    {
+        foreach ($this->checkedPartPassMarks() as $part => $passMark) {
+            if ((float) $result->{"{$part}_marks"} < $passMark) {
                 return false;
             }
         }
 
         return true;
+    }
+
+    /**
+     * The parts (mcq / written / practical) whose pass mark is checked on
+     * its own, with that pass mark.
+     *
+     * @return array<string, float>
+     */
+    public function checkedPartPassMarks(): array
+    {
+        return collect([
+            'mcq' => [$this->check_mcq_pass, $this->mcq_pass_mark],
+            'written' => [$this->check_written_pass, $this->written_pass_mark],
+            'practical' => [$this->check_practical_pass, $this->practical_pass_mark],
+        ])
+            ->filter(fn (array $part): bool => $part[0] && $part[1] !== null)
+            ->map(fn (array $part): float => (float) $part[1])
+            ->all();
     }
 
     /**

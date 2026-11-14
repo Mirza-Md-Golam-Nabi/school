@@ -8,6 +8,7 @@ use App\Enums\Gender;
 use App\Enums\Religion;
 use App\Models\User;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -121,6 +122,16 @@ class TeacherProfileForm
                                 ->native(false)
                                 ->helperText('Salary payment form-এ ডিফল্ট account হিসেবে বসবে'),
                         ]),
+
+                        FileUpload::make('signature')
+                            ->label('Signature')
+                            ->image()
+                            ->disk('public')
+                            ->directory('teacher-profiles/signatures')
+                            ->visibility('public')
+                            ->imageEditor()
+                            ->maxSize(1024)
+                            ->helperText('সাদা ব্যাকগ্রাউন্ডে স্বাক্ষরের ছবি (PNG/JPG, সর্বোচ্চ 1MB) — মার্কশিট ইত্যাদি ডকুমেন্টে ব্যবহার হবে।'),
                     ]),
 
                 Section::make('Personal Information')

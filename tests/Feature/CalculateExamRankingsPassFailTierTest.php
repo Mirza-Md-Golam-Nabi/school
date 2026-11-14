@@ -111,7 +111,7 @@ it('ranks every passing student above every failing student, regardless of raw t
         ->and($lowFailerRanking->gpa)->toBe(0.0);
 });
 
-it('breaks ties by GPA when total marks are equal, and shares rank when both are equal', function () {
+it('ranks the higher GPA first when total marks are equal, and shares rank when both are equal', function () {
     $class = makeRankTierTestClass();
     $exam = makeRankTierTestExam($class);
 
@@ -163,4 +163,52 @@ it('breaks ties by GPA when total marks are equal, and shares rank when both are
     // Same total marks AND same GPA → share the same rank.
     expect($tieARanking->class_rank)->toBe($tieBRanking->class_rank)
         ->and($tieARanking->class_rank)->toBe(2);
+});
+
+it('ranks by GPA first, and uses total marks only to break GPA ties', function () {
+    $class = makeRankTierTestClass();
+    $exam = makeRankTierTestExam($class);
+
+    $subjectOne = makeRankTierTestSubject($class, 'Bangla');
+    $subjectTwo = makeRankTierTestSubject($class, 'English');
+
+    foreach ([$subjectOne, $subjectTwo] as $subject) {
+        ExamSubjectConfig::create([
+            'exam_id' => $exam->id,
+            'subject_id' => $subject->id,
+            'written_total' => 100,
+            'total_marks' => 100,
+            'pass_mark' => 33,
+        ]);
+    }
+
+    // 178 total marks, GPA (5.0 + 4.0) / 2 = 4.5 — highest total but lower GPA.
+    $highTotal = makeRankTierTestStudent($class);
+    StudentResult::create(['exam_id' => $exam->id, 'subject_id' => $subjectOne->id, 'class_id' => $class->id, 'student_id' => $highTotal->id, 'written_marks' => 99]);
+    StudentResult::create(['exam_id' => $exam->id, 'subject_id' => $subjectTwo->id, 'class_id' => $class->id, 'student_id' => $highTotal->id, 'written_marks' => 79]);
+
+    // 170 total marks, GPA 5.0.
+    $topGpaHigherTotal = makeRankTierTestStudent($class);
+    StudentResult::create(['exam_id' => $exam->id, 'subject_id' => $subjectOne->id, 'class_id' => $class->id, 'student_id' => $topGpaHigherTotal->id, 'written_marks' => 85]);
+    StudentResult::create(['exam_id' => $exam->id, 'subject_id' => $subjectTwo->id, 'class_id' => $class->id, 'student_id' => $topGpaHigherTotal->id, 'written_marks' => 85]);
+
+    // 160 total marks, GPA 5.0.
+    $topGpaLowerTotal = makeRankTierTestStudent($class);
+    StudentResult::create(['exam_id' => $exam->id, 'subject_id' => $subjectOne->id, 'class_id' => $class->id, 'student_id' => $topGpaLowerTotal->id, 'written_marks' => 80]);
+    StudentResult::create(['exam_id' => $exam->id, 'subject_id' => $subjectTwo->id, 'class_id' => $class->id, 'student_id' => $topGpaLowerTotal->id, 'written_marks' => 80]);
+
+    app(CalculateExamRankings::class)->execute($exam);
+
+    $highTotalRanking = StudentMeritRanking::where('exam_id', $exam->id)->where('student_id', $highTotal->id)->first();
+    $topGpaHigherTotalRanking = StudentMeritRanking::where('exam_id', $exam->id)->where('student_id', $topGpaHigherTotal->id)->first();
+    $topGpaLowerTotalRanking = StudentMeritRanking::where('exam_id', $exam->id)->where('student_id', $topGpaLowerTotal->id)->first();
+
+    expect($highTotalRanking->gpa)->toBe(4.5)
+        ->and($topGpaHigherTotalRanking->gpa)->toBe(5.0)
+        ->and($topGpaLowerTotalRanking->gpa)->toBe(5.0);
+
+    // Equal GPA → higher total marks ranks first; the lower-GPA student ranks last despite the highest total.
+    expect($topGpaHigherTotalRanking->class_rank)->toBe(1)
+        ->and($topGpaLowerTotalRanking->class_rank)->toBe(2)
+        ->and($highTotalRanking->class_rank)->toBe(3);
 });

@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Exams\Pages;
 
 use App\Actions\CalculateExamRankings;
+use App\Filament\Pages\ExamAttendanceTotals;
 use App\Filament\Resources\Exams\ExamResource;
 use App\Models\Exam;
 use App\Notifications\Concerns\NotifiesExamResultPublished;
@@ -44,6 +45,12 @@ class EditExam extends EditRecord
 
                     $livewire->dispatch('$refresh');
                 }),
+
+            Action::make('attendanceTotals')
+                ->label('Attendance Totals')
+                ->icon(Heroicon::OutlinedCalculator)
+                ->color('gray')
+                ->url(fn (Exam $record): string => ExamAttendanceTotals::getUrl(['examId' => $record->id])),
 
             DeleteAction::make(),
             ForceDeleteAction::make(),

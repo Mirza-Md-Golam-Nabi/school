@@ -91,7 +91,7 @@
                             ISSUE DATE
                             <div style="font-size:{{ $pt(6.4) }}; font-weight:700; color:{{ $theme['fieldValue'] }};">01 JAN {{ now()->year }}</div>
                         </div>
-                        <div style="{{ $box(29, 68.2, 20) }} border-top:1px solid {{ $theme['fieldValue'] }}; text-align:center; font-size:{{ $pt(5) }}; font-weight:700; color:{{ $theme['fieldValue'] }};">PRINCIPAL</div>
+                        <div style="{{ $box(29, 68.2, 20) }} border-top:1px solid {{ $theme['fieldValue'] }}; text-align:center; font-size:{{ $pt(5) }}; font-weight:700; color:{{ $theme['fieldValue'] }};">{{ mb_strtoupper(\App\Models\SchoolSetting::headSignatoryTitle()) }}</div>
                     </div>
                 </div>
 

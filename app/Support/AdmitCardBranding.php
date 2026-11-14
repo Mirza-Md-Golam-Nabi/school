@@ -14,6 +14,7 @@ class AdmitCardBranding
 {
     public function __construct(
         public readonly string $schoolName,
+        public readonly string $eiinLine,
         public readonly string $addressLine,
         public readonly ?string $logoDataUri,
         public readonly ?string $sealDataUri,
@@ -25,6 +26,7 @@ class AdmitCardBranding
     {
         return new self(
             schoolName: (string) SchoolSetting::get('school_name', ''),
+            eiinLine: SchoolSetting::eiinLine(),
             addressLine: collect([
                 SchoolSetting::get('school_address', ''),
                 ($year = SchoolSetting::get('school_established_year', '')) ? "Established: {$year}" : null,

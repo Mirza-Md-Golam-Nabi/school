@@ -99,3 +99,71 @@ it('appends "(Additional)" to the subject name only for the student\'s extra_opt
         ->and($subjectNames)->not->toContain('Bangla (Additional)')
         ->and($subjectNames)->not->toContain('Biology (Additional)');
 });
+
+it('adds every subject\'s full grade point, the additional subject included, into the total GP', function () {
+    $class = Classes::create(['name' => 'Class Ten', 'order' => 10, 'has_group' => true, 'is_active' => true]);
+    $group = Group::create(['name' => 'Science', 'is_active' => true]);
+    $class->groups()->attach($group->id);
+
+    $examType = ExamType::create(['name' => 'Annual', 'is_active' => true]);
+    $exam = Exam::create([
+        'exam_type_id' => $examType->id,
+        'class_id' => $class->id,
+        'session_year' => now()->year,
+        'start_date' => now()->toDateString(),
+        'end_date' => now()->addDay()->toDateString(),
+        'is_published' => true,
+    ]);
+
+    $bangla = Subject::create(['name' => 'Bangla', 'has_mcq' => false, 'has_written' => true, 'has_practical' => false, 'is_active' => true]);
+    $bangla->classes()->attach($class->id, ['subject_type' => SubjectType::Compulsory->value]);
+
+    $biology = Subject::create(['name' => 'Biology', 'has_mcq' => false, 'has_written' => true, 'has_practical' => false, 'is_active' => true]);
+    $biology->classes()->attach($class->id, ['group_id' => $group->id, 'subject_type' => SubjectType::Optional->value]);
+
+    $higherMath = Subject::create(['name' => 'Higher Math', 'has_mcq' => false, 'has_written' => true, 'has_practical' => false, 'is_active' => true]);
+    $higherMath->classes()->attach($class->id, ['group_id' => $group->id, 'subject_type' => SubjectType::Optional->value]);
+
+    foreach ([$bangla, $biology, $higherMath] as $subject) {
+        ExamSubjectConfig::create([
+            'exam_id' => $exam->id,
+            'subject_id' => $subject->id,
+            'written_total' => 100,
+            'total_marks' => 100,
+            'pass_mark' => 33,
+        ]);
+    }
+
+    $user = User::factory()->create(['user_type' => UserType::Student, 'is_active' => true]);
+    $student = StudentProfile::create([
+        'user_id' => $user->id,
+        'roll_no' => random_int(1, 999),
+        'current_class_id' => $class->id,
+        'current_group_id' => $group->id,
+        'session_year' => now()->year,
+        'gender' => Gender::Male,
+        'status' => StudentStatus::Active,
+    ]);
+
+    StudentOptionalSubject::create(['student_id' => $student->id, 'class_id' => $class->id, 'group_id' => $group->id, 'subject_id' => $biology->id, 'role' => OptionalSubjectRole::MainOptional]);
+    StudentOptionalSubject::create(['student_id' => $student->id, 'class_id' => $class->id, 'group_id' => $group->id, 'subject_id' => $higherMath->id, 'role' => OptionalSubjectRole::ExtraOptional]);
+
+    foreach ([$bangla, $biology, $higherMath] as $subject) {
+        StudentResult::create(['exam_id' => $exam->id, 'subject_id' => $subject->id, 'class_id' => $class->id, 'student_id' => $student->id, 'written_marks' => 80]);
+    }
+
+    $ranking = StudentMeritRanking::create([
+        'exam_id' => $exam->id,
+        'student_id' => $student->id,
+        'class_id' => $class->id,
+        'total_marks' => 240,
+        'gpa' => 5.0,
+        'class_rank' => 1,
+    ]);
+
+    ['rows' => $rows, 'summary' => $summary] = app(BuildStudentMarksDetail::class)->handle($ranking);
+
+    expect($summary['total_grade_point'])
+        ->toBe(number_format((float) $rows->sum('grade_point'), 2))
+        ->and((float) $summary['total_grade_point'])->toBeGreaterThan((float) $rows->max('grade_point') * 2);
+});

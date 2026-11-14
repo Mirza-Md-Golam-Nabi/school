@@ -92,6 +92,7 @@ class CreateTeacherProfileAction
             'designation' => $data['designation'] ?? null,
             'department' => $data['department'] ?? null,
             'qualification' => $data['qualification'] ?? null,
+            'signature' => $data['signature'] ?? null,
             'joining_date' => $data['joining_date'] ?? null,
             'status' => $data['status'] ?? null,
         ];

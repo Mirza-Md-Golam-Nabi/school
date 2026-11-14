@@ -2,10 +2,9 @@
 
 namespace App\Filament\Pages;
 
-use App\Enums\AttendanceStatus;
+use App\Actions\Attendance\ResolveStudentAttendanceTotals;
 use App\Enums\Permissions\AttendancePermission;
 use App\Filament\Concerns\HasAttendancePagePermission;
-use App\Models\Attendance;
 use App\Models\Classes;
 use App\Models\StudentProfile;
 use BackedEnum;
@@ -56,14 +55,7 @@ class ClassAttendanceRanking extends Page
     {
         $year = (int) now()->year;
 
-        $counts = Attendance::where('attendable_type', StudentProfile::class)
-            ->countedPresent(StudentProfile::class)
-            ->where('class_id', $this->classId)
-            ->inYear($year)
-            ->selectRaw('attendable_id, count(*) as present_count')
-            ->groupBy('attendable_id')
-            ->get()
-            ->keyBy('attendable_id');
+        $counts = app(ResolveStudentAttendanceTotals::class)->presentCountsForYear($year, $this->classId);
 
         return StudentProfile::with('user')
             ->where('current_class_id', $this->classId)
@@ -72,7 +64,7 @@ class ClassAttendanceRanking extends Page
             ->map(fn (StudentProfile $student) => [
                 'name' => $student->user?->name ?? '—',
                 'roll_no' => $student->roll_no,
-                'present_count' => $counts->get($student->id)?->present_count ?? 0,
+                'present_count' => $counts->get($student->id, 0),
             ])
             ->sortByDesc('present_count')
             ->values();

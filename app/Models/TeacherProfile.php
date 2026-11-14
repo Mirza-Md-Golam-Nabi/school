@@ -35,6 +35,7 @@ class TeacherProfile extends Model
         'designation',
         'department',
         'qualification',
+        'signature',
         'joining_date',
         'status',
         'default_school_account_id',

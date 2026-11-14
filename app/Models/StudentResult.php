@@ -25,6 +25,8 @@ class StudentResult extends Model
         'practical_marks',
         'total_marks',
         'is_absent',
+        'is_theory_absent',
+        'is_practical_absent',
         'result_breakdown',
         'final_marks',
         'final_full_marks',
@@ -32,6 +34,8 @@ class StudentResult extends Model
 
     protected $casts = [
         'is_absent' => 'boolean',
+        'is_theory_absent' => 'boolean',
+        'is_practical_absent' => 'boolean',
         'mcq_marks' => 'float',
         'written_marks' => 'float',
         'practical_marks' => 'float',
@@ -41,23 +45,93 @@ class StudentResult extends Model
         'final_full_marks' => 'float',
     ];
 
+    /**
+     * `is_absent` means absent in the whole subject — the same as absent in
+     * both the theory (MCQ + written) and the practical exam. Marking the
+     * subject absent marks both parts absent; marking both parts absent marks
+     * the subject absent, unless `is_absent` was just turned off, which clears
+     * both parts. An absent part's marks are dropped.
+     */
     protected static function booted(): void
     {
         static::saving(function (StudentResult $result): void {
             if ($result->is_absent) {
+                $result->is_theory_absent = true;
+                $result->is_practical_absent = true;
+            } elseif ($result->is_theory_absent && $result->is_practical_absent) {
+                if ($result->exists && $result->isDirty('is_absent')) {
+                    $result->is_theory_absent = false;
+                    $result->is_practical_absent = false;
+                } else {
+                    $result->is_absent = true;
+                }
+            }
+
+            if ($result->is_theory_absent) {
                 $result->mcq_marks = null;
                 $result->written_marks = null;
-                $result->practical_marks = null;
-                $result->total_marks = 0;
-            } else {
-                $result->total_marks = round(
-                    (float) ($result->mcq_marks ?? 0)
-                        + (float) ($result->written_marks ?? 0)
-                        + (float) ($result->practical_marks ?? 0),
-                    2
-                );
             }
+
+            if ($result->is_practical_absent) {
+                $result->practical_marks = null;
+            }
+
+            $result->total_marks = round(
+                (float) ($result->mcq_marks ?? 0)
+                    + (float) ($result->written_marks ?? 0)
+                    + (float) ($result->practical_marks ?? 0),
+                2
+            );
         });
+    }
+
+    /**
+     * Whether the student missed the subject, or only its theory (MCQ +
+     * written) or practical exam — any of which fails the subject.
+     */
+    public function isAbsentInAnyPart(): bool
+    {
+        return $this->is_absent || $this->is_theory_absent || $this->is_practical_absent;
+    }
+
+    /**
+     * The result attributes from one student's row on the Enter Marks page:
+     * blank marks become null, an absent part's marks are dropped. Per part,
+     * the theory (MCQ + written) and practical checkboxes are read and absent
+     * in both is absent in the subject; otherwise the one Absent checkbox
+     * stands for both parts.
+     *
+     * @param  array<string, mixed>  $mark
+     * @return array{mcq_marks: mixed, written_marks: mixed, practical_marks: mixed, is_absent: bool, is_theory_absent: bool, is_practical_absent: bool}
+     */
+    public static function markEntryAttributes(array $mark, bool $absenceIsPerPart): array
+    {
+        if ($absenceIsPerPart) {
+            $isTheoryAbsent = (bool) ($mark['is_theory_absent'] ?? false);
+            $isPracticalAbsent = (bool) ($mark['is_practical_absent'] ?? false);
+        } else {
+            $isTheoryAbsent = $isPracticalAbsent = (bool) ($mark['is_absent'] ?? false);
+        }
+
+        $value = fn (string $field, bool $isPartAbsent): mixed => $isPartAbsent || ($mark[$field] ?? '') === '' ? null : $mark[$field];
+
+        return [
+            'mcq_marks' => $value('mcq_marks', $isTheoryAbsent),
+            'written_marks' => $value('written_marks', $isTheoryAbsent),
+            'practical_marks' => $value('practical_marks', $isPracticalAbsent),
+            'is_absent' => $isTheoryAbsent && $isPracticalAbsent,
+            'is_theory_absent' => $isTheoryAbsent,
+            'is_practical_absent' => $isPracticalAbsent,
+        ];
+    }
+
+    /**
+     * Whether the student missed only one part (theory or practical) and sat
+     * the other.
+     */
+    public function isPartlyAbsent(): bool
+    {
+        return ! $this->is_absent && ($this->is_theory_absent || $this->is_practical_absent);
     }
 
     public function exam(): BelongsTo

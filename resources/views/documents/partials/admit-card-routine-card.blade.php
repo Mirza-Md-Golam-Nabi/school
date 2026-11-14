@@ -44,6 +44,9 @@
             </td>
             <td style="text-align: center;">
                 <div class="arc-school-name">{{ $branding->schoolName }}</div>
+                @if ($branding->eiinLine)
+                    <div class="arc-school-address">{{ $branding->eiinLine }}</div>
+                @endif
                 @if ($branding->addressLine)
                     <div class="arc-school-address">{{ $branding->addressLine }}</div>
                 @endif
@@ -131,7 +134,7 @@
                 @if ($branding->signatureDataUri)
                     <img src="{{ $branding->signatureDataUri }}" alt="Signature" width="70" height="26" style="width: 70px; height: 26px;"><br>
                 @endif
-                <div class="arc-sign-line">Principal's Signature</div>
+                <div class="arc-sign-line">{{ \App\Models\SchoolSetting::headSignatoryTitle() }}</div>
             </td>
         </tr>
     </table>

@@ -2,9 +2,8 @@
 
 namespace App\Filament\Student\Widgets;
 
-use App\Enums\AttendanceStatus;
+use App\Actions\Attendance\ResolveStudentAttendanceTotals;
 use App\Filament\Student\Pages\MyAttendanceRanking;
-use App\Models\Attendance;
 use App\Models\StudentProfile;
 use Filament\Widgets\Widget;
 use Illuminate\Support\Facades\Auth;
@@ -39,20 +38,11 @@ class StudentAttendanceRankOverview extends Widget
         $year = (int) now()->year;
         $classId = $profile->current_class_id;
 
-        $workingDays = Attendance::where('attendable_type', StudentProfile::class)
-            ->where('class_id', $classId)
-            ->inYear($year)
-            ->distinct('date')
-            ->count('date');
+        $resolver = app(ResolveStudentAttendanceTotals::class);
 
-        $counts = Attendance::where('attendable_type', StudentProfile::class)
-            ->countedPresent(StudentProfile::class)
-            ->where('class_id', $classId)
-            ->inYear($year)
-            ->selectRaw('attendable_id, count(*) as present_count')
-            ->groupBy('attendable_id')
-            ->get()
-            ->keyBy('attendable_id');
+        $workingDays = $resolver->workingDaysForYear($year, $classId);
+
+        $counts = $resolver->presentCountsForYear($year, $classId);
 
         $ranking = StudentProfile::where('current_class_id', $classId)
             ->active()
@@ -62,7 +52,7 @@ class StudentAttendanceRankOverview extends Widget
                 'id' => $student->id,
                 'name' => $student->user?->name ?? '—',
                 'roll_no' => $student->roll_no,
-                'present_count' => $counts->get($student->id)?->present_count ?? 0,
+                'present_count' => $counts->get($student->id, 0),
             ])
             ->sortByDesc('present_count')
             ->values();
@@ -71,7 +61,7 @@ class StudentAttendanceRankOverview extends Widget
 
         return [
             'workingDays' => $workingDays,
-            'presentDays' => $counts->get($profile->id)?->present_count ?? 0,
+            'presentDays' => $counts->get($profile->id, 0),
             'rank' => $rank === false ? null : $rank + 1,
             'topStudent' => $ranking->first(),
             'url' => MyAttendanceRanking::getUrl(panel: 'student'),

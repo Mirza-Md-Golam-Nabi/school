@@ -1,0 +1,161 @@
+<?php
+
+use App\Enums\MergedAbsentRule;
+use App\Enums\MergedComponentPassRule;
+use App\Enums\MergedPassRule;
+use App\Enums\ResultRounding;
+use App\Enums\SubjectType;
+use App\Enums\UserType;
+use App\Filament\Resources\Classes\Pages\EditClasses;
+use App\Filament\Resources\Classes\RelationManagers\SubjectMergesRelationManager as ClassSubjectMergesRelationManager;
+use App\Filament\Resources\Exams\Pages\EditExam;
+use App\Filament\Resources\Exams\RelationManagers\SubjectMergesRelationManager as ExamSubjectMergesRelationManager;
+use App\Models\Classes;
+use App\Models\Exam;
+use App\Models\ExamSubjectMerge;
+use App\Models\ExamType;
+use App\Models\Subject;
+use App\Models\SubjectMerge;
+use App\Models\User;
+use Filament\Actions\CreateAction;
+use Filament\Actions\Testing\TestAction;
+use Filament\Facades\Filament;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Livewire;
+
+use function Pest\Laravel\assertDatabaseHas;
+use function Pest\Laravel\assertDatabaseMissing;
+
+uses(RefreshDatabase::class);
+
+beforeEach(function () {
+    Filament::setCurrentPanel('admin');
+    $this->actingAs(grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true])));
+
+    $this->class = Classes::create(['name' => 'Class 6', 'order' => 6, 'is_active' => true]);
+
+    $makeSubject = function (string $name, SubjectType $type = SubjectType::Compulsory): Subject {
+        $subject = Subject::create(['name' => $name, 'has_written' => true, 'is_active' => true]);
+        $subject->classes()->attach($this->class->id, ['subject_type' => $type->value]);
+
+        return $subject;
+    };
+
+    $this->banglaFirst = $makeSubject('Bangla 1st Paper');
+    $this->banglaSecond = $makeSubject('Bangla 2nd Paper');
+    $this->agriculture = $makeSubject('Agriculture', SubjectType::Optional);
+});
+
+function subjectMergeTestExam(Classes $class, bool $isPublished = false): Exam
+{
+    return Exam::create([
+        'exam_type_id' => ExamType::create(['name' => 'Final', 'is_active' => true])->id,
+        'class_id' => $class->id,
+        'session_year' => now()->year,
+        'start_date' => now()->toDateString(),
+        'end_date' => now()->addDay()->toDateString(),
+        'is_published' => $isPublished,
+    ]);
+}
+
+it('merges two subjects of a class, leaving empty rules to School Settings', function () {
+    Livewire::test(ClassSubjectMergesRelationManager::class, ['ownerRecord' => $this->class, 'pageClass' => EditClasses::class])
+        ->callAction(TestAction::make(CreateAction::class)->table(), [
+            'name' => 'Bangla',
+            'name_bn' => 'বাংলা',
+            'first_subject_id' => $this->banglaFirst->id,
+            'second_subject_id' => $this->banglaSecond->id,
+            'absent_rule' => MergedAbsentRule::CountAsZero->value,
+        ])
+        ->assertHasNoFormErrors();
+
+    assertDatabaseHas(SubjectMerge::class, [
+        'class_id' => $this->class->id,
+        'name' => 'Bangla',
+        'first_subject_id' => $this->banglaFirst->id,
+        'second_subject_id' => $this->banglaSecond->id,
+        'pass_rule' => null,
+        'absent_rule' => MergedAbsentRule::CountAsZero->value,
+    ]);
+});
+
+it('rejects merging a subject with itself, with a different subject type, or one already merged', function (string $case) {
+    $other = match ($case) {
+        'itself' => $this->banglaFirst,
+        'type' => $this->agriculture,
+        'taken' => $this->banglaSecond,
+    };
+
+    if ($case === 'taken') {
+        SubjectMerge::factory()->create([
+            'class_id' => $this->class->id,
+            'first_subject_id' => $this->banglaSecond->id,
+            'second_subject_id' => Subject::create(['name' => 'Other', 'is_active' => true])->id,
+        ]);
+    }
+
+    Livewire::test(ClassSubjectMergesRelationManager::class, ['ownerRecord' => $this->class, 'pageClass' => EditClasses::class])
+        ->callAction(TestAction::make(CreateAction::class)->table(), [
+            'name' => 'Bangla',
+            'first_subject_id' => $this->banglaFirst->id,
+            'second_subject_id' => $other->id,
+        ])
+        ->assertHasFormErrors(['first_subject_id']);
+
+    assertDatabaseMissing(SubjectMerge::class, ['name' => 'Bangla']);
+})->with(['itself', 'type', 'taken']);
+
+it('replaces an exam\'s merges with the class default', function () {
+    SubjectMerge::factory()->create([
+        'class_id' => $this->class->id,
+        'name' => 'Bangla',
+        'first_subject_id' => $this->banglaFirst->id,
+        'second_subject_id' => $this->banglaSecond->id,
+    ]);
+    $exam = subjectMergeTestExam($this->class);
+    $stale = ExamSubjectMerge::factory()->create(['exam_id' => $exam->id, 'name' => 'Stale']);
+
+    Livewire::test(ExamSubjectMergesRelationManager::class, ['ownerRecord' => $exam, 'pageClass' => EditExam::class])
+        ->callAction(TestAction::make('applyClassDefault')->table())
+        ->assertNotified();
+
+    assertDatabaseMissing(ExamSubjectMerge::class, ['id' => $stale->id]);
+    assertDatabaseHas(ExamSubjectMerge::class, [
+        'exam_id' => $exam->id,
+        'name' => 'Bangla',
+        'pass_rule' => MergedPassRule::Combined->value,
+        'component_pass_rule' => MergedComponentPassRule::Combined->value,
+        'absent_rule' => MergedAbsentRule::Fail->value,
+        'rounding' => ResultRounding::Decimal->value,
+    ]);
+});
+
+it('adds a merge to one exam with every rule filled in', function () {
+    $exam = subjectMergeTestExam($this->class);
+
+    Livewire::test(ExamSubjectMergesRelationManager::class, ['ownerRecord' => $exam, 'pageClass' => EditExam::class])
+        ->callAction(TestAction::make(CreateAction::class)->table(), [
+            'name' => 'Bangla',
+            'first_subject_id' => $this->banglaFirst->id,
+            'second_subject_id' => $this->banglaSecond->id,
+            'pass_rule' => MergedPassRule::EachPaper->value,
+            'component_pass_rule' => MergedComponentPassRule::EachPaper->value,
+            'absent_rule' => MergedAbsentRule::Fail->value,
+            'rounding' => ResultRounding::Down->value,
+        ])
+        ->assertHasNoFormErrors();
+
+    assertDatabaseHas(ExamSubjectMerge::class, [
+        'exam_id' => $exam->id,
+        'pass_rule' => MergedPassRule::EachPaper->value,
+        'rounding' => ResultRounding::Down->value,
+    ]);
+});
+
+it('locks an exam\'s merges once its result is published', function () {
+    $exam = subjectMergeTestExam($this->class, isPublished: true);
+
+    Livewire::test(ExamSubjectMergesRelationManager::class, ['ownerRecord' => $exam, 'pageClass' => EditExam::class])
+        ->assertActionHidden(TestAction::make(CreateAction::class)->table())
+        ->assertActionHidden(TestAction::make('applyClassDefault')->table());
+});

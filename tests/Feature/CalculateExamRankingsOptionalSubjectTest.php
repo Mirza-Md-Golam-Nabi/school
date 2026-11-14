@@ -127,9 +127,74 @@ it('excludes a failed extra_optional subject from GPA without failing the studen
 
     $ranking = StudentMeritRanking::where('exam_id', $exam->id)->where('student_id', $student->id)->first();
 
-    // Bangla (A+, 5.0) + Biology (A+, 5.0) averaged — Higher Math's fail is excluded, not penalized.
+    // Bangla (A+, 5.0) + Biology (A+, 5.0) averaged — Higher Math's fail is
+    // excluded, not penalized, and its marks add nothing to the total.
     expect($ranking->gpa)->toBe(5.0)
-        ->and($ranking->total_marks)->toBe(170.0);
+        ->and($ranking->total_marks)->toBe(160.0);
+});
+
+it('adds only the additional subject grade point above 2 and marks above 40, dividing by the other subjects', function () {
+    [$class, $group] = makeOptionalSubjectTestClassAndGroup();
+    $exam = makeOptionalSubjectTestExam($class);
+
+    $bangla = makeOptionalSubjectTestCompulsorySubject($class, 'Bangla');
+    $physics = makeOptionalSubjectTestCompulsorySubject($class, 'Physics');
+    $biology = makeOptionalSubjectTestOptionalSubject($class, $group, 'Biology');
+    $higherMath = makeOptionalSubjectTestOptionalSubject($class, $group, 'Higher Math');
+
+    foreach ([$bangla, $physics, $biology, $higherMath] as $subject) {
+        ExamSubjectConfig::create([
+            'exam_id' => $exam->id,
+            'subject_id' => $subject->id,
+            'written_total' => 100,
+            'total_marks' => 100,
+            'pass_mark' => 33,
+        ]);
+    }
+
+    $student = makeOptionalSubjectTestStudent($class, $group);
+
+    StudentOptionalSubject::create(['student_id' => $student->id, 'class_id' => $class->id, 'group_id' => $group->id, 'subject_id' => $biology->id, 'role' => OptionalSubjectRole::MainOptional]);
+    StudentOptionalSubject::create(['student_id' => $student->id, 'class_id' => $class->id, 'group_id' => $group->id, 'subject_id' => $higherMath->id, 'role' => OptionalSubjectRole::ExtraOptional]);
+
+    StudentResult::create(['exam_id' => $exam->id, 'subject_id' => $bangla->id, 'class_id' => $class->id, 'student_id' => $student->id, 'written_marks' => 83]);
+    StudentResult::create(['exam_id' => $exam->id, 'subject_id' => $physics->id, 'class_id' => $class->id, 'student_id' => $student->id, 'written_marks' => 72]);
+    StudentResult::create(['exam_id' => $exam->id, 'subject_id' => $biology->id, 'class_id' => $class->id, 'student_id' => $student->id, 'written_marks' => 70]);
+    StudentResult::create(['exam_id' => $exam->id, 'subject_id' => $higherMath->id, 'class_id' => $class->id, 'student_id' => $student->id, 'written_marks' => 61]);
+
+    app(CalculateExamRankings::class)->execute($exam);
+
+    $ranking = StudentMeritRanking::where('exam_id', $exam->id)->where('student_id', $student->id)->first();
+
+    // (5.0 + 4.0 + 4.0 + (3.5 − 2)) ÷ 3 = 4.83; total = 83 + 72 + 70 + (61 − 40) = 246.
+    expect($ranking->gpa)->toBe(4.83)
+        ->and($ranking->total_marks)->toBe(246.0);
+});
+
+it('caps the GPA at 5.00 when the additional subject bonus pushes it higher', function () {
+    [$class, $group] = makeOptionalSubjectTestClassAndGroup();
+    $exam = makeOptionalSubjectTestExam($class);
+
+    $bangla = makeOptionalSubjectTestCompulsorySubject($class, 'Bangla');
+    $higherMath = makeOptionalSubjectTestOptionalSubject($class, $group, 'Higher Math');
+
+    foreach ([$bangla, $higherMath] as $subject) {
+        ExamSubjectConfig::create(['exam_id' => $exam->id, 'subject_id' => $subject->id, 'written_total' => 100, 'total_marks' => 100, 'pass_mark' => 33]);
+    }
+
+    $student = makeOptionalSubjectTestStudent($class, $group);
+
+    StudentOptionalSubject::create(['student_id' => $student->id, 'class_id' => $class->id, 'group_id' => $group->id, 'subject_id' => $higherMath->id, 'role' => OptionalSubjectRole::ExtraOptional]);
+
+    StudentResult::create(['exam_id' => $exam->id, 'subject_id' => $bangla->id, 'class_id' => $class->id, 'student_id' => $student->id, 'written_marks' => 90]);
+    StudentResult::create(['exam_id' => $exam->id, 'subject_id' => $higherMath->id, 'class_id' => $class->id, 'student_id' => $student->id, 'written_marks' => 90]);
+
+    app(CalculateExamRankings::class)->execute($exam);
+
+    $ranking = StudentMeritRanking::where('exam_id', $exam->id)->where('student_id', $student->id)->first();
+
+    expect($ranking->gpa)->toBe(5.0)
+        ->and($ranking->total_marks)->toBe(140.0);
 });
 
 it('fails the student overall when the failed subject is their main_optional instead', function () {

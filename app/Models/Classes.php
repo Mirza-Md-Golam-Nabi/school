@@ -74,6 +74,14 @@ class Classes extends Model
         return $this->belongsToMany(ResultRule::class, 'result_rule_classes', 'class_id', 'result_rule_id')->withTimestamps();
     }
 
+    /**
+     * The class's default subject merges, copied onto each new exam.
+     */
+    public function subjectMerges(): HasMany
+    {
+        return $this->hasMany(SubjectMerge::class, 'class_id');
+    }
+
     public function studentProfiles(): HasMany
     {
         return $this->hasMany(StudentProfile::class, 'current_class_id');

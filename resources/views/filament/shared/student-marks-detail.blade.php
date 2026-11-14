@@ -24,6 +24,14 @@
                                 <span class="block whitespace-normal break-words">
                                     {{ $row['subject_name'] }}
                                 </span>
+                                {{-- A merged subject (e.g. Bangla 1st + 2nd paper): each paper's marks. --}}
+                                @if ($row['papers'] ?? null)
+                                    <span class="mt-0.5 block text-[9px] font-normal text-gray-500 dark:text-gray-400 sm:text-[11px]">
+                                        @foreach ($row['papers'] as $paper)
+                                            <span class="whitespace-nowrap">{{ $paper['paper_label'] }}: {{ $paper['is_absent'] ? 'Absent' : ($paper['total_marks'] === null ? '—' : $paper['total_marks'] + 0) }}</span>@if (! $loop->last) · @endif
+                                        @endforeach
+                                    </span>
+                                @endif
                                 {{-- A result made by a result rule: what each exam gave. --}}
                                 @if ($row['components'])
                                     <span class="mt-0.5 block text-[9px] font-normal text-gray-500 dark:text-gray-400 sm:text-[11px]">
@@ -44,6 +52,11 @@
                                     <span class="{{ $row['is_top_scorer'] ? 'font-bold text-yellow-700 dark:text-yellow-400' : 'text-gray-700 dark:text-gray-300' }}">
                                         {{ $row['total_marks'] }}
                                     </span>
+                                    @if ($row['is_theory_absent'] ?? false)
+                                        <span class="block text-[9px] text-red-600 dark:text-red-400 sm:text-[11px]">লিখিত Absent</span>
+                                    @elseif ($row['is_practical_absent'] ?? false)
+                                        <span class="block text-[9px] text-red-600 dark:text-red-400 sm:text-[11px]">Practical Absent</span>
+                                    @endif
                                 @endif
                             </td>
 

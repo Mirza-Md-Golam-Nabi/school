@@ -315,7 +315,7 @@
                         @if ($school['signature'])
                             <img src="{{ $school['signature'] }}" style="width: 16mm; height: 6mm;">
                         @endif
-                        <div class="signature-line">PRINCIPAL</div>
+                        <div class="signature-line">{{ mb_strtoupper(\App\Models\SchoolSetting::headSignatoryTitle()) }}</div>
                     </td>
                 </tr>
             </table>

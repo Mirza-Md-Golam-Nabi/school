@@ -12,6 +12,7 @@
     $formatMark = fn (float $mark): string => rtrim(rtrim(number_format($mark, 2), '0'), '.');
 
     $schoolName = SchoolSetting::get('school_name', '');
+    $schoolEiinLine = SchoolSetting::eiinLine();
     $schoolAddress = SchoolSetting::get('school_address', '');
     $schoolEstablishedYear = SchoolSetting::get('school_established_year', '');
     $schoolAddressLine = collect([
@@ -42,9 +43,23 @@
     $logoDataUri = $useLogo ? $toDataUri(SchoolSetting::get('school_logo')) : null;
     $sealDataUri = $toDataUri(SchoolSetting::get('school_seal'));
     $signatureDataUri = $toDataUri(SchoolSetting::get('principal_signature'));
+    $classTeacherSignatureDataUri = $toDataUri($exam->class?->classTeacher?->signature);
+
+    // A merged subject (e.g. Bangla 1st + 2nd paper) prints one line per paper.
+    $markLines = $rows->flatMap(fn (array $row): array => $row['papers'] ?? [$row]);
 
     // A result made by a result rule gets a column for what each of its exams gave.
-    $componentNames = $rows->flatMap(fn (array $row): array => array_column($row['components'], 'name'))->unique()->values();
+    $componentNames = $markLines->flatMap(fn (array $line): array => array_column($line['components'], 'name'))->unique()->values();
+
+    // The practical column only when some subject has practical marks.
+    $hasPractical = $markLines->contains(fn (array $line): bool => $line['practical_marks'] !== null);
+    $hasMergedSubjects = $rows->contains(fn (array $row): bool => $row['papers'] !== null);
+    $subjectColspan = $hasMergedSubjects ? 2 : 1;
+
+    // Fixed widths keep the "1st / 2nd" paper column narrow so the marks columns get the room.
+    $markColumnCount = 6 + ($hasPractical ? 1 : 0) + $componentNames->count() + ($hasMergedSubjects ? 1 : 0);
+    $paperColumnWidth = $hasMergedSubjects ? 6 : 0;
+    $markColumnWidth = round(min(8, 66 / $markColumnCount), 2);
 @endphp
 <!DOCTYPE html>
 <html>
@@ -253,7 +268,11 @@
         <table class="signatures">
             <tr>
                 <td>
-                    <br><br><br>
+                    @if ($classTeacherSignatureDataUri)
+                        <img src="{{ $classTeacherSignatureDataUri }}" alt="Class Teacher Signature" width="80px"><br><br>
+                    @else
+                        <br><br><br>
+                    @endif
                     {{ __('Class Teacher') }}
                 </td>
                 <td>
@@ -274,7 +293,7 @@
                     @else
                         <br><br>
                     @endif
-                    {{ __("Principal's Signature") }}
+                    {{ SchoolSetting::headSignatoryTitle() }}
                 </td>
             </tr>
         </table>
@@ -286,6 +305,9 @@
                 <img class="logo" src="{{ $logoDataUri }}" alt="Logo">
             @endif
             <div class="school-name">{{ $schoolName }}</div>
+            @if ($schoolEiinLine)
+                <div class="school-address">{{ $schoolEiinLine }}</div>
+            @endif
             @if ($schoolAddressLine)
                 <div class="school-address">{{ $schoolAddressLine }}</div>
             @endif
@@ -355,49 +377,86 @@
         <table class="subjects">
             <thead>
                 <tr>
-                    <th style="text-align: left;">{{ __('Subject') }}</th>
-                    <th>{{ __('MCQ') }}</th>
-                    <th>{{ __('Written') }}</th>
-                    <th>{{ __('Practical') }}</th>
+                    <th style="text-align: left;" colspan="{{ $subjectColspan }}">{{ __('Subject') }}</th>
+                    <th style="width: {{ $markColumnWidth }}%;">{{ __('MCQ') }}</th>
+                    <th style="width: {{ $markColumnWidth }}%;">{{ __('Written') }}</th>
+                    @if ($hasPractical)
+                        <th style="width: {{ $markColumnWidth }}%;">{{ __('Practical') }}</th>
+                    @endif
                     @foreach ($componentNames as $componentName)
-                        <th>{{ $componentName }}</th>
+                        <th style="width: {{ $markColumnWidth }}%;">{{ $componentName }}</th>
                     @endforeach
-                    <th>{{ __('Marks') }}</th>
-                    <th>{{ __('Best') }}</th>
-                    <th>{{ __('Grade') }}</th>
+                    <th style="width: {{ $markColumnWidth }}%;">{{ __('Marks') }}</th>
+                    @if ($hasMergedSubjects)
+                        <th style="width: {{ $markColumnWidth }}%;">{{ __('Total') }}</th>
+                    @endif
+                    <th style="width: {{ $markColumnWidth }}%;">{{ __('Best') }}</th>
+                    <th style="width: {{ $markColumnWidth }}%;">{{ __('Grade') }}</th>
+                    <th style="width: {{ $markColumnWidth }}%;">{{ __('GP') }}</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach ($rows as $row)
-                    <tr>
-                        <td>{{ $row['subject_name'] }}</td>
-                        <td style="text-align: center;">{{ BengaliNumber::localize((string) ($row['mcq_marks'] ?? '-')) }}</td>
-                        <td style="text-align: center;">{{ BengaliNumber::localize((string) ($row['written_marks'] ?? '-')) }}</td>
-                        <td style="text-align: center;">{{ BengaliNumber::localize((string) ($row['practical_marks'] ?? '-')) }}</td>
-                        @foreach ($componentNames as $componentName)
-                            @php $component = collect($row['components'])->firstWhere('name', $componentName); @endphp
-                            <td style="text-align: center;">
-                                @if (! $component)
-                                    -
-                                @elseif ($component['is_absent'])
+                    @php
+                        $isMerged = $row['papers'] !== null;
+                        $lines = $row['papers'] ?? [$row];
+                        $lineCount = count($lines);
+                    @endphp
+                    @foreach ($lines as $lineIndex => $line)
+                        <tr>
+                            @if ($lineIndex === 0)
+                                <td rowspan="{{ $lineCount }}" colspan="{{ $isMerged ? 1 : $subjectColspan }}">{{ $row['subject_name'] }}</td>
+                            @endif
+                            @if ($isMerged)
+                                <td style="text-align: center; width: {{ $paperColumnWidth }}%;">{{ $line['paper_label'] }}</td>
+                            @endif
+                            {{-- Absent in only the theory or the practical exam: that part shows Absent. --}}
+                            @php $isPartlyAbsent = ! $line['is_absent'] && (($line['is_theory_absent'] ?? false) || ($line['is_practical_absent'] ?? false)); @endphp
+                            <td style="text-align: center;">{{ $isPartlyAbsent && $line['is_theory_absent'] ? __('Absent') : BengaliNumber::localize((string) ($line['mcq_marks'] ?? '-')) }}</td>
+                            <td style="text-align: center;">{{ $isPartlyAbsent && $line['is_theory_absent'] ? __('Absent') : BengaliNumber::localize((string) ($line['written_marks'] ?? '-')) }}</td>
+                            @if ($hasPractical)
+                                <td style="text-align: center;">{{ $isPartlyAbsent && $line['is_practical_absent'] ? __('Absent') : BengaliNumber::localize((string) ($line['practical_marks'] ?? '-')) }}</td>
+                            @endif
+                            @foreach ($componentNames as $componentName)
+                                @php $component = collect($line['components'])->firstWhere('name', $componentName); @endphp
+                                <td style="text-align: center;">
+                                    @if (! $component)
+                                        -
+                                    @elseif ($component['is_absent'])
+                                        {{ __('Absent') }}
+                                    @else
+                                        {{ BengaliNumber::localize($formatMark($component['marks'])) }}
+                                    @endif
+                                </td>
+                            @endforeach
+                            {{-- An unmerged subject's marks are its total, so the two cells are one. --}}
+                            <td style="text-align: center;" colspan="{{ ! $isMerged && $hasMergedSubjects ? 2 : 1 }}">
+                                @if ($line['is_absent'])
                                     {{ __('Absent') }}
+                                @elseif ($line['total_marks'] === null)
+                                    -
                                 @else
-                                    {{ BengaliNumber::localize($formatMark($component['marks'])) }}
+                                    {{ BengaliNumber::localize($formatMark((float) $line['total_marks'])) }}
                                 @endif
                             </td>
-                        @endforeach
-                        <td style="text-align: center;">
-                            @if ($row['is_absent'])
-                                {{ __('Absent') }}
-                            @else
-                                {{ BengaliNumber::localize((string) $row['total_marks']) }}
+                            @if ($lineIndex === 0)
+                                @if ($isMerged)
+                                    <td style="text-align: center; font-weight: bold;" rowspan="{{ $lineCount }}">
+                                        @if ($row['is_absent'])
+                                            {{ __('Absent') }}
+                                        @else
+                                            {{ BengaliNumber::localize($formatMark((float) $row['total_marks'])) }}
+                                        @endif
+                                    </td>
+                                @endif
+                                <td style="text-align: center;" rowspan="{{ $lineCount }}">{{ BengaliNumber::localize($row['best_marks'] === null ? '-' : $formatMark((float) $row['best_marks'])) }}</td>
+                                <td style="text-align: center; font-weight: bold;" rowspan="{{ $lineCount }}">
+                                    {{ $row['grade_label'] ?? '-' }}
+                                </td>
+                                <td style="text-align: center;" rowspan="{{ $lineCount }}">{{ BengaliNumber::localize($row['grade_point'] === null ? '-' : number_format((float) $row['grade_point'], 2)) }}</td>
                             @endif
-                        </td>
-                        <td style="text-align: center;">{{ BengaliNumber::localize((string) ($row['best_marks'] ?? '-')) }}</td>
-                        <td style="text-align: center; font-weight: bold;">
-                            {{ $row['grade_label'] ?? '-' }}
-                        </td>
-                    </tr>
+                        </tr>
+                    @endforeach
                 @endforeach
             </tbody>
         </table>
@@ -412,14 +471,16 @@
             </tr>
             <tr>
                 <td class="summary-label">{{ __('Class Rank') }}</td>
-                @if ($hasSections)
-                    <td>{{ BengaliNumber::localize((string) ($summary['class_rank'] ?? '-')) }}</td>
-                    <td class="summary-label">{{ __('Section Rank') }}</td>
-                    <td>{{ BengaliNumber::localize((string) ($summary['section_rank'] ?? '-')) }}</td>
-                @else
-                    <td colspan="3">{{ BengaliNumber::localize((string) ($summary['class_rank'] ?? '-')) }}</td>
-                @endif
+                <td>{{ BengaliNumber::localize((string) ($summary['class_rank'] ?? '-')) }}</td>
+                <td class="summary-label">{{ __('Total GP') }}</td>
+                <td>{{ BengaliNumber::localize((string) ($summary['total_grade_point'] ?? '-')) }}</td>
             </tr>
+            @if ($hasSections)
+                <tr>
+                    <td class="summary-label">{{ __('Section Rank') }}</td>
+                    <td colspan="3">{{ BengaliNumber::localize((string) ($summary['section_rank'] ?? '-')) }}</td>
+                </tr>
+            @endif
             <tr>
                 <td class="summary-label">{{ __('1st Position Total Marks') }}</td>
                 <td>{{ BengaliNumber::localize((string) ($summary['top_rank_total_marks'] ?? '-')) }}</td>

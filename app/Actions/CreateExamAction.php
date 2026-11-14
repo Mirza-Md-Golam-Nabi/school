@@ -9,6 +9,8 @@ class CreateExamAction
 {
     use NotifiesExamResultPublished;
 
+    public function __construct(private readonly CopySubjectMergesToExamAction $copySubjectMergesToExam) {}
+
     public function handle(array $data): Exam
     {
         $exam = Exam::create([
@@ -19,6 +21,8 @@ class CreateExamAction
             'end_date' => $data['end_date'],
             'is_published' => $data['is_published'] ?? false,
         ]);
+
+        $this->copySubjectMergesToExam->handle($exam);
 
         if ($exam->is_published) {
             $this->notifyExamResultPublished($exam);

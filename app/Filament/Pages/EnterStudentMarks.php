@@ -60,8 +60,23 @@ class EnterStudentMarks extends Page
                 'written_marks' => $result?->written_marks,
                 'practical_marks' => $result?->practical_marks,
                 'is_absent' => (bool) ($result?->is_absent ?? false),
+                'is_theory_absent' => (bool) ($result?->is_theory_absent ?? false),
+                'is_practical_absent' => (bool) ($result?->is_practical_absent ?? false),
             ];
         }
+    }
+
+    /**
+     * Whether absence is marked per part — theory (MCQ + written) and
+     * practical — instead of for the whole subject: only where the subject
+     * has a practical exam besides MCQ / written.
+     */
+    public function marksAbsencePerPart(): bool
+    {
+        $config = $this->getSubjectConfig();
+
+        return $config?->practical_total !== null
+            && ($config->mcq_total !== null || $config->written_total !== null);
     }
 
     public function getTitle(): string|Htmlable
@@ -124,16 +139,10 @@ class EnterStudentMarks extends Page
             return;
         }
 
+        $perPart = $this->marksAbsencePerPart();
+
         $marksForValidation = collect($this->marks)
-            ->map(function (array $mark): array {
-                $isAbsent = (bool) ($mark['is_absent'] ?? false);
-
-                foreach (['mcq_marks', 'written_marks', 'practical_marks'] as $field) {
-                    $mark[$field] = ($isAbsent || ($mark[$field] ?? '') === '') ? null : $mark[$field];
-                }
-
-                return $mark;
-            })
+            ->map(fn (array $mark): array => StudentResult::markEntryAttributes($mark, $perPart))
             ->all();
 
         Validator::make(['marks' => $marksForValidation], $rules, [], $attributes)->validate();
@@ -151,9 +160,9 @@ class EnterStudentMarks extends Page
             ->get()
             ->keyBy('student_id');
 
-        foreach ($this->marks as $studentId => $mark) {
-            $isAbsent = (bool) ($mark['is_absent'] ?? false);
+        $perPart = $this->marksAbsencePerPart();
 
+        foreach ($this->marks as $studentId => $mark) {
             $result = $existingResults->get((int) $studentId) ?? new StudentResult([
                 'exam_id' => $this->examId,
                 'subject_id' => $this->subjectId,
@@ -162,10 +171,7 @@ class EnterStudentMarks extends Page
 
             $result->fill([
                 'class_id' => $this->classId,
-                'mcq_marks' => $isAbsent ? null : (isset($mark['mcq_marks']) && $mark['mcq_marks'] !== '' ? $mark['mcq_marks'] : null),
-                'written_marks' => $isAbsent ? null : (isset($mark['written_marks']) && $mark['written_marks'] !== '' ? $mark['written_marks'] : null),
-                'practical_marks' => $isAbsent ? null : (isset($mark['practical_marks']) && $mark['practical_marks'] !== '' ? $mark['practical_marks'] : null),
-                'is_absent' => $isAbsent,
+                ...StudentResult::markEntryAttributes($mark, $perPart),
             ])->save();
         }
 

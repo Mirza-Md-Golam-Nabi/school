@@ -13,6 +13,7 @@ enum ResultRounding: string implements HasLabel
     case Decimal = 'decimal';
     case Nearest = 'nearest';
     case Up = 'up';
+    case Down = 'down';
 
     public function getLabel(): string
     {
@@ -20,6 +21,7 @@ enum ResultRounding: string implements HasLabel
             self::Decimal => 'Decimal — দশমিকের দুই ঘর (৮২.৫)',
             self::Nearest => 'Nearest — কাছের পূর্ণসংখ্যা (৮২.৫ → ৮৩, ৮২.৪ → ৮২)',
             self::Up => 'Up — সবসময় ওপরে (৮২.১ → ৮৩)',
+            self::Down => 'Down — সবসময় নিচে (৮২.৯ → ৮২)',
         };
     }
 
@@ -32,6 +34,7 @@ enum ResultRounding: string implements HasLabel
             self::Decimal => $marks,
             self::Nearest => round($marks),
             self::Up => ceil($marks),
+            self::Down => floor($marks),
         };
     }
 }

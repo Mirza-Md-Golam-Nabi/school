@@ -307,9 +307,10 @@ it('renders separate MCQ, Written, and Practical columns alongside Marks, Best, 
 
     $html = view('documents.marksheet', compact('marksheet', 'rows', 'summary'))->render();
 
+    // No subject here has practical marks, so the Practical column is left out.
     expect($html)->toContain('MCQ')
         ->toContain('Written')
-        ->toContain('Practical')
+        ->not->toContain('Practical')
         ->toContain('Best')
         ->toContain('Grade');
 
@@ -319,8 +320,29 @@ it('renders separate MCQ, Written, and Practical columns alongside Marks, Best, 
         ->and($html)->toMatch('/>\s*85\s*</')
         ->and($html)->toMatch('/>\s*95\s*</');
 
-    // English has no MCQ/Practical config at all — those cells fall back to the placeholder.
-    expect(substr_count($html, '>-<'))->toBeGreaterThanOrEqual(2);
+    // English has no MCQ config at all — that cell falls back to the placeholder.
+    expect(substr_count($html, '>-<'))->toBeGreaterThanOrEqual(1);
+});
+
+it('adds the Practical column when a subject has practical marks', function () {
+    $class = Classes::create(['name' => 'Class Nine', 'order' => 9]);
+    $exam = makeMarksheetJobTestExam($class->id, ExamType::create(['name' => 'Half Yearly', 'is_active' => true]));
+
+    $physics = Subject::create(['name' => 'Physics', 'has_mcq' => false, 'has_written' => true, 'has_practical' => true, 'is_active' => true]);
+    $physics->classes()->attach($class->id, ['subject_type' => SubjectType::Compulsory->value]);
+    $student = makeMarksheetJobTestStudent($class->id);
+
+    ExamSubjectConfig::create(['exam_id' => $exam->id, 'subject_id' => $physics->id, 'written_total' => 75, 'practical_total' => 25, 'total_marks' => 100, 'pass_mark' => 33]);
+    StudentResult::create(['exam_id' => $exam->id, 'subject_id' => $physics->id, 'class_id' => $class->id, 'student_id' => $student->id, 'written_marks' => 60, 'practical_marks' => 23]);
+
+    $ranking = StudentMeritRanking::create(['exam_id' => $exam->id, 'student_id' => $student->id, 'class_id' => $class->id, 'total_marks' => 83, 'gpa' => 5, 'class_rank' => 1]);
+    $marksheet = Marksheet::create(['student_id' => $student->id, 'exam_id' => $exam->id]);
+    ['rows' => $rows, 'summary' => $summary] = app(BuildStudentMarksDetail::class)->handle($ranking);
+
+    $html = view('documents.marksheet', compact('marksheet', 'rows', 'summary'))->render();
+
+    expect($html)->toContain('Practical')
+        ->and($html)->toMatch('/>\s*23\s*</');
 });
 
 it('shows the 1st position student\'s total marks and gpa on every student\'s marksheet', function () {
