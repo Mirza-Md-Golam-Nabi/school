@@ -17,6 +17,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | School Name
+    |--------------------------------------------------------------------------
+    |
+    | The school's display name shown on the public home page. Kept separate
+    | from APP_NAME because APP_NAME also seeds the cache/session prefixes.
+    |
+    */
+
+    'school_name' => env('SCHOOL_NAME', env('APP_NAME', 'Laravel')),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Environment
     |--------------------------------------------------------------------------
     |

@@ -19,11 +19,21 @@ use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\MarksheetPdfController;
 use App\Http\Controllers\PushNotificationDeliveryController;
 use App\Http\Controllers\PushSubscriptionController;
+use App\Models\SchoolSetting;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
 
 Route::get('/', function () {
-    return view('welcome');
-});
+    $logo = SchoolSetting::get('school_logo');
+
+    return view('welcome', [
+        'schoolName' => (string) config('app.school_name'),
+        'schoolAddress' => (string) SchoolSetting::get('school_address', ''),
+        'schoolLogoUrl' => filled($logo) ? Storage::disk('public')->url($logo) : null,
+        'establishedYear' => SchoolSetting::get('school_established_year'),
+        'eiinLine' => SchoolSetting::eiinLine(),
+    ]);
+})->name('home');
 
 Route::get('/email/verify/{id}/{hash}', [EmailVerificationController::class, 'verify'])
     ->middleware('signed')
