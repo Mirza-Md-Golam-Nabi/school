@@ -15,6 +15,7 @@ use App\Models\StudentOptionalSubject;
 use App\Models\StudentProfile;
 use App\Models\StudentResult;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 
 class BuildStudentMarksDetail
 {
@@ -37,13 +38,6 @@ class BuildStudentMarksDetail
      */
     public function handle(StudentMeritRanking $ranking): array
     {
-        $myResults = StudentResult::where('exam_id', $ranking->exam_id)
-            ->where('student_id', $ranking->student_id)
-            ->with('subject')
-            ->orderedBySubject()
-            ->get()
-            ->keyBy('subject_id');
-
         $context = $this->examContext($ranking);
         [
             'topRanking' => $topRanking,
@@ -54,9 +48,84 @@ class BuildStudentMarksDetail
 
         $gradeScales = GradeScale::cached();
 
-        $groupId = $ranking->student?->current_group_id
-            ? (int) $ranking->student->current_group_id
-            : null;
+        $placedRows = $this->placedRows($ranking, $context, $gradeScales);
+        $obtained = $this->obtainedMarks($placedRows);
+
+        // Subject order from the Subjects page, except the student's main
+        // optional subject goes second-to-last and the additional one last.
+        $rows = $placedRows
+            ->map(fn (array $row): array => collect($row)->except(['position_group', 'obtained_marks', 'full_marks'])->all())
+            ->values();
+
+        $additionalGradePoint = (float) ($placedRows->firstWhere('position_group', 2)['grade_point'] ?? 0);
+
+        $overallGrade = GradeScale::fromGpa((float) $ranking->gpa, $gradeScales);
+
+        // "1st position" means class_rank = 1 (the top exam performer), never roll_no = 1.
+        $topRankGrade = $topRanking ? GradeScale::fromGpa((float) $topRanking->gpa, $gradeScales) : null;
+
+        // A total written by the class teacher / admin for this exam replaces
+        // the count of daily attendance rows.
+        $attendanceSummary = $attendanceSummaries->get($ranking->student_id);
+
+        if ($attendanceSummary) {
+            $workingDays = $attendanceSummary->working_days;
+            $presentDays = $attendanceSummary->present_days;
+        } else {
+            $presentDays = Attendance::where('attendable_type', StudentProfile::class)
+                ->where('attendable_id', $ranking->student_id)
+                ->where('class_id', $ranking->class_id)
+                ->countedPresent(StudentProfile::class)
+                ->inYear($sessionYear)
+                ->count();
+        }
+
+        $summary = [
+            'total_marks' => $ranking->total_marks,
+            'class_rank' => $ranking->class_rank,
+            'section_rank' => $ranking->section_rank,
+            'gpa' => number_format((float) $ranking->gpa, 2),
+            'obtained_marks' => $obtained['obtained_marks'],
+            'obtained_full_marks' => $obtained['full_marks'],
+            // Every subject's grade point, less the additional subject's
+            // first 2 points (all of it when it earned less than 2).
+            'total_grade_point' => number_format(
+                (float) $rows->sum(fn (array $row): float => (float) ($row['grade_point'] ?? 0))
+                    - min($additionalGradePoint, CalculateExamRankings::ADDITIONAL_SUBJECT_GRADE_POINT_DEDUCTION),
+                2,
+            ),
+            'overall_grade_label' => $overallGrade?->letter_grade,
+            'overall_grade_color' => $overallGrade?->color,
+            'top_rank_total_marks' => $topRanking?->total_marks,
+            'top_rank_obtained_marks' => $topRanking ? $this->topRankObtainedMarks($topRanking, $context, $gradeScales) : null,
+            'top_rank_gpa' => $topRanking ? number_format((float) $topRanking->gpa, 2) : null,
+            'top_rank_grade_label' => $topRankGrade?->letter_grade,
+            'working_days' => $workingDays,
+            'present_days' => $presentDays,
+        ];
+
+        return ['rows' => $rows, 'summary' => $summary];
+    }
+
+    /**
+     * The student's subject rows in marksheet order, still carrying
+     * position_group, obtained_marks and full_marks for the summary.
+     *
+     * @param  array<string, mixed>  $context
+     * @param  Collection<int, GradeScale>  $gradeScales
+     * @return Collection<int, array<string, mixed>>
+     */
+    private function placedRows(StudentMeritRanking $ranking, array $context, Collection $gradeScales): Collection
+    {
+        $myResults = StudentResult::where('exam_id', $ranking->exam_id)
+            ->where('student_id', $ranking->student_id)
+            ->with('subject')
+            ->orderedBySubject()
+            ->get()
+            ->keyBy('subject_id');
+
+        $student = $ranking->student;
+        $groupId = $student?->current_group_id ? (int) $student->current_group_id : null;
 
         $studentOptionalSelections = StudentOptionalSubject::where('class_id', $ranking->class_id)
             ->where('student_id', $ranking->student_id)
@@ -85,52 +154,52 @@ class BuildStudentMarksDetail
             $rows->push($this->mergedRow($merge, $myResults, $context, $gradeScales, $studentOptionalSelections, $groupId));
         }
 
-        // Subject order from the Subjects page, except the student's main
-        // optional subject goes second-to-last and the additional one last.
-        $rows = $rows
-            ->sortBy('position_group')
-            ->map(fn (array $row): array => collect($row)->except('position_group')->all())
-            ->values();
+        return $rows->sortBy('position_group')->values();
+    }
 
-        $overallGrade = GradeScale::fromGpa((float) $ranking->gpa, $gradeScales);
+    /**
+     * "Obtained Marks": every paper's own marks added up (a merged subject's
+     * papers count separately, never its merged marks), less the additional
+     * subject's first 40% of its full marks — 40 of 100; all of it when it
+     * earned less. Full marks are every paper's full marks added up.
+     *
+     * @param  Collection<int, array<string, mixed>>  $placedRows
+     * @return array{obtained_marks: float, full_marks: float}
+     */
+    private function obtainedMarks(Collection $placedRows): array
+    {
+        $obtained = 0.0;
 
-        // "1st position" means class_rank = 1 (the top exam performer), never roll_no = 1.
-        $topRankGrade = $topRanking ? GradeScale::fromGpa((float) $topRanking->gpa, $gradeScales) : null;
+        foreach ($placedRows as $row) {
+            $marks = (float) $row['obtained_marks'];
 
-        // A total written by the class teacher / admin for this exam replaces
-        // the count of daily attendance rows.
-        $attendanceSummary = $attendanceSummaries->get($ranking->student_id);
+            if ($row['position_group'] === 2) {
+                $marks -= min($marks, (float) $row['full_marks'] * CalculateExamRankings::ADDITIONAL_SUBJECT_MARKS_DEDUCTION_PERCENTAGE / 100);
+            }
 
-        if ($attendanceSummary) {
-            $workingDays = $attendanceSummary->working_days;
-            $presentDays = $attendanceSummary->present_days;
-        } else {
-            $presentDays = Attendance::where('attendable_type', StudentProfile::class)
-                ->where('attendable_id', $ranking->student_id)
-                ->where('class_id', $ranking->class_id)
-                ->countedPresent(StudentProfile::class)
-                ->inYear($sessionYear)
-                ->count();
+            $obtained += $marks;
         }
 
-        $summary = [
-            'total_marks' => $ranking->total_marks,
-            'class_rank' => $ranking->class_rank,
-            'section_rank' => $ranking->section_rank,
-            'gpa' => number_format((float) $ranking->gpa, 2),
-            // Every subject's grade point added in full: the additional
-            // subject's 2-point deduction used for the GPA is not applied here.
-            'total_grade_point' => number_format((float) $rows->sum(fn (array $row): float => (float) ($row['grade_point'] ?? 0)), 2),
-            'overall_grade_label' => $overallGrade?->letter_grade,
-            'overall_grade_color' => $overallGrade?->color,
-            'top_rank_total_marks' => $topRanking?->total_marks,
-            'top_rank_gpa' => $topRanking ? number_format((float) $topRanking->gpa, 2) : null,
-            'top_rank_grade_label' => $topRankGrade?->letter_grade,
-            'working_days' => $workingDays,
-            'present_days' => $presentDays,
+        return [
+            'obtained_marks' => round($obtained, 2),
+            'full_marks' => round((float) $placedRows->sum('full_marks'), 2),
         ];
+    }
 
-        return ['rows' => $rows, 'summary' => $summary];
+    /**
+     * The 1st position student's obtained marks — the same on every
+     * marksheet of the exam + class, so it is cached for a minute.
+     *
+     * @param  array<string, mixed>  $context
+     * @param  Collection<int, GradeScale>  $gradeScales
+     */
+    private function topRankObtainedMarks(StudentMeritRanking $topRanking, array $context, Collection $gradeScales): float
+    {
+        return (float) Cache::remember(
+            "marksheet:top-rank-obtained-marks:{$topRanking->exam_id}:{$topRanking->class_id}",
+            now()->addMinute(),
+            fn (): float => $this->obtainedMarks($this->placedRows($topRanking, $context, $gradeScales))['obtained_marks'],
+        );
     }
 
     /**
@@ -160,6 +229,8 @@ class BuildStudentMarksDetail
             'best_marks' => $best['best_marks'] ?? null,
             'best_students' => $best['best_students'] ?? null,
             'papers' => null,
+            'obtained_marks' => $result->effective_marks,
+            'full_marks' => $this->paperFullMarks($result, $context),
         ];
     }
 
@@ -214,7 +285,18 @@ class BuildStudentMarksDetail
             'best_marks' => $best['best_marks'] ?? null,
             'best_students' => $best['best_students'] ?? null,
             'papers' => $papers,
+            'obtained_marks' => (float) ($first?->effective_marks ?? 0) + (float) ($second?->effective_marks ?? 0),
+            'full_marks' => ($first ? $this->paperFullMarks($first, $context) : 0.0)
+                + ($second ? $this->paperFullMarks($second, $context) : 0.0),
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $context
+     */
+    private function paperFullMarks(StudentResult $result, array $context): float
+    {
+        return $result->resolveFullMarks((float) ($context['subjectConfigs']->get((int) $result->subject_id)?->total_marks ?: 100));
     }
 
     /**

@@ -116,12 +116,12 @@ it('schedules graduated and transferred students for removal after the grace per
     'transferred' => StudentStatus::Transferred,
 ]);
 
-it('holds a dropped student for approval instead of scheduling removal', function () {
+it('holds a dropped or inactive student for approval instead of scheduling removal', function (StudentStatus $status) {
     $device = AttendanceDevice::factory()->create();
     $student = lifecycleStudent();
     $enrollment = lifecycleEnrollment($device, $student);
 
-    $student->update(['status' => StudentStatus::Dropped]);
+    $student->update(['status' => $status]);
     $enrollment->refresh();
 
     expect($enrollment->removal_status)->toBe(DeviceUserRemovalStatus::PendingApproval)
@@ -132,7 +132,10 @@ it('holds a dropped student for approval instead of scheduling removal', functio
 
     expect($enrollment->fresh()->removal_status)->toBe(DeviceUserRemovalStatus::Queued)
         ->and($device->deviceUsers()->readyForRemoval()->count())->toBe(1);
-});
+})->with([
+    'dropped' => StudentStatus::Dropped,
+    'inactive' => StudentStatus::Inactive,
+]);
 
 it('holds employees whose employment ended for approval', function (string $profile, EmploymentStatus $status) {
     $device = AttendanceDevice::factory()->create();

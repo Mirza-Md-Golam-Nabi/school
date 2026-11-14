@@ -168,59 +168,83 @@
         </table>
     </htmlpagefooter>
 
-    <div class="header">
-        <div class="school-name">{{ $schoolName }}</div>
-        @if ($schoolEiinLine)
-            <div class="school-address">{{ $schoolEiinLine }}</div>
-        @endif
-        @if ($schoolAddressLine)
-            <div class="school-address">{{ $schoolAddressLine }}</div>
-        @endif
-    </div>
-    <div class="exam-info">
-        <div class="title">Exam Result Report</div>
-        <div class="subtitle">{{ $exam->examType?->name }} - {{ $exam->class?->display_name }} ({{ $exam->session_year }})</div>
-    </div>
+    @php
+        // One PDF, two pages; the signature footer (@page footer) prints on both.
+        $pages = [
+            [
+                'blocks' => [
+                    ['title' => 'GPA Summary', 'labelHeading' => 'Result', 'rows' => $gradeRows, 'summaryRows' => [$totalRow, $passedRow, $failedRow]],
+                    ['title' => 'Failed Students by Number of Subjects', 'labelHeading' => 'Result', 'rows' => $failRows, 'summaryRows' => [$failedRow]],
+                ],
+                'showPassRate' => true,
+            ],
+            [
+                'blocks' => [
+                    ['title' => 'Subject-wise Failed Students', 'labelHeading' => 'Subject', 'rows' => $subjectRows, 'summaryRows' => [['label' => 'Total Failed Students'] + $failedRow]],
+                ],
+                'showPassRate' => false,
+            ],
+        ];
+    @endphp
 
-    @foreach ([
-        ['title' => 'GPA Summary', 'rows' => $gradeRows, 'summaryRows' => [$totalRow, $passedRow, $failedRow]],
-        ['title' => 'Failed Students by Number of Subjects', 'rows' => $failRows, 'summaryRows' => [$failedRow]],
-    ] as $block)
-        <div class="section-title">{{ $block['title'] }}</div>
-        <table class="report">
-            <thead>
-                <tr>
-                    <th class="label-col">Result</th>
-                    @foreach ($columns as $column)
-                        <th>{{ $column['label'] }}</th>
-                    @endforeach
-                    <th>{{ $columnCount ? 'Total' : 'Students' }}</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach ($block['rows'] as $row)
+    @foreach ($pages as $page)
+        @if (! $loop->first)
+            <pagebreak />
+        @endif
+
+        <div class="header">
+            <div class="school-name">{{ $schoolName }}</div>
+            @if ($schoolEiinLine)
+                <div class="school-address">{{ $schoolEiinLine }}</div>
+            @endif
+            @if ($schoolAddressLine)
+                <div class="school-address">{{ $schoolAddressLine }}</div>
+            @endif
+        </div>
+        <div class="exam-info">
+            <div class="title">Exam Result Report</div>
+            <div class="subtitle">{{ $exam->examType?->name }} - {{ $exam->class?->display_name }} ({{ $exam->session_year }})</div>
+        </div>
+
+        @foreach ($page['blocks'] as $block)
+            <div class="section-title">{{ $block['title'] }}</div>
+            <table class="report">
+                <thead>
                     <tr>
-                        <td class="label-col">{{ $row['label'] }}</td>
+                        <th class="label-col">{{ $block['labelHeading'] }}</th>
                         @foreach ($columns as $column)
-                            <td>{{ $row['by'][$column['key']] ?? 0 }}</td>
+                            <th>{{ $column['label'] }}</th>
                         @endforeach
-                        <td>{{ $row['total'] }}</td>
+                        <th>{{ $columnCount ? 'Total' : 'Students' }}</th>
                     </tr>
-                @endforeach
-                @foreach ($block['summaryRows'] as $row)
-                    <tr class="summary">
-                        <td class="label-col">{{ $row['label'] }}</td>
-                        @foreach ($columns as $column)
-                            <td>{{ $row['by'][$column['key']] ?? 0 }}</td>
-                        @endforeach
-                        <td>{{ $row['total'] }}</td>
-                    </tr>
-                @endforeach
-            </tbody>
-        </table>
-    @endforeach
+                </thead>
+                <tbody>
+                    @foreach ($block['rows'] as $row)
+                        <tr>
+                            <td class="label-col">{{ $row['label'] }}</td>
+                            @foreach ($columns as $column)
+                                <td>{{ $row['by'][$column['key']] ?? 0 }}</td>
+                            @endforeach
+                            <td>{{ $row['total'] }}</td>
+                        </tr>
+                    @endforeach
+                    @foreach ($block['summaryRows'] as $row)
+                        <tr class="summary">
+                            <td class="label-col">{{ $row['label'] }}</td>
+                            @foreach ($columns as $column)
+                                <td>{{ $row['by'][$column['key']] ?? 0 }}</td>
+                            @endforeach
+                            <td>{{ $row['total'] }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        @endforeach
 
-    <div class="section-title">Pass Rate: {{ number_format($passRate, 2) }}%</div>
+        @if ($page['showPassRate'])
+            <div class="section-title">Pass Rate: {{ number_format($passRate, 2) }}%</div>
+        @endif
+    @endforeach
 </body>
 
 </html>

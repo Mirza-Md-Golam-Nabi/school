@@ -33,11 +33,19 @@ class SubjectMergeFields
      */
     public static function form(int $classId, Closure $siblingMerges, bool $rulesRequired): array
     {
-        $subjectOptions = fn (): array => Subject::whereHas('classes', fn (Builder $query) => $query->where('classes.id', $classId))
+        $classSubjectOptions = Subject::whereHas('classes', fn (Builder $query) => $query->where('classes.id', $classId))
             ->ordered()
             ->get()
             ->pluck('display_name', 'id')
             ->all();
+
+        $subjectOptions = fn (string $otherPaperField): Closure => fn (Get $get, ?Model $record): array => array_diff_key(
+            $classSubjectOptions,
+            array_flip([
+                ...self::mergedSubjectIds($siblingMerges, $record),
+                ...array_filter([(int) $get($otherPaperField)]),
+            ]),
+        );
 
         $defaults = SubjectMerge::defaultRules();
         $rulePlaceholder = fn (string $rule): ?string => $rulesRequired ? null : 'School default — '.$defaults[$rule]->getLabel();
@@ -57,8 +65,9 @@ class SubjectMergeFields
                         ->maxLength(255),
                     Select::make('first_subject_id')
                         ->label('1st Paper')
-                        ->options($subjectOptions)
+                        ->options($subjectOptions('second_subject_id'))
                         ->searchable()
+                        ->live()
                         ->required()
                         ->rules([
                             fn (Get $get, ?Model $record): Closure => function (string $attribute, mixed $value, Closure $fail) use ($get, $record, $classId, $siblingMerges): void {
@@ -76,8 +85,9 @@ class SubjectMergeFields
                         ]),
                     Select::make('second_subject_id')
                         ->label('2nd Paper')
-                        ->options($subjectOptions)
+                        ->options($subjectOptions('first_subject_id'))
                         ->searchable()
+                        ->live()
                         ->required(),
                 ]),
             Section::make('Rules')
@@ -112,6 +122,23 @@ class SubjectMergeFields
                         ->required($rulesRequired),
                 ]),
         ];
+    }
+
+    /**
+     * Subjects already used as a paper in another merge, leaving out the
+     * merge being edited so its own papers stay selectable.
+     *
+     * @param  Closure(): HasMany  $siblingMerges
+     * @return array<int, int>
+     */
+    private static function mergedSubjectIds(Closure $siblingMerges, ?Model $record): array
+    {
+        return $siblingMerges()
+            ->when($record, fn (Builder $query) => $query->whereKeyNot($record->getKey()))
+            ->get()
+            ->flatMap(fn (SubjectMerge|ExamSubjectMerge $merge): array => $merge->subjectIds())
+            ->map(fn (mixed $subjectId): int => (int) $subjectId)
+            ->all();
     }
 
     /**

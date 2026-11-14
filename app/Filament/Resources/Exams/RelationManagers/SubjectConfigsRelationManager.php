@@ -56,7 +56,10 @@ class SubjectConfigsRelationManager extends RelationManager
             ->components([
                 Select::make('subject_id')
                     ->label('Subject')
-                    ->options($subjectOptions)
+                    ->options(fn (?ExamSubjectConfig $record): array => array_diff_key(
+                        $subjectOptions,
+                        array_flip(self::configuredSubjectIds($exam->id, exceptConfigId: $record?->id)),
+                    ))
                     ->searchable()
                     ->live()
                     ->required()
@@ -371,6 +374,22 @@ class SubjectConfigsRelationManager extends RelationManager
         }
 
         return route('filament.admin.pages.enter-student-marks').'?'.$params;
+    }
+
+    /**
+     * Subjects already configured for this exam (trashed rows included, since
+     * the exam_id + subject_id unique key still holds them), leaving out the
+     * config being edited so its own subject stays selectable.
+     *
+     * @return array<int, int>
+     */
+    private static function configuredSubjectIds(int $examId, ?int $exceptConfigId = null): array
+    {
+        return ExamSubjectConfig::withTrashed()
+            ->where('exam_id', $examId)
+            ->when($exceptConfigId, fn (Builder $query) => $query->whereKeyNot($exceptConfigId))
+            ->pluck('subject_id')
+            ->all();
     }
 
     private static function subjectHas(Get $get, string $attribute): bool

@@ -3,9 +3,11 @@
 namespace App\Actions;
 
 use App\Models\Exam;
+use App\Models\ExamSubjectMerge;
 use App\Models\GradeScale;
 use App\Models\Group;
 use App\Models\Section;
+use App\Models\Subject;
 use App\Support\ClassGroupSubjectDefinitions;
 use Illuminate\Support\Collection;
 
@@ -17,7 +19,7 @@ class BuildExamResultReport
      * Summary report for an exam: how many students got each GPA band
      * (5.00, 4.00-4.99, 3.50-3.99 ... down the grade scale), how many passed
      * and failed, and among the failures how many failed in 1, 2, 3...
-     * subjects. Counts are broken down by group (Class 9-10) or by section
+     * subjects, and how many failed in each subject. Counts are broken down by group (Class 9-10) or by section
      * when the class has either, plus a Total column.
      *
      * Reads only after rankings exist, so the report always matches the
@@ -33,6 +35,7 @@ class BuildExamResultReport
      *     passedRow: array{label: string, total: int, by: array<int, int>},
      *     failedRow: array{label: string, total: int, by: array<int, int>},
      *     failRows: list<array{label: string, total: int, by: array<int, int>}>,
+     *     subjectRows: list<array{label: string, total: int, by: array<int, int>}>,
      *     passRate: float,
      * }
      */
@@ -90,8 +93,48 @@ class BuildExamResultReport
             'passedRow' => $countRow('Passed', $passed),
             'failedRow' => $countRow('Failed', $failed),
             'failRows' => $failRows,
+            'subjectRows' => collect($this->reportSubjects($exam))
+                ->map(fn (string $label, string $key): array => $countRow(
+                    $label,
+                    $failed->filter(fn (array $student): bool => in_array($key, $student['failed_subject_keys'], true)),
+                ))
+                ->values()
+                ->all(),
             'passRate' => $students->isEmpty() ? 0.0 : round($passed->count() / $students->count() * 100, 2),
         ];
+    }
+
+    /**
+     * The exam's subjects in the school's subject order, keyed like
+     * CalculateExamRankings' failed_subject_keys: a merged subject (1st + 2nd
+     * paper) is one entry under its own name, placed at its first paper.
+     *
+     * @return array<string, string> key ("subject:{id}" / "merge:{id}") => subject name
+     */
+    private function reportSubjects(Exam $exam): array
+    {
+        $merges = $exam->subjectMerges()->get();
+
+        $subjects = Subject::query()
+            ->whereIn('id', $exam->subjectConfigs()->select('subject_id'))
+            ->ordered()
+            ->get();
+
+        $entries = [];
+
+        foreach ($subjects as $subject) {
+            $merge = $merges->first(fn (ExamSubjectMerge $merge): bool => in_array((int) $subject->id, $merge->subjectIds(), true));
+
+            if ($merge) {
+                $entries["merge:{$merge->id}"] ??= $merge->display_name;
+
+                continue;
+            }
+
+            $entries["subject:{$subject->id}"] = $subject->display_name;
+        }
+
+        return $entries;
     }
 
     /**

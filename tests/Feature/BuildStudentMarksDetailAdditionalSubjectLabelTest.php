@@ -100,7 +100,7 @@ it('appends "(Additional)" to the subject name only for the student\'s extra_opt
         ->and($subjectNames)->not->toContain('Biology (Additional)');
 });
 
-it('adds every subject\'s full grade point, the additional subject included, into the total GP', function () {
+it('takes 2 grade points and 40 marks of the additional subject off the total GP and obtained marks', function (float $additionalMarks, string $totalGradePoint, float $obtainedMarks) {
     $class = Classes::create(['name' => 'Class Ten', 'order' => 10, 'has_group' => true, 'is_active' => true]);
     $group = Group::create(['name' => 'Science', 'is_active' => true]);
     $class->groups()->attach($group->id);
@@ -148,9 +148,10 @@ it('adds every subject\'s full grade point, the additional subject included, int
     StudentOptionalSubject::create(['student_id' => $student->id, 'class_id' => $class->id, 'group_id' => $group->id, 'subject_id' => $biology->id, 'role' => OptionalSubjectRole::MainOptional]);
     StudentOptionalSubject::create(['student_id' => $student->id, 'class_id' => $class->id, 'group_id' => $group->id, 'subject_id' => $higherMath->id, 'role' => OptionalSubjectRole::ExtraOptional]);
 
-    foreach ([$bangla, $biology, $higherMath] as $subject) {
+    foreach ([$bangla, $biology] as $subject) {
         StudentResult::create(['exam_id' => $exam->id, 'subject_id' => $subject->id, 'class_id' => $class->id, 'student_id' => $student->id, 'written_marks' => 80]);
     }
+    StudentResult::create(['exam_id' => $exam->id, 'subject_id' => $higherMath->id, 'class_id' => $class->id, 'student_id' => $student->id, 'written_marks' => $additionalMarks]);
 
     $ranking = StudentMeritRanking::create([
         'exam_id' => $exam->id,
@@ -161,9 +162,14 @@ it('adds every subject\'s full grade point, the additional subject included, int
         'class_rank' => 1,
     ]);
 
-    ['rows' => $rows, 'summary' => $summary] = app(BuildStudentMarksDetail::class)->handle($ranking);
+    ['summary' => $summary] = app(BuildStudentMarksDetail::class)->handle($ranking);
 
-    expect($summary['total_grade_point'])
-        ->toBe(number_format((float) $rows->sum('grade_point'), 2))
-        ->and((float) $summary['total_grade_point'])->toBeGreaterThan((float) $rows->max('grade_point') * 2);
-});
+    expect($summary['total_grade_point'])->toBe($totalGradePoint)
+        ->and($summary['obtained_marks'])->toBe($obtainedMarks)
+        ->and($summary['obtained_full_marks'])->toBe(300.0);
+})->with([
+    // 80 → A+ (5): 5 + 5 + (5 − 2); 80 + 80 + (80 − 40).
+    'additional subject well passed' => [80, '13.00', 200.0],
+    // 35 → D (1): it adds nothing to either total.
+    'additional subject below 40' => [35, '10.00', 160.0],
+]);

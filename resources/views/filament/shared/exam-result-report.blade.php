@@ -2,8 +2,9 @@
     $cellClass = 'border border-gray-200 px-2 py-1.5 text-center sm:px-3 sm:py-2 dark:border-white/10';
     $labelCellClass = 'border border-gray-200 px-2 py-1.5 text-left sm:px-3 sm:py-2 dark:border-white/10';
     $blocks = [
-        ['title' => 'GPA Summary', 'rows' => $gradeRows, 'summaryRows' => [$totalRow, $passedRow, $failedRow]],
-        ['title' => 'Failed Students by Number of Subjects', 'rows' => $failRows, 'summaryRows' => [$failedRow]],
+        ['title' => 'GPA Summary', 'labelHeading' => 'Result', 'rows' => $gradeRows, 'summaryRows' => [$totalRow, $passedRow, $failedRow]],
+        ['title' => 'Failed Students by Number of Subjects', 'labelHeading' => 'Result', 'rows' => $failRows, 'summaryRows' => [$failedRow]],
+        ['title' => 'Subject-wise Failed Students', 'labelHeading' => 'Subject', 'rows' => $subjectRows, 'summaryRows' => [['label' => 'Total Failed Students'] + $failedRow]],
     ];
 @endphp
 
@@ -35,7 +36,7 @@
                     <table class="w-full border-collapse text-gray-700 dark:text-gray-300">
                         <thead class="bg-gray-50 dark:bg-white/5">
                             <tr>
-                                <th class="{{ $labelCellClass }}">Result</th>
+                                <th class="{{ $labelCellClass }}">{{ $block['labelHeading'] }}</th>
                                 @foreach ($columns as $column)
                                     <th class="{{ $cellClass }}">{{ $column['label'] }}</th>
                                 @endforeach

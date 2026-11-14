@@ -9,7 +9,7 @@
     $hasSections ??= $exam->class?->sections()->exists() ?? false;
 
     $gradeScales = GradeScale::cached();
-    $formatMark = fn (float $mark): string => rtrim(rtrim(number_format($mark, 2), '0'), '.');
+    $formatMark = fn (float $mark): string => rtrim(rtrim(number_format($mark, 2, '.', ''), '0'), '.');
 
     $schoolName = SchoolSetting::get('school_name', '');
     $schoolEiinLine = SchoolSetting::eiinLine();
@@ -464,8 +464,11 @@
         <div class="summary-heading">{{ __('Academic Transcript') }}</div>
         <table class="summary">
             <tr>
-                <td class="summary-label">{{ __('Total Marks') }}</td>
-                <td>{{ BengaliNumber::localize((string) $summary['total_marks']) }}</td>
+                <td class="summary-label">{{ __('Obtained Marks') }}</td>
+                <td>{{ __(':obtained out of :full', [
+                    'obtained' => BengaliNumber::localize($formatMark((float) $summary['obtained_marks'])),
+                    'full' => BengaliNumber::localize($formatMark((float) $summary['obtained_full_marks'])),
+                ]) }}</td>
                 <td class="summary-label">{{ __('GPA') }}</td>
                 <td>{{ BengaliNumber::localize((string) $summary['gpa']) }} ({{ $summary['overall_grade_label'] }})</td>
             </tr>
@@ -482,8 +485,8 @@
                 </tr>
             @endif
             <tr>
-                <td class="summary-label">{{ __('1st Position Total Marks') }}</td>
-                <td>{{ BengaliNumber::localize((string) ($summary['top_rank_total_marks'] ?? '-')) }}</td>
+                <td class="summary-label">{{ __('1st Position Obtained Marks') }}</td>
+                <td>{{ $summary['top_rank_obtained_marks'] === null ? '-' : BengaliNumber::localize($formatMark((float) $summary['top_rank_obtained_marks'])) }}</td>
                 <td class="summary-label">{{ __('1st Position GPA') }}</td>
                 <td>
                     @if ($summary['top_rank_gpa'])

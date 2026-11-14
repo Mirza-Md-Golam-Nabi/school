@@ -84,10 +84,11 @@ class CalculateExamRankings
      * StudentResult rows without writing anything: total marks, GPA, whether
      * the student failed overall and in how many GPA-counting subjects (a
      * merged subject counts once; an extra optional subject never counts).
+     * failed_subject_keys names those subjects: "subject:{id}" or "merge:{id}".
      *
      * Used by execute() to save rankings and by the exam result report.
      *
-     * @return list<array{student_id: int, class_id: int, section_id: ?int, group_id: ?int, total_marks: float, gpa: float, is_overall_fail: bool, failed_subject_count: int}>
+     * @return list<array{student_id: int, class_id: int, section_id: ?int, group_id: ?int, total_marks: float, gpa: float, is_overall_fail: bool, failed_subject_count: int, failed_subject_keys: list<string>}>
      */
     public function summarizeStudents(Exam $exam): array
     {
@@ -201,6 +202,7 @@ class CalculateExamRankings
                 $config = $subjectConfigs->get($subjectId);
                 $outcome = $this->resolveSubjectOutcome->execute($result, $config, $gradeScales);
                 $units[] = [
+                    'key' => "subject:{$subjectId}",
                     'subject_id' => (int) $subjectId,
                     'marks' => $result->effective_marks,
                     'full_marks' => $result->resolveFullMarks((float) ($config?->total_marks ?: 100)),
@@ -225,12 +227,12 @@ class CalculateExamRankings
                     $subjectConfigs->get($secondId),
                     $gradeScales,
                 );
-                $units[] = ['subject_id' => $first ? $firstId : $secondId] + $outcome;
+                $units[] = ['key' => "merge:{$merge->id}", 'subject_id' => $first ? $firstId : $secondId] + $outcome;
             }
 
             $totalMarks = 0.0;
             $isOverallFail = false;
-            $failedSubjectCount = 0;
+            $failedSubjectKeys = [];
             $gradePoints = [];
             $additionalBonus = 0.0;
 
@@ -259,7 +261,7 @@ class CalculateExamRankings
                 if ($unit['is_fail']) {
                     // Compulsory or main_optional fail (or absence) → overall fail
                     $isOverallFail = true;
-                    $failedSubjectCount++;
+                    $failedSubjectKeys[] = $unit['key'];
                 }
 
                 $gradePoints[] = $unit['is_fail'] ? 0.0 : (float) $unit['grade']->grade_point;
@@ -280,7 +282,8 @@ class CalculateExamRankings
                 'total_marks' => round($totalMarks, 2),
                 'gpa' => $gpa,
                 'is_overall_fail' => $isOverallFail,
-                'failed_subject_count' => $failedSubjectCount,
+                'failed_subject_count' => count($failedSubjectKeys),
+                'failed_subject_keys' => $failedSubjectKeys,
             ];
         }
 

@@ -145,6 +145,21 @@ it('shows a merged subject as one row with both papers in the marks detail', fun
         ->and($rows[1]['papers'])->toBeNull();
 });
 
+it('adds each merged paper\'s own marks, not the merged marks, into the obtained marks', function () {
+    $topper = subjectMergeTestStudent($this->class, 1);
+    $student = subjectMergeTestStudent($this->class, 2);
+    subjectMergeTestMarks($this->exam, $topper, [$this->banglaFirst->id => 80, $this->banglaSecond->id => 82, $this->math->id => 90]);
+    subjectMergeTestMarks($this->exam, $student, [$this->banglaFirst->id => 75, $this->banglaSecond->id => 80, $this->math->id => 60]);
+
+    app(CalculateExamRankings::class)->execute($this->exam);
+
+    $summary = app(BuildStudentMarksDetail::class)->handle(StudentMeritRanking::where('student_id', $student->id)->sole())['summary'];
+
+    expect($summary['obtained_marks'])->toBe(215.0)
+        ->and($summary['obtained_full_marks'])->toBe(300.0)
+        ->and($summary['top_rank_obtained_marks'])->toBe(252.0);
+});
+
 it('gives a merged subject three tabulation columns: 1st, 2nd and merged', function () {
     $student = subjectMergeTestStudent($this->class, 1);
     subjectMergeTestMarks($this->exam, $student, [$this->banglaFirst->id => 75, $this->banglaSecond->id => 80, $this->math->id => 60]);

@@ -208,3 +208,33 @@ it('shows the report and its download button on the Exam Report tab', function (
         ->assertSee('Download Report (PDF)')
         ->assertSeeHtml(route('exams.result-report.download', ['exam' => $exam]));
 });
+
+it('counts how many students failed in each subject, in subject order', function () {
+    [$exam, $subjects] = makeResultReportExam();
+
+    addResultReportStudent($exam, $subjects, [85, 90, 95]);   // passed
+    addResultReportStudent($exam, $subjects, [85, 85, 10]);   // Math
+    addResultReportStudent($exam, $subjects, [10, 20, 85]);   // Bangla + English
+    addResultReportStudent($exam, $subjects, [10, 85, 20]);   // Bangla + Math
+
+    app(CalculateExamRankings::class)->execute($exam);
+
+    $report = app(BuildExamResultReport::class)->handle($exam);
+
+    expect(resultReportTotals($report['subjectRows']))->toBe([
+        'Bangla' => 2,
+        'English' => 1,
+        'Math' => 2,
+    ]);
+});
+
+it('puts the subject-wise report on its own second page of the PDF', function () {
+    [$exam, $subjects] = makeResultReportExam();
+    addResultReportStudent($exam, $subjects, [85, 90, 95]);
+    addResultReportStudent($exam, $subjects, [85, 85, 10]);
+    app(CalculateExamRankings::class)->execute($exam);
+
+    $pdf = app(BuildExamResultReportPdfAction::class)->handle($exam);
+
+    expect(preg_match_all('#/Type /Page\b(?!s)#', $pdf))->toBe(2);
+});

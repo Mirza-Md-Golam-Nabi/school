@@ -16,7 +16,7 @@ class ApplyProfileStatusToEnrollmentsAction
      *   enrollment is restored under the same enroll ID.
      * - Graduated or transferred students: removal is scheduled automatically (after
      *   the grace period).
-     * - Everything else that ends someone's time here — dropped students, resigned,
+     * - Everything else that ends someone's time here — dropped or inactive students, resigned,
      *   terminated or retired staff, soft-deleted profiles — waits for an admin's
      *   approval, since those are the statuses most often set by mistake or reversed.
      * - A permanently deleted profile is scheduled like a graduation: nobody is left
@@ -49,6 +49,6 @@ class ApplyProfileStatusToEnrollmentsAction
             return true;
         }
 
-        return $person->status === StudentStatus::Dropped;
+        return in_array($person->status, [StudentStatus::Dropped, StudentStatus::Inactive], true);
     }
 }

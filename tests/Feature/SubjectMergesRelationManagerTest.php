@@ -18,6 +18,7 @@ use App\Models\Subject;
 use App\Models\SubjectMerge;
 use App\Models\User;
 use Filament\Actions\CreateAction;
+use Filament\Actions\EditAction;
 use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -150,6 +151,38 @@ it('adds a merge to one exam with every rule filled in', function () {
         'pass_rule' => MergedPassRule::EachPaper->value,
         'rounding' => ResultRounding::Down->value,
     ]);
+});
+
+it('hides already merged subjects from both paper dropdowns', function () {
+    $exam = subjectMergeTestExam($this->class);
+    ExamSubjectMerge::factory()->create([
+        'exam_id' => $exam->id,
+        'first_subject_id' => $this->banglaFirst->id,
+        'second_subject_id' => $this->banglaSecond->id,
+    ]);
+
+    $hasOnlyAgriculture = fn ($select): bool => array_keys($select->getOptions()) === [$this->agriculture->id];
+
+    Livewire::test(ExamSubjectMergesRelationManager::class, ['ownerRecord' => $exam, 'pageClass' => EditExam::class])
+        ->mountAction(TestAction::make(CreateAction::class)->table())
+        ->assertSchemaComponentExists('first_subject_id', checkComponentUsing: $hasOnlyAgriculture)
+        ->assertSchemaComponentExists('second_subject_id', checkComponentUsing: $hasOnlyAgriculture);
+});
+
+it('keeps the edited merge\'s own papers selectable, minus the paper picked in the other dropdown', function () {
+    $exam = subjectMergeTestExam($this->class);
+    $merge = ExamSubjectMerge::factory()->create([
+        'exam_id' => $exam->id,
+        'first_subject_id' => $this->banglaFirst->id,
+        'second_subject_id' => $this->banglaSecond->id,
+    ]);
+
+    Livewire::test(ExamSubjectMergesRelationManager::class, ['ownerRecord' => $exam, 'pageClass' => EditExam::class])
+        ->mountAction(TestAction::make(EditAction::class)->table($merge))
+        ->assertSchemaComponentExists('first_subject_id', checkComponentUsing: fn ($select): bool => ! array_key_exists($this->banglaSecond->id, $select->getOptions())
+            && array_key_exists($this->banglaFirst->id, $select->getOptions()))
+        ->assertSchemaComponentExists('second_subject_id', checkComponentUsing: fn ($select): bool => ! array_key_exists($this->banglaFirst->id, $select->getOptions())
+            && array_key_exists($this->banglaSecond->id, $select->getOptions()));
 });
 
 it('locks an exam\'s merges once its result is published', function () {

@@ -405,7 +405,10 @@ it('shows the 1st position student\'s total marks and gpa on every student\'s ma
     ['rows' => $rows, 'summary' => $summary] = app(BuildStudentMarksDetail::class)->handle($secondRanking);
     $html = view('documents.marksheet', compact('marksheet', 'rows', 'summary'))->render();
 
-    expect($html)->toContain('1st Position Total Marks')
+    expect($summary['top_rank_obtained_marks'])->toBe(95.0)
+        ->and($html)->toContain('1st Position Obtained Marks')
+        ->toContain('Obtained Marks')
+        ->toContain('70 out of 100')
         ->toContain('1st Position GPA')
         ->toMatch('/>\s*95\s*</')
         ->toContain('5.00 (A+)');

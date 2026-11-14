@@ -265,6 +265,45 @@ it('does not show the contributes_to_target toggle when the exam type is not par
         ->assertFormFieldDoesNotExist('contributes_to_target');
 });
 
+it('hides already configured subjects from the create form subject list', function () {
+    $admin = User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]);
+    $this->actingAs($admin);
+
+    $class = Classes::create(['name' => 'Class 15', 'order' => 15, 'is_active' => true]);
+    $exam = createExamConfigTestExam($class);
+
+    $configured = Subject::create(['name' => 'Bangla', 'has_mcq' => false, 'has_written' => true, 'has_practical' => false, 'is_active' => true]);
+    $pending = Subject::create(['name' => 'English', 'has_mcq' => false, 'has_written' => true, 'has_practical' => false, 'is_active' => true]);
+    attachExamConfigTestSubjectToClass($configured, $class);
+    attachExamConfigTestSubjectToClass($pending, $class);
+
+    ExamSubjectConfig::create(['exam_id' => $exam->id, 'subject_id' => $configured->id, 'written_total' => 100, 'total_marks' => 100, 'pass_mark' => 33]);
+
+    Livewire::test(SubjectConfigsRelationManager::class, ['ownerRecord' => $exam, 'pageClass' => EditExam::class])
+        ->mountAction(TestAction::make(CreateAction::class)->table())
+        ->assertSchemaComponentExists('subject_id', checkComponentUsing: fn ($select): bool => array_keys($select->getOptions()) === [$pending->id]);
+});
+
+it('keeps the edited config subject selectable in the edit form', function () {
+    $admin = User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]);
+    $this->actingAs($admin);
+
+    $class = Classes::create(['name' => 'Class 16', 'order' => 16, 'is_active' => true]);
+    $exam = createExamConfigTestExam($class);
+
+    $bangla = Subject::create(['name' => 'Bangla', 'has_mcq' => false, 'has_written' => true, 'has_practical' => false, 'is_active' => true]);
+    $english = Subject::create(['name' => 'English', 'has_mcq' => false, 'has_written' => true, 'has_practical' => false, 'is_active' => true]);
+    attachExamConfigTestSubjectToClass($bangla, $class);
+    attachExamConfigTestSubjectToClass($english, $class);
+
+    $banglaConfig = ExamSubjectConfig::create(['exam_id' => $exam->id, 'subject_id' => $bangla->id, 'written_total' => 100, 'total_marks' => 100, 'pass_mark' => 33]);
+    ExamSubjectConfig::create(['exam_id' => $exam->id, 'subject_id' => $english->id, 'written_total' => 100, 'total_marks' => 100, 'pass_mark' => 33]);
+
+    Livewire::test(SubjectConfigsRelationManager::class, ['ownerRecord' => $exam, 'pageClass' => EditExam::class])
+        ->mountAction(TestAction::make(EditAction::class)->table($banglaConfig))
+        ->assertSchemaComponentExists('subject_id', checkComponentUsing: fn ($select): bool => array_keys($select->getOptions()) === [$bangla->id]);
+});
+
 it('shows how the result is made, not the toggle, on the exam a result rule builds', function () {
     $admin = User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]);
     $this->actingAs($admin);

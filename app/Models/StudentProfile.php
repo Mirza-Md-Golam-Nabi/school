@@ -162,6 +162,7 @@ class StudentProfile extends Model
     public function scopeFormer(Builder $query): void
     {
         $query->whereIn('status', [
+            StudentStatus::Inactive,
             StudentStatus::Transferred,
             StudentStatus::Dropped,
             StudentStatus::Graduated,
