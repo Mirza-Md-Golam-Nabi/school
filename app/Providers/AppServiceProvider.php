@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Http\Responses\LogoutResponse;
 use App\Models\ActingAdmin;
 use App\Models\Attendance;
 use App\Models\StaffProfile;
@@ -12,6 +13,7 @@ use App\Observers\AttendanceObserver;
 use App\Observers\DeviceEnrollmentObserver;
 use App\Support\ActivityLogLabelCache;
 use App\Support\SchoolSettingStore;
+use Filament\Auth\Http\Responses\Contracts\LogoutResponse as LogoutResponseContract;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -22,6 +24,8 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->scoped(ActivityLogLabelCache::class);
         $this->app->scoped(SchoolSettingStore::class);
+
+        $this->app->bind(LogoutResponseContract::class, LogoutResponse::class);
     }
 
     public function boot(): void
