@@ -10,6 +10,7 @@ use App\Enums\SubjectType;
 use App\Enums\UserType;
 use App\Filament\Resources\Exams\Pages\EditExam;
 use App\Filament\Resources\Exams\RelationManagers\ExamReportRelationManager;
+use App\Filament\Resources\Exams\RelationManagers\MeritRankingsRelationManager;
 use App\Models\Classes;
 use App\Models\ClassGroupSubject;
 use App\Models\Exam;
@@ -77,8 +78,10 @@ function makeResultReportExam(): array
 }
 
 /**
+ * A null mark means the student was absent in that subject.
+ *
  * @param  list<Subject>  $subjects
- * @param  list<float>  $marks
+ * @param  list<?float>  $marks
  */
 function addResultReportStudent(Exam $exam, array $subjects, array $marks, ?int $sectionId = null): StudentProfile
 {
@@ -99,6 +102,7 @@ function addResultReportStudent(Exam $exam, array $subjects, array $marks, ?int 
             'class_id' => $exam->class_id,
             'student_id' => $student->id,
             'written_marks' => $marks[$index],
+            'is_absent' => $marks[$index] === null,
         ]);
     }
 
@@ -150,6 +154,61 @@ it('counts students per GPA band, passed/failed, and failures by number of faile
         'Failed in 2 subjects' => 1,
         'Failed in 3 subjects' => 1,
     ]);
+});
+
+it('leaves students absent in every subject out of the examinee counts', function () {
+    [$exam, $subjects] = makeResultReportExam();
+
+    addResultReportStudent($exam, $subjects, [85, 90, 95]);       // GPA 5.00
+    addResultReportStudent($exam, $subjects, [85, 85, 10]);       // failed in 1
+    addResultReportStudent($exam, $subjects, [85, null, 95]);     // absent in 1 → failed in 1
+    addResultReportStudent($exam, $subjects, [null, null, null]); // absent in all
+    addResultReportStudent($exam, $subjects, [null, null, null]); // absent in all
+
+    app(CalculateExamRankings::class)->execute($exam);
+
+    $report = app(BuildExamResultReport::class)->handle($exam);
+
+    expect($report['totalRow']['total'])->toBe(5)
+        ->and($report['absentRow']['total'])->toBe(2)
+        ->and($report['examineeRow']['total'])->toBe(3)
+        ->and($report['passedRow']['total'])->toBe(1)
+        ->and($report['failedRow']['total'])->toBe(2)
+        ->and($report['passRate'])->toBe(33.33)
+        ->and(resultReportTotals($report['failRows']))->toBe(['Failed in 1 subject' => 2])
+        ->and(resultReportTotals($report['subjectRows']))->toBe(['Bangla' => 0, 'English' => 1, 'Math' => 1]);
+});
+
+it('gives no rank to students absent in every subject', function () {
+    [$exam, $subjects] = makeResultReportExam();
+
+    $passer = addResultReportStudent($exam, $subjects, [85, 90, 95]);
+    $failer = addResultReportStudent($exam, $subjects, [10, 10, 10]);
+    $absentee = addResultReportStudent($exam, $subjects, [null, null, null]);
+
+    app(CalculateExamRankings::class)->execute($exam);
+
+    $ranks = $exam->meritRankings()->pluck('class_rank', 'student_id');
+
+    expect($ranks->all())->toBe([$passer->id => 1, $failer->id => 2, $absentee->id => null]);
+});
+
+it('lists students absent in every subject as Absent, after the ranked students', function () {
+    test()->actingAs(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]));
+
+    [$exam, $subjects] = makeResultReportExam();
+
+    $absentee = addResultReportStudent($exam, $subjects, [null, null, null]);
+    $passer = addResultReportStudent($exam, $subjects, [85, 90, 95]);
+
+    app(CalculateExamRankings::class)->execute($exam);
+
+    $rankings = $exam->meritRankings()->get()->keyBy('student_id');
+
+    Livewire::test(MeritRankingsRelationManager::class, ['ownerRecord' => $exam, 'pageClass' => EditExam::class])
+        ->assertOk()
+        ->assertCanSeeTableRecords([$rankings[$passer->id], $rankings[$absentee->id]], inOrder: true)
+        ->assertSee('Absent');
 });
 
 it('breaks the counts down by section when the class has sections', function () {

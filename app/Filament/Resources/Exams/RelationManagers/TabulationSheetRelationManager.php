@@ -76,6 +76,7 @@ class TabulationSheetRelationManager extends RelationManager
                     ->alignCenter()
                     ->sortable()
                     ->badge()
+                    ->placeholder('Absent')
                     ->color('primary'),
             ])
             ->headerActions([

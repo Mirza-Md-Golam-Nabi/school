@@ -29,8 +29,11 @@ class MeritRankingsRelationManager extends RelationManager
                 TextColumn::make('class_rank')
                     ->label('Class Rank')
                     ->alignCenter()
-                    ->sortable()
+                    ->sortable(query: fn (Builder $query, string $direction): Builder => $query
+                        ->orderByRaw('class_rank is null')
+                        ->orderBy('class_rank', $direction))
                     ->badge()
+                    ->placeholder('Absent')
                     ->formatStateUsing(fn ($state): string => match ((int) $state) {
                         1 => '🥇 1st',
                         2 => '🥈 2nd',
@@ -107,7 +110,9 @@ class MeritRankingsRelationManager extends RelationManager
                     ->modalSubmitAction(false)
                     ->modalCancelActionLabel('Close'),
             ])
-            ->defaultSort('class_rank')
+            ->defaultSort(fn (Builder $query): Builder => $query
+                ->orderByRaw('class_rank is null')
+                ->orderBy('class_rank'))
             ->modifyQueryUsing(fn (Builder $query) => $query->with(['student.user', 'section']))
             ->paginated(false);
     }

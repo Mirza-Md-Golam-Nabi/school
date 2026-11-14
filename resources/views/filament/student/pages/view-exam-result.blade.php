@@ -91,7 +91,7 @@
                                     $isMe = (int) $ranking->student_id === (int) $myStudentId;
                                     $grade = \App\Models\GradeScale::fromGpa((float) $ranking->gpa, $gradeScales ??= \App\Models\GradeScale::cached());
                                     $gradeColor = $grade?->color ?? 'gray';
-                                    $rankLabel = match ((int) $ranking->class_rank) {
+                                    $rankLabel = $ranking->class_rank === null ? 'Absent' : match ((int) $ranking->class_rank) {
                                         1 => '🥇 1st',
                                         2 => '🥈 2nd',
                                         3 => '🥉 3rd',

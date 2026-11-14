@@ -173,7 +173,7 @@
         $pages = [
             [
                 'blocks' => [
-                    ['title' => 'GPA Summary', 'labelHeading' => 'Result', 'rows' => $gradeRows, 'summaryRows' => [$totalRow, $passedRow, $failedRow]],
+                    ['title' => 'GPA Summary', 'labelHeading' => 'Result', 'rows' => $gradeRows, 'summaryRows' => [$totalRow, $absentRow, $examineeRow, $passedRow, $failedRow]],
                     ['title' => 'Failed Students by Number of Subjects', 'labelHeading' => 'Result', 'rows' => $failRows, 'summaryRows' => [$failedRow]],
                 ],
                 'showPassRate' => true,

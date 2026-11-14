@@ -85,10 +85,13 @@ class CalculateExamRankings
      * the student failed overall and in how many GPA-counting subjects (a
      * merged subject counts once; an extra optional subject never counts).
      * failed_subject_keys names those subjects: "subject:{id}" or "merge:{id}".
+     * is_fully_absent marks a student absent in every subject they have a
+     * result for — they did not sit the exam, so they get no rank and the
+     * exam report leaves them out of its examinee counts.
      *
      * Used by execute() to save rankings and by the exam result report.
      *
-     * @return list<array{student_id: int, class_id: int, section_id: ?int, group_id: ?int, total_marks: float, gpa: float, is_overall_fail: bool, failed_subject_count: int, failed_subject_keys: list<string>}>
+     * @return list<array{student_id: int, class_id: int, section_id: ?int, group_id: ?int, total_marks: float, gpa: float, is_overall_fail: bool, is_fully_absent: bool, failed_subject_count: int, failed_subject_keys: list<string>}>
      */
     public function summarizeStudents(Exam $exam): array
     {
@@ -191,6 +194,7 @@ class CalculateExamRankings
                 : null;
             $studentOptionalSelections = $optionalSelections->get((int) $studentId);
             $studentResults = $studentResults->keyBy('subject_id');
+            $isFullyAbsent = $studentResults->every(fn (StudentResult $result): bool => (bool) $result->is_absent);
 
             $units = [];
 
@@ -282,6 +286,7 @@ class CalculateExamRankings
                 'total_marks' => round($totalMarks, 2),
                 'gpa' => $gpa,
                 'is_overall_fail' => $isOverallFail,
+                'is_fully_absent' => $isFullyAbsent,
                 'failed_subject_count' => count($failedSubjectKeys),
                 'failed_subject_keys' => $failedSubjectKeys,
             ];
@@ -296,10 +301,13 @@ class CalculateExamRankings
      *  - Tier 2: students who failed overall (or were absent in a compulsory/main
      *    optional subject) → ranked among themselves the same way, after tier 1
      *
+     * Students absent in every subject are left unranked.
+     *
      * @param  Collection<int, array<string, mixed>>  $studentData
      */
     private function calculateTieredRanks(Collection $studentData): array
     {
+        $studentData = $studentData->where('is_fully_absent', false);
         $passed = $this->sortForRanking($studentData->where('is_overall_fail', false));
         $failed = $this->sortForRanking($studentData->where('is_overall_fail', true));
 
@@ -350,7 +358,7 @@ class CalculateExamRankings
     {
         $sectionRankMap = [];
 
-        foreach (collect($studentData)->groupBy('section_id') as $sectionStudents) {
+        foreach (collect($studentData)->where('is_fully_absent', false)->groupBy('section_id') as $sectionStudents) {
             $passed = $this->sortForRanking($sectionStudents->where('is_overall_fail', false));
             $failed = $this->sortForRanking($sectionStudents->where('is_overall_fail', true));
 

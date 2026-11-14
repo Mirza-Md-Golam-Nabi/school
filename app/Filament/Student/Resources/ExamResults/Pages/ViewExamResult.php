@@ -42,6 +42,7 @@ class ViewExamResult extends Page
     {
         return StudentMeritRanking::where('exam_id', $this->record->id)
             ->with(['student.user', 'section'])
+            ->orderByRaw('class_rank is null')
             ->orderBy('class_rank')
             ->get();
     }

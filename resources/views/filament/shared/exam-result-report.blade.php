@@ -2,7 +2,7 @@
     $cellClass = 'border border-gray-200 px-2 py-1.5 text-center sm:px-3 sm:py-2 dark:border-white/10';
     $labelCellClass = 'border border-gray-200 px-2 py-1.5 text-left sm:px-3 sm:py-2 dark:border-white/10';
     $blocks = [
-        ['title' => 'GPA Summary', 'labelHeading' => 'Result', 'rows' => $gradeRows, 'summaryRows' => [$totalRow, $passedRow, $failedRow]],
+        ['title' => 'GPA Summary', 'labelHeading' => 'Result', 'rows' => $gradeRows, 'summaryRows' => [$totalRow, $absentRow, $examineeRow, $passedRow, $failedRow]],
         ['title' => 'Failed Students by Number of Subjects', 'labelHeading' => 'Result', 'rows' => $failRows, 'summaryRows' => [$failedRow]],
         ['title' => 'Subject-wise Failed Students', 'labelHeading' => 'Subject', 'rows' => $subjectRows, 'summaryRows' => [['label' => 'Total Failed Students'] + $failedRow]],
     ];
@@ -15,9 +15,11 @@
             <p class="mt-1">আগে Exam-এর "Calculate Rankings" বাটন থেকে ranking calculate করুন।</p>
         </div>
     @else
-        <div class="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
+        <div class="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-6">
             @foreach ([
                 ['label' => 'Total Students', 'value' => $totalRow['total'], 'color' => 'text-gray-900 dark:text-white'],
+                ['label' => 'Absent (All Subjects)', 'value' => $absentRow['total'], 'color' => 'text-warning-600 dark:text-warning-400'],
+                ['label' => 'Examinees', 'value' => $examineeRow['total'], 'color' => 'text-gray-900 dark:text-white'],
                 ['label' => 'Passed', 'value' => $passedRow['total'], 'color' => 'text-success-600 dark:text-success-400'],
                 ['label' => 'Failed', 'value' => $failedRow['total'], 'color' => 'text-danger-600 dark:text-danger-400'],
                 ['label' => 'Pass Rate', 'value' => number_format($passRate, 2).'%', 'color' => 'text-primary-600 dark:text-primary-400'],

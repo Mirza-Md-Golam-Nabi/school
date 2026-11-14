@@ -102,7 +102,7 @@
             <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-gray-600 dark:text-gray-400 sm:text-xs">
                 <span>Total: <strong class="text-gray-800 dark:text-gray-200">{{ $summary['total_marks'] }}</strong></span>
                 <span class="text-gray-300 dark:text-gray-600">|</span>
-                <span>Class Rank: <strong class="text-gray-800 dark:text-gray-200">#{{ $summary['class_rank'] }}</strong></span>
+                <span>Class Rank: <strong class="text-gray-800 dark:text-gray-200">{{ $summary['class_rank'] ? '#'.$summary['class_rank'] : 'Absent' }}</strong></span>
                 @if ($summary['section_rank'])
                     <span class="text-gray-300 dark:text-gray-600">|</span>
                     <span>Section Rank: <strong class="text-gray-800 dark:text-gray-200">#{{ $summary['section_rank'] }}</strong></span>

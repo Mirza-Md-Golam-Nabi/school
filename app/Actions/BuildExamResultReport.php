@@ -22,6 +22,10 @@ class BuildExamResultReport
      * subjects, and how many failed in each subject. Counts are broken down by group (Class 9-10) or by section
      * when the class has either, plus a Total column.
      *
+     * Students absent in every subject did not sit the exam: they are
+     * counted only in the Total and Absent rows, and everything else (GPA
+     * bands, pass/fail, failed subjects, pass rate) counts the examinees.
+     *
      * Reads only after rankings exist, so the report always matches the
      * Merit Rankings / Tabulation Sheet tabs.
      *
@@ -31,6 +35,8 @@ class BuildExamResultReport
      *     breakdownLabel: ?string,
      *     columns: list<array{key: int, label: string}>,
      *     totalRow: array{label: string, total: int, by: array<int, int>},
+     *     absentRow: array{label: string, total: int, by: array<int, int>},
+     *     examineeRow: array{label: string, total: int, by: array<int, int>},
      *     gradeRows: list<array{label: string, total: int, by: array<int, int>}>,
      *     passedRow: array{label: string, total: int, by: array<int, int>},
      *     failedRow: array{label: string, total: int, by: array<int, int>},
@@ -57,8 +63,10 @@ class BuildExamResultReport
             ])->all(),
         ];
 
-        $passed = $students->where('is_overall_fail', false);
-        $failed = $students->where('is_overall_fail', true);
+        $absentees = $students->where('is_fully_absent', true);
+        $examinees = $students->where('is_fully_absent', false);
+        $passed = $examinees->where('is_overall_fail', false);
+        $failed = $examinees->where('is_overall_fail', true);
 
         $gradeScales = GradeScale::cached();
 
@@ -89,6 +97,8 @@ class BuildExamResultReport
             'breakdownLabel' => $breakdownLabel,
             'columns' => $columns,
             'totalRow' => $countRow('Total Students', $students),
+            'absentRow' => $countRow('Absent (All Subjects)', $absentees),
+            'examineeRow' => $countRow('Examinees', $examinees),
             'gradeRows' => $gradeRows,
             'passedRow' => $countRow('Passed', $passed),
             'failedRow' => $countRow('Failed', $failed),
@@ -100,7 +110,7 @@ class BuildExamResultReport
                 ))
                 ->values()
                 ->all(),
-            'passRate' => $students->isEmpty() ? 0.0 : round($passed->count() / $students->count() * 100, 2),
+            'passRate' => $examinees->isEmpty() ? 0.0 : round($passed->count() / $examinees->count() * 100, 2),
         ];
     }
 
