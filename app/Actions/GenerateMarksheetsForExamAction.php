@@ -2,11 +2,15 @@
 
 namespace App\Actions;
 
+use App\Enums\MarksheetBundleType;
+use App\Jobs\GenerateMarksheetBundlePdfJob;
 use App\Jobs\GenerateMarksheetPdfJob;
 use App\Models\Exam;
 use App\Models\Marksheet;
+use App\Models\MarksheetBundle;
 use App\Models\StudentMeritRanking;
 use App\Models\StudentProfile;
+use Illuminate\Support\Str;
 
 class GenerateMarksheetsForExamAction
 {
@@ -67,6 +71,10 @@ class GenerateMarksheetsForExamAction
             GenerateMarksheetPdfJob::dispatch($marksheet->id, $subjectLanguage);
         }
 
+        if ($created + $regenerated > 0) {
+            $this->queueBundles($exam, $subjectLanguage);
+        }
+
         $this->logGeneration($exam, $created, $regenerated, $skippedNoRanking);
 
         return [
@@ -74,6 +82,29 @@ class GenerateMarksheetsForExamAction
             'regenerated' => $regenerated,
             'skipped_no_ranking' => $skippedNoRanking,
         ];
+    }
+
+    /**
+     * Alongside the per-student PDFs, queue the three ready-made combined PDFs
+     * (all / passed / failed students). Each bundle is marked not-ready with a
+     * fresh token first, so a job from an older run can't overwrite it.
+     */
+    private function queueBundles(Exam $exam, string $subjectLanguage): void
+    {
+        foreach (MarksheetBundleType::cases() as $type) {
+            $generationToken = (string) Str::uuid();
+
+            $bundle = MarksheetBundle::updateOrCreate(
+                ['exam_id' => $exam->id, 'type' => $type],
+                [
+                    'subject_language' => $subjectLanguage,
+                    'is_generated' => false,
+                    'generation_token' => $generationToken,
+                ],
+            );
+
+            GenerateMarksheetBundlePdfJob::dispatch($bundle->id, $generationToken);
+        }
     }
 
     private function logGeneration(Exam $exam, int $created, int $regenerated, int $skippedNoRanking): void

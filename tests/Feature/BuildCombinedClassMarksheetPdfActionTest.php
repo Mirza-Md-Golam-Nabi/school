@@ -2,6 +2,7 @@
 
 use App\Actions\BuildCombinedClassMarksheetPdfAction;
 use App\Enums\Gender;
+use App\Enums\MarksheetBundleType;
 use App\Enums\StudentStatus;
 use App\Enums\SubjectType;
 use App\Enums\UserType;
@@ -233,4 +234,95 @@ it('streams the combined pdf as a download through the http route', function () 
 
     $response->assertStatus(Response::HTTP_OK);
     $response->assertHeader('Content-Type', 'application/pdf');
+});
+
+/**
+ * Class + exam with three compulsory subjects, and four students who failed
+ * in 0, 1, 2 and 3 of them (roll no = failed count + 1).
+ *
+ * @return array{0: Classes, 1: Exam}
+ */
+function seedCombinedMarksheetFailedCountScenario(bool $isGenerated = true): array
+{
+    $class = Classes::create(['name' => 'Combined Failed Count Class', 'order' => 1]);
+    $examType = ExamType::create(['name' => 'Annual', 'is_active' => true]);
+    $exam = Exam::create([
+        'exam_type_id' => $examType->id,
+        'class_id' => $class->id,
+        'session_year' => now()->year,
+        'start_date' => now()->toDateString(),
+        'end_date' => now()->addDays(5)->toDateString(),
+    ]);
+
+    $subjects = collect(['Bangla', 'English', 'Math'])->map(function (string $name) use ($class, $exam) {
+        $subject = Subject::create(['name' => $name, 'has_mcq' => false, 'has_written' => true, 'has_practical' => false, 'is_active' => true]);
+        $subject->classes()->attach($class->id, ['subject_type' => SubjectType::Compulsory->value]);
+
+        ExamSubjectConfig::create([
+            'exam_id' => $exam->id,
+            'subject_id' => $subject->id,
+            'written_total' => 100,
+            'total_marks' => 100,
+            'pass_mark' => 33,
+        ]);
+
+        return $subject;
+    });
+
+    foreach ([0, 1, 2, 3] as $failedCount) {
+        $student = makeCombinedMarksheetTestStudent($class->id, rollNo: $failedCount + 1);
+
+        foreach ($subjects as $index => $subject) {
+            StudentResult::create([
+                'exam_id' => $exam->id,
+                'subject_id' => $subject->id,
+                'class_id' => $class->id,
+                'student_id' => $student->id,
+                'written_marks' => $index < $failedCount ? 20 : 80,
+            ]);
+        }
+
+        StudentMeritRanking::create([
+            'exam_id' => $exam->id,
+            'student_id' => $student->id,
+            'class_id' => $class->id,
+            'total_marks' => 240,
+            'gpa' => 4.0,
+            'class_rank' => $failedCount + 1,
+        ]);
+
+        Marksheet::create(['student_id' => $student->id, 'exam_id' => $exam->id, 'is_generated' => $isGenerated]);
+    }
+
+    return [$class, $exam];
+}
+
+it('keeps only failed students whose failed-subject count is in the given range', function () {
+    [$class, $exam] = seedCombinedMarksheetFailedCountScenario();
+
+    $action = app(BuildCombinedClassMarksheetPdfAction::class);
+
+    expect($action->generatedMarksheetsQuery($class, $exam, null, 1, 1)->count())->toBe(1)
+        ->and($action->generatedMarksheetsQuery($class, $exam, null, 1, 3)->count())->toBe(3)
+        ->and($action->generatedMarksheetsQuery($class, $exam, null, 2, 3)->count())->toBe(2)
+        ->and($action->generatedMarksheetsQuery($class, $exam, null, 4, 5)->count())->toBe(0);
+
+    $pdf = $action->handle($class, $exam, 'en', null, 2, 3);
+
+    expect(preg_match_all('/\/Type\s*\/Page[^s]/', $pdf))->toBe(2);
+});
+
+it('builds a bundle from every marksheet record, even before its own pdf job has finished', function () {
+    [, $exam] = seedCombinedMarksheetFailedCountScenario(isGenerated: false);
+
+    $action = app(BuildCombinedClassMarksheetPdfAction::class);
+
+    $all = $action->buildBundle($exam, MarksheetBundleType::All, 'en');
+    $passed = $action->buildBundle($exam, MarksheetBundleType::Passed, 'en');
+    $failed = $action->buildBundle($exam, MarksheetBundleType::Failed, 'en');
+
+    expect($all['student_count'])->toBe(4)
+        ->and(preg_match_all('/\/Type\s*\/Page[^s]/', $all['pdf']))->toBe(4)
+        ->and($passed['student_count'])->toBe(1)
+        ->and($failed['student_count'])->toBe(3);
 });

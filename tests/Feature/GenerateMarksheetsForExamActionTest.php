@@ -2,13 +2,16 @@
 
 use App\Actions\GenerateMarksheetsForExamAction;
 use App\Enums\Gender;
+use App\Enums\MarksheetBundleType;
 use App\Enums\StudentStatus;
 use App\Enums\UserType;
+use App\Jobs\GenerateMarksheetBundlePdfJob;
 use App\Jobs\GenerateMarksheetPdfJob;
 use App\Models\Classes;
 use App\Models\Exam;
 use App\Models\ExamType;
 use App\Models\Marksheet;
+use App\Models\MarksheetBundle;
 use App\Models\StudentMeritRanking;
 use App\Models\StudentProfile;
 use App\Models\User;
@@ -80,6 +83,45 @@ it('creates a marksheet for every active, ranked student and dispatches a genera
         ->and($marksheet1->is_generated)->toBeFalse();
 
     Queue::assertPushed(GenerateMarksheetPdfJob::class, 2);
+});
+
+it('queues the three ready-made bundle pdfs (all / passed / failed) alongside the marksheets', function () {
+    Queue::fake();
+
+    $class = Classes::create(['name' => 'Class Bundle', 'order' => 1]);
+    $exam = createMarksheetActionTestExam($class->id);
+    $student = createMarksheetActionTestStudent($class->id);
+    createMarksheetActionTestRanking($exam, $class->id, $student);
+
+    MarksheetBundle::create([
+        'exam_id' => $exam->id,
+        'type' => MarksheetBundleType::All,
+        'subject_language' => 'en',
+        'is_generated' => true,
+        'generation_token' => 'old-token',
+    ]);
+
+    app(GenerateMarksheetsForExamAction::class)->handle($exam, null, 'bn');
+
+    Queue::assertPushed(GenerateMarksheetBundlePdfJob::class, 3);
+
+    $bundles = MarksheetBundle::where('exam_id', $exam->id)->get();
+
+    expect($bundles)->toHaveCount(3)
+        ->and($bundles->every(fn (MarksheetBundle $bundle) => ! $bundle->is_generated && $bundle->subject_language === 'bn'))->toBeTrue()
+        ->and($bundles->firstWhere('type', MarksheetBundleType::All)->generation_token)->not->toBe('old-token');
+});
+
+it('queues no bundle pdf when no student is ranked yet', function () {
+    Queue::fake();
+
+    $class = Classes::create(['name' => 'Class No Bundle', 'order' => 1]);
+    $exam = createMarksheetActionTestExam($class->id);
+    createMarksheetActionTestStudent($class->id);
+
+    app(GenerateMarksheetsForExamAction::class)->handle($exam);
+
+    Queue::assertNotPushed(GenerateMarksheetBundlePdfJob::class);
 });
 
 it('skips students who have not had rankings calculated for the exam', function () {
