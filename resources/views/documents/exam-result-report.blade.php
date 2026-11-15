@@ -116,6 +116,10 @@
             width: 40%;
         }
 
+        table.report .name-col {
+            text-align: left;
+        }
+
         table.report tr.summary td {
             font-weight: bold;
             background: #fafafa;
@@ -169,7 +173,7 @@
     </htmlpagefooter>
 
     @php
-        // One PDF, two pages; the signature footer (@page footer) prints on both.
+        // One PDF, several pages; the signature footer (@page footer) prints on every page.
         $pages = [
             [
                 'blocks' => [
@@ -185,6 +189,27 @@
                 'showPassRate' => false,
             ],
         ];
+
+        // Then one page per passed-student list (per group / section), and one page with every failed student.
+        foreach ($passedLists as $passedList) {
+            $pages[] = ['blocks' => [], 'showPassRate' => false, 'studentBlocks' => [[
+                'title' => 'Passed Students' . ($passedList['label'] ? " — {$breakdownLabel}: {$passedList['label']}" : '') . ' (' . count($passedList['students']) . ')',
+                'students' => $passedList['students'],
+                'isFailedList' => false,
+            ]]];
+        }
+
+        $pages[] = ['blocks' => [], 'showPassRate' => false, 'studentBlocks' => $failedLists === []
+            ? [['title' => 'Failed Students (0)', 'students' => [], 'isFailedList' => true]]
+            : collect($failedLists)->map(fn (array $failedList): array => [
+                'title' => "{$failedList['label']} (" . count($failedList['students']) . ')',
+                'students' => $failedList['students'],
+                'isFailedList' => true,
+            ])->all(),
+            'pageTitle' => 'Failed Students',
+        ];
+
+        $showSectionRank = $breakdownLabel === 'Section';
     @endphp
 
     @foreach ($pages as $page)
@@ -237,6 +262,58 @@
                             <td>{{ $row['total'] }}</td>
                         </tr>
                     @endforeach
+                </tbody>
+            </table>
+        @endforeach
+
+        @if (isset($page['pageTitle']))
+            <div class="section-title">{{ $page['pageTitle'] }}</div>
+        @endif
+
+        @foreach ($page['studentBlocks'] ?? [] as $studentBlock)
+            <div class="section-title">{{ $studentBlock['title'] }}</div>
+            <table class="report">
+                <thead>
+                    <tr>
+                        <th>SL</th>
+                        <th>Roll</th>
+                        <th class="name-col">Name</th>
+                        @if ($studentBlock['isFailedList'] && $breakdownLabel)
+                            <th>{{ $breakdownLabel }}</th>
+                        @endif
+                        <th>GPA</th>
+                        <th>Class Rank</th>
+                        @if ($showSectionRank)
+                            <th>Section Rank</th>
+                        @endif
+                        @if ($studentBlock['isFailedList'])
+                            <th class="name-col">Failed Subjects</th>
+                        @endif
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse ($studentBlock['students'] as $student)
+                        <tr>
+                            <td>{{ $loop->iteration }}</td>
+                            <td>{{ $student['roll'] ?? '—' }}</td>
+                            <td class="name-col">{{ $student['name'] }}</td>
+                            @if ($studentBlock['isFailedList'] && $breakdownLabel)
+                                <td>{{ $student['breakdown'] ?? '—' }}</td>
+                            @endif
+                            <td>{{ number_format($student['gpa'], 2) }}</td>
+                            <td>{{ $student['class_rank'] ?? '—' }}</td>
+                            @if ($showSectionRank)
+                                <td>{{ $student['section_rank'] ?? '—' }}</td>
+                            @endif
+                            @if ($studentBlock['isFailedList'])
+                                <td class="name-col">{{ $student['failed_subjects'] }}</td>
+                            @endif
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="8">No students</td>
+                        </tr>
+                    @endforelse
                 </tbody>
             </table>
         @endforeach

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Marksheets\Pages;
 
+use App\Actions\BuildCombinedClassMarksheetPdfAction;
 use App\Actions\GenerateMarksheetsForExamAction;
 use App\Filament\Resources\Marksheets\MarksheetResource;
 use App\Models\Classes;
@@ -158,6 +159,80 @@ class ManageClassMarksheets extends ListRecords
                         'class' => $this->classId,
                         'exam' => $examId,
                         'subjectLanguage' => $data['subjectLanguage'] ?? 'en',
+                    ]));
+                }),
+
+            Action::make('downloadMarksheetsByResult')
+                ->label('Download Passed / Failed (PDF)')
+                ->icon(Heroicon::OutlinedFunnel)
+                ->color('warning')
+                ->schema([
+                    Select::make('exam_id')
+                        ->label('Exam')
+                        ->options(fn () => Exam::query()
+                            ->with('examType')
+                            ->where('class_id', $this->classId)
+                            ->orderByDesc('start_date')
+                            ->get()
+                            ->mapWithKeys(fn (Exam $exam) => [$exam->id => "{$exam->examType?->name} — {$exam->session_year}"]))
+                        ->searchable()
+                        ->native(false)
+                        ->required(),
+
+                    Radio::make('result')
+                        ->label('Students')
+                        ->options([
+                            BuildCombinedClassMarksheetPdfAction::RESULT_PASSED => 'সব বিষয়ে পাশ করেছে',
+                            BuildCombinedClassMarksheetPdfAction::RESULT_FAILED => 'ফেল করেছে',
+                        ])
+                        ->default(BuildCombinedClassMarksheetPdfAction::RESULT_PASSED)
+                        ->inline()
+                        ->inlineLabel(false)
+                        ->required(),
+
+                    Section::make('Document Language')
+                        ->schema([
+                            Radio::make('subjectLanguage')
+                                ->hiddenLabel()
+                                ->options([
+                                    'en' => 'English',
+                                    'bn' => 'বাংলা',
+                                ])
+                                ->default(fn (): string => app()->getLocale())
+                                ->inline()
+                                ->inlineLabel(false)
+                                ->required(),
+                        ]),
+                ])
+                ->modalHeading(fn (): string => 'Download Passed / Failed Marksheets — '.(Classes::query()->find($this->classId)?->name ?? 'Class'))
+                ->modalDescription('শুধু সব বিষয়ে পাশ করা student-দের, অথবা শুধু ফেল করা student-দের generate করা marksheet একটা PDF-এ download হবে।')
+                ->modalSubmitActionLabel('Download')
+                ->action(function (array $data) {
+                    $exam = Exam::findOrFail((int) $data['exam_id']);
+                    $class = Classes::findOrFail($this->classId);
+                    $resultFilter = $data['result'];
+
+                    $hasMatchingMarksheets = app(BuildCombinedClassMarksheetPdfAction::class)
+                        ->generatedMarksheetsQuery($class, $exam, $resultFilter)
+                        ->exists();
+
+                    if (! $hasMatchingMarksheets) {
+                        Notification::make()
+                            ->title('কোনো Marksheet পাওয়া যায়নি')
+                            ->body($resultFilter === BuildCombinedClassMarksheetPdfAction::RESULT_FAILED
+                                ? 'এই exam-এ ফেল করা কোনো student-এর generate করা marksheet নেই।'
+                                : 'এই exam-এ সব বিষয়ে পাশ করা কোনো student-এর generate করা marksheet নেই।')
+                            ->danger()
+                            ->send();
+
+                        return;
+                    }
+
+                    $this->redirect(route('marksheets.class.download', [
+                        'class' => $this->classId,
+                        'exam' => $exam->id,
+                        'subjectLanguage' => $data['subjectLanguage'] ?? 'en',
+                        'result' => $resultFilter,
                     ]));
                 }),
         ];

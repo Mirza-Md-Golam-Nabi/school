@@ -25,7 +25,7 @@ class ExamReportRelationManager extends RelationManager
         return $schema
             ->components([
                 Section::make('Exam Report')
-                    ->description('GPA অনুযায়ী কতজন, কতজন পাস/ফেল, এবং কতজন কয়টি বিষয়ে ফেল করেছে।')
+                    ->description('GPA অনুযায়ী কতজন, কতজন পাস/ফেল, এবং কতজন কয়টি বিষয়ে ফেল করেছে; সাথে পাশ ও ফেল করা student-দের তালিকা।')
                     ->afterHeader([
                         Action::make('downloadExamReport')
                             ->label('Download Report (PDF)')

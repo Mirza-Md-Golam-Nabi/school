@@ -22,6 +22,10 @@ class BuildExamResultReport
      * subjects, and how many failed in each subject. Counts are broken down by group (Class 9-10) or by section
      * when the class has either, plus a Total column.
      *
+     * Also lists the students themselves: passed students (name, roll, GPA,
+     * rank) per group / section, and failed students grouped by how many
+     * subjects they failed in.
+     *
      * Students absent in every subject did not sit the exam: they are
      * counted only in the Total and Absent rows, and everything else (GPA
      * bands, pass/fail, failed subjects, pass rate) counts the examinees.
@@ -42,6 +46,8 @@ class BuildExamResultReport
      *     failedRow: array{label: string, total: int, by: array<int, int>},
      *     failRows: list<array{label: string, total: int, by: array<int, int>}>,
      *     subjectRows: list<array{label: string, total: int, by: array<int, int>}>,
+     *     passedLists: list<array{label: ?string, students: list<array<string, mixed>>}>,
+     *     failedLists: list<array{label: string, students: list<array<string, mixed>>}>,
      *     passRate: float,
      * }
      */
@@ -91,9 +97,23 @@ class BuildExamResultReport
             );
         }
 
+        $subjectLabels = $this->reportSubjects($exam);
+        $studentRows = $this->studentRows($exam, $examinees, $breakdownKey, $columns, $subjectLabels);
+
         return [
             'exam' => $exam,
             'isEmpty' => $students->isEmpty(),
+            'passedLists' => $this->passedLists($studentRows->where('is_fail', false), $breakdownKey, $columns),
+            'failedLists' => $studentRows
+                ->where('is_fail', true)
+                ->groupBy('failed_subject_count')
+                ->sortKeys()
+                ->map(fn (Collection $rows, int $subjectCount): array => [
+                    'label' => $subjectCount === 1 ? 'Failed in 1 subject' : "Failed in {$subjectCount} subjects",
+                    'students' => $rows->values()->all(),
+                ])
+                ->values()
+                ->all(),
             'breakdownLabel' => $breakdownLabel,
             'columns' => $columns,
             'totalRow' => $countRow('Total Students', $students),
@@ -103,7 +123,7 @@ class BuildExamResultReport
             'passedRow' => $countRow('Passed', $passed),
             'failedRow' => $countRow('Failed', $failed),
             'failRows' => $failRows,
-            'subjectRows' => collect($this->reportSubjects($exam))
+            'subjectRows' => collect($subjectLabels)
                 ->map(fn (string $label, string $key): array => $countRow(
                     $label,
                     $failed->filter(fn (array $student): bool => in_array($key, $student['failed_subject_keys'], true)),
@@ -112,6 +132,74 @@ class BuildExamResultReport
                 ->all(),
             'passRate' => $examinees->isEmpty() ? 0.0 : round($passed->count() / $examinees->count() * 100, 2),
         ];
+    }
+
+    /**
+     * One row per examinee for the passed / failed student lists, in merit
+     * order (class rank, then roll).
+     *
+     * @param  Collection<int, array<string, mixed>>  $examinees
+     * @param  list<array{key: int, label: string}>  $columns
+     * @param  array<string, string>  $subjectLabels
+     * @return Collection<int, array{name: string, roll: ?string, breakdown: ?string, breakdown_key: ?int, gpa: float, class_rank: ?int, section_rank: ?int, is_fail: bool, failed_subject_count: int, failed_subjects: string}>
+     */
+    private function studentRows(Exam $exam, Collection $examinees, ?string $breakdownKey, array $columns, array $subjectLabels): Collection
+    {
+        $rankings = $exam->meritRankings()
+            ->with('student.user')
+            ->whereIn('student_id', $examinees->pluck('student_id'))
+            ->get()
+            ->keyBy('student_id');
+
+        $columnLabels = collect($columns)->pluck('label', 'key');
+
+        return $examinees
+            ->map(function (array $student) use ($rankings, $breakdownKey, $columnLabels, $subjectLabels): array {
+                $ranking = $rankings->get($student['student_id']);
+
+                return [
+                    'name' => $ranking?->student?->user?->name ?? '—',
+                    'roll' => $ranking?->student?->roll_no !== null ? (string) $ranking->student->roll_no : null,
+                    'breakdown' => $breakdownKey ? $columnLabels->get($student[$breakdownKey]) : null,
+                    'breakdown_key' => $breakdownKey ? $student[$breakdownKey] : null,
+                    'gpa' => (float) $student['gpa'],
+                    'class_rank' => $ranking?->class_rank !== null ? (int) $ranking->class_rank : null,
+                    'section_rank' => $ranking?->section_rank !== null ? (int) $ranking->section_rank : null,
+                    'is_fail' => (bool) $student['is_overall_fail'],
+                    'failed_subject_count' => (int) $student['failed_subject_count'],
+                    'failed_subjects' => collect($student['failed_subject_keys'])
+                        ->map(fn (string $key): ?string => $subjectLabels[$key] ?? null)
+                        ->filter()
+                        ->implode(', '),
+                ];
+            })
+            ->sortBy([
+                fn (array $a, array $b): int => ($a['class_rank'] ?? PHP_INT_MAX) <=> ($b['class_rank'] ?? PHP_INT_MAX),
+                fn (array $a, array $b): int => (int) $a['roll'] <=> (int) $b['roll'],
+            ])
+            ->values();
+    }
+
+    /**
+     * Passed students, one list per group / section (each its own PDF page),
+     * or a single list when the class has neither.
+     *
+     * @param  Collection<int, array<string, mixed>>  $passedRows
+     * @param  list<array{key: int, label: string}>  $columns
+     * @return list<array{label: ?string, students: list<array<string, mixed>>}>
+     */
+    private function passedLists(Collection $passedRows, ?string $breakdownKey, array $columns): array
+    {
+        if (! $breakdownKey || $columns === []) {
+            return [['label' => null, 'students' => $passedRows->values()->all()]];
+        }
+
+        return collect($columns)
+            ->map(fn (array $column): array => [
+                'label' => $column['label'],
+                'students' => $passedRows->where('breakdown_key', $column['key'])->values()->all(),
+            ])
+            ->all();
     }
 
     /**

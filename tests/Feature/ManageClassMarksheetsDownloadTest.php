@@ -77,3 +77,25 @@ it('redirects to the download route when at least one marksheet has been generat
         ->callMountedAction()
         ->assertRedirect(route('marksheets.class.download', ['class' => $class->id, 'exam' => $exam->id, 'subjectLanguage' => 'en']));
 });
+
+it('shows a danger notification when no student matches the chosen pass / fail filter', function () {
+    $admin = grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]));
+    test()->actingAs($admin);
+
+    $class = Classes::create(['name' => 'Marksheet Result Filter Notify Class', 'order' => 1]);
+    $exam = makeManageClassMarksheetsTestExam($class->id);
+    $student = makeManageClassMarksheetsTestStudent($class->id);
+
+    Marksheet::create([
+        'student_id' => $student->id,
+        'exam_id' => $exam->id,
+        'is_generated' => true,
+    ]);
+
+    Livewire::test(ManageClassMarksheets::class, ['classId' => $class->id])
+        ->mountAction('downloadMarksheetsByResult')
+        ->setActionData(['exam_id' => $exam->id, 'result' => 'failed'])
+        ->callMountedAction()
+        ->assertNotified()
+        ->assertNoRedirect();
+});

@@ -136,6 +136,57 @@ it('excludes generated marksheets belonging to a different class', function () {
     expect($pageCount)->toBe(1);
 });
 
+it('keeps only passed or only failed students when a result filter is given', function () {
+    $class = Classes::create(['name' => 'Combined Class Result Filter', 'order' => 1]);
+    $examType = ExamType::create(['name' => 'Half Yearly', 'is_active' => true]);
+    $exam = Exam::create([
+        'exam_type_id' => $examType->id,
+        'class_id' => $class->id,
+        'session_year' => now()->year,
+        'start_date' => now()->toDateString(),
+        'end_date' => now()->addDays(5)->toDateString(),
+    ]);
+
+    $subject = Subject::create(['name' => 'Bangla', 'has_mcq' => false, 'has_written' => true, 'has_practical' => false, 'is_active' => true]);
+    $subject->classes()->attach($class->id, ['subject_type' => SubjectType::Compulsory->value]);
+
+    ExamSubjectConfig::create([
+        'exam_id' => $exam->id,
+        'subject_id' => $subject->id,
+        'written_total' => 100,
+        'total_marks' => 100,
+        'pass_mark' => 33,
+    ]);
+
+    foreach ([[1, 80], [2, 70], [3, 20]] as [$rollNo, $marks]) {
+        $student = makeCombinedMarksheetTestStudent($class->id, rollNo: $rollNo);
+        seedCombinedMarksheetTestResult($exam, $class, $subject, $student, $marks, classRank: $rollNo);
+        Marksheet::create(['student_id' => $student->id, 'exam_id' => $exam->id, 'is_generated' => true]);
+    }
+
+    // Absent in every subject — did not sit the exam, so neither passed nor failed.
+    $fullyAbsent = makeCombinedMarksheetTestStudent($class->id, rollNo: 4);
+    StudentResult::create([
+        'exam_id' => $exam->id,
+        'subject_id' => $subject->id,
+        'class_id' => $class->id,
+        'student_id' => $fullyAbsent->id,
+        'is_absent' => true,
+    ]);
+    Marksheet::create(['student_id' => $fullyAbsent->id, 'exam_id' => $exam->id, 'is_generated' => true]);
+
+    $action = app(BuildCombinedClassMarksheetPdfAction::class);
+
+    expect($action->generatedMarksheetsQuery($class, $exam, BuildCombinedClassMarksheetPdfAction::RESULT_PASSED)->count())->toBe(2)
+        ->and($action->generatedMarksheetsQuery($class, $exam, BuildCombinedClassMarksheetPdfAction::RESULT_FAILED)->count())->toBe(1);
+
+    $passedPdf = $action->handle($class, $exam, 'en', BuildCombinedClassMarksheetPdfAction::RESULT_PASSED);
+    $failedPdf = $action->handle($class, $exam, 'en', BuildCombinedClassMarksheetPdfAction::RESULT_FAILED);
+
+    expect(preg_match_all('/\/Type\s*\/Page[^s]/', $passedPdf))->toBe(2)
+        ->and(preg_match_all('/\/Type\s*\/Page[^s]/', $failedPdf))->toBe(1);
+});
+
 it('aborts with 404 when no marksheet has been generated yet for the class and exam', function () {
     $class = Classes::create(['name' => 'Combined Class Empty', 'order' => 1]);
     $examType = ExamType::create(['name' => 'Half Yearly', 'is_active' => true]);

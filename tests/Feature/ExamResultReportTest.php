@@ -287,7 +287,7 @@ it('counts how many students failed in each subject, in subject order', function
     ]);
 });
 
-it('puts the subject-wise report on its own second page of the PDF', function () {
+it('puts the subject-wise report, the passed list and the failed list on their own PDF pages', function () {
     [$exam, $subjects] = makeResultReportExam();
     addResultReportStudent($exam, $subjects, [85, 90, 95]);
     addResultReportStudent($exam, $subjects, [85, 85, 10]);
@@ -295,5 +295,79 @@ it('puts the subject-wise report on its own second page of the PDF', function ()
 
     $pdf = app(BuildExamResultReportPdfAction::class)->handle($exam);
 
-    expect(preg_match_all('#/Type /Page\b(?!s)#', $pdf))->toBe(2);
+    expect(preg_match_all('#/Type /Page\b(?!s)#', $pdf))->toBe(4);
+});
+
+it('gives each section its own passed-student page in the PDF', function () {
+    [$exam, $subjects] = makeResultReportExam();
+    $sectionA = Section::create(['class_id' => $exam->class_id, 'name' => 'A']);
+    $sectionB = Section::create(['class_id' => $exam->class_id, 'name' => 'B']);
+
+    addResultReportStudent($exam, $subjects, [85, 90, 95], $sectionA->id);
+    addResultReportStudent($exam, $subjects, [85, 85, 10], $sectionA->id);
+    addResultReportStudent($exam, $subjects, [90, 90, 90], $sectionB->id);
+    app(CalculateExamRankings::class)->execute($exam);
+
+    $pdf = app(BuildExamResultReportPdfAction::class)->handle($exam);
+
+    expect(preg_match_all('#/Type /Page\b(?!s)#', $pdf))->toBe(5);
+});
+
+it('lists passed students per section with name, roll, GPA and rank in merit order', function () {
+    [$exam, $subjects] = makeResultReportExam();
+    $sectionA = Section::create(['class_id' => $exam->class_id, 'name' => 'A']);
+    $sectionB = Section::create(['class_id' => $exam->class_id, 'name' => 'B']);
+
+    $second = addResultReportStudent($exam, $subjects, [70, 70, 70], $sectionA->id);
+    $first = addResultReportStudent($exam, $subjects, [85, 90, 95], $sectionA->id);
+    addResultReportStudent($exam, $subjects, [85, 85, 10], $sectionA->id);
+    $sectionBPasser = addResultReportStudent($exam, $subjects, [80, 80, 80], $sectionB->id);
+    app(CalculateExamRankings::class)->execute($exam);
+
+    $report = app(BuildExamResultReport::class)->handle($exam);
+
+    expect(collect($report['passedLists'])->pluck('label')->all())->toBe(['A', 'B']);
+
+    $sectionAList = $report['passedLists'][0]['students'];
+
+    expect(collect($sectionAList)->pluck('name')->all())->toBe([$first->user->name, $second->user->name])
+        ->and($sectionAList[0])->toMatchArray([
+            'roll' => (string) $first->roll_no,
+            'gpa' => 5.0,
+            'class_rank' => 1,
+            'section_rank' => 1,
+        ])
+        ->and(collect($report['passedLists'][1]['students'])->pluck('name')->all())->toBe([$sectionBPasser->user->name]);
+});
+
+it('groups failed students by how many subjects they failed in, naming the subjects', function () {
+    [$exam, $subjects] = makeResultReportExam();
+
+    addResultReportStudent($exam, $subjects, [85, 90, 95]);
+    $failedOne = addResultReportStudent($exam, $subjects, [85, 85, 10]);
+    $failedTwo = addResultReportStudent($exam, $subjects, [10, 20, 85]);
+    addResultReportStudent($exam, $subjects, [null, null, null]);
+    app(CalculateExamRankings::class)->execute($exam);
+
+    $report = app(BuildExamResultReport::class)->handle($exam);
+
+    expect(collect($report['failedLists'])->pluck('label')->all())->toBe(['Failed in 1 subject', 'Failed in 2 subjects'])
+        ->and($report['failedLists'][0]['students'][0])->toMatchArray(['name' => $failedOne->user->name, 'failed_subjects' => 'Math'])
+        ->and($report['failedLists'][1]['students'][0])->toMatchArray(['name' => $failedTwo->user->name, 'failed_subjects' => 'Bangla, English']);
+});
+
+it('shows the passed and failed student lists on the Exam Report tab', function () {
+    test()->actingAs(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]));
+
+    [$exam, $subjects] = makeResultReportExam();
+    $passer = addResultReportStudent($exam, $subjects, [85, 90, 95]);
+    $failer = addResultReportStudent($exam, $subjects, [85, 85, 10]);
+    app(CalculateExamRankings::class)->execute($exam);
+
+    Livewire::test(ExamReportRelationManager::class, ['ownerRecord' => $exam, 'pageClass' => EditExam::class])
+        ->assertOk()
+        ->assertSee('Passed Students')
+        ->assertSee($passer->user->name)
+        ->assertSee($failer->user->name)
+        ->assertSee('Failed Subjects');
 });
