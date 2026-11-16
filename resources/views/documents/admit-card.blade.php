@@ -159,12 +159,12 @@
 
         <table class="info">
             <tr>
-                <td class="label">Student Name</td>
-                <td colspan="3">{{ $student->user?->name }}</td>
-            </tr>
-            <tr>
                 <td class="label">Student ID</td>
                 <td colspan="3">{{ $student->idCardNumber() }}</td>
+            </tr>
+            <tr>
+                <td class="label">Student Name</td>
+                <td colspan="3">{{ $student->user?->name }}</td>
             </tr>
             <tr>
                 <td class="label">Class</td>

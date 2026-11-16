@@ -7,6 +7,7 @@ use App\Models\Exam;
 use App\Models\Marksheet;
 use App\Models\StudentProfile;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\ViewAction;
@@ -19,6 +20,7 @@ use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class MarksheetsTable
 {
@@ -37,8 +39,6 @@ class MarksheetsTable
                 TextColumn::make('student.roll_no')
                     ->label('Roll')
                     ->sortable(),
-                TextColumn::make('student.class.name')
-                    ->label('Class'),
                 TextColumn::make('student.section.name')
                     ->label('Section'),
                 TextColumn::make('exam.examType.name')
@@ -61,32 +61,54 @@ class MarksheetsTable
                 TernaryFilter::make('is_generated'),
             ])
             ->recordActions([
-                ViewAction::make(),
-                Action::make('view')
-                    ->label('View')
-                    ->icon(Heroicon::OutlinedEye)
-                    ->visible(fn (Marksheet $record): bool => $record->is_generated && $record->file_path && Storage::disk('local')->exists($record->file_path))
-                    ->url(fn (Marksheet $record): string => route('marksheets.view', $record))
-                    ->openUrlInNewTab(),
-                Action::make('regenerate')
-                    ->label('Regenerate')
-                    ->icon(Heroicon::OutlinedArrowPath)
-                    ->requiresConfirmation()
-                    ->color('warning')
-                    ->action(function (Marksheet $record) {
-                        $record->update(['is_generated' => false]);
-                        GenerateMarksheetPdfJob::dispatch($record->id);
+                Action::make('download')
+                    ->label('Download')
+                    ->iconButton()
+                    ->icon(Heroicon::OutlinedArrowDownTray)
+                    ->tooltip('Download')
+                    ->visible(fn (Marksheet $record): bool => self::hasGeneratedFile($record))
+                    ->action(fn (Marksheet $record): StreamedResponse => Storage::disk('local')->download(
+                        $record->file_path,
+                        "marksheet-{$record->student_id}-{$record->exam_id}.pdf",
+                    )),
+                ActionGroup::make([
+                    ViewAction::make(),
+                    Action::make('view')
+                        ->label('View PDF')
+                        ->icon(Heroicon::OutlinedDocumentText)
+                        ->visible(fn (Marksheet $record): bool => self::hasGeneratedFile($record))
+                        ->url(fn (Marksheet $record): string => route('marksheets.view', $record))
+                        ->openUrlInNewTab(),
+                    Action::make('regenerate')
+                        ->label('Regenerate')
+                        ->icon(Heroicon::OutlinedArrowPath)
+                        ->requiresConfirmation()
+                        ->color('warning')
+                        ->action(function (Marksheet $record) {
+                            $record->update(['is_generated' => false]);
+                            GenerateMarksheetPdfJob::dispatch($record->id);
 
-                        Notification::make()
-                            ->title('Regeneration queued.')
-                            ->success()
-                            ->send();
-                    }),
+                            Notification::make()
+                                ->title('Regeneration queued.')
+                                ->success()
+                                ->send();
+                        }),
+                ]),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    /**
+     * Determine whether the marksheet PDF has been generated and exists on disk.
+     */
+    private static function hasGeneratedFile(Marksheet $record): bool
+    {
+        return $record->is_generated
+            && $record->file_path
+            && Storage::disk('local')->exists($record->file_path);
     }
 }

@@ -13,7 +13,9 @@ use App\Models\ExamType;
 use App\Models\Marksheet;
 use App\Models\StudentProfile;
 use App\Models\User;
+use Filament\Actions\Testing\TestAction;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
@@ -159,4 +161,73 @@ it('renders the view marksheet page', function () {
     $marksheet = Marksheet::create(['student_id' => $student->id, 'exam_id' => $exam->id]);
 
     $this->actingAs($admin)->get(ViewMarksheet::getUrl(['record' => $marksheet]))->assertOk();
+});
+
+it('downloads a single generated marksheet PDF from the row download action', function () {
+    Storage::fake('local');
+    $admin = actingAsMarksheetAdmin();
+
+    $class = Classes::create(['name' => 'Class One', 'order' => 1, 'is_active' => true]);
+    $examType = ExamType::create(['name' => 'Half Yearly', 'is_active' => true]);
+    $exam = Exam::create([
+        'exam_type_id' => $examType->id,
+        'class_id' => $class->id,
+        'session_year' => now()->year,
+        'start_date' => now()->toDateString(),
+        'end_date' => now()->addDays(5)->toDateString(),
+        'is_published' => true,
+    ]);
+    $student = StudentProfile::create([
+        'user_id' => User::factory()->create(['user_type' => UserType::Student, 'is_active' => true])->id,
+        'roll_no' => 1,
+        'current_class_id' => $class->id,
+        'session_year' => now()->year,
+        'gender' => Gender::Male,
+        'status' => StudentStatus::Active,
+    ]);
+
+    Storage::disk('local')->put('marksheets/test.pdf', '%PDF-1.4 test');
+    $generated = Marksheet::create([
+        'student_id' => $student->id,
+        'exam_id' => $exam->id,
+        'is_generated' => true,
+        'file_path' => 'marksheets/test.pdf',
+    ]);
+
+    $this->actingAs($admin);
+
+    Livewire::test(ManageClassMarksheets::class, ['classId' => $class->id])
+        ->assertActionVisible(TestAction::make('download')->table($generated))
+        ->callAction(TestAction::make('download')->table($generated))
+        ->assertFileDownloaded("marksheet-{$student->id}-{$exam->id}.pdf");
+});
+
+it('hides the download action when the marksheet PDF is not generated', function () {
+    Storage::fake('local');
+    $admin = actingAsMarksheetAdmin();
+
+    $class = Classes::create(['name' => 'Class One', 'order' => 1, 'is_active' => true]);
+    $examType = ExamType::create(['name' => 'Half Yearly', 'is_active' => true]);
+    $exam = Exam::create([
+        'exam_type_id' => $examType->id,
+        'class_id' => $class->id,
+        'session_year' => now()->year,
+        'start_date' => now()->toDateString(),
+        'end_date' => now()->addDays(5)->toDateString(),
+        'is_published' => true,
+    ]);
+    $student = StudentProfile::create([
+        'user_id' => User::factory()->create(['user_type' => UserType::Student, 'is_active' => true])->id,
+        'roll_no' => 1,
+        'current_class_id' => $class->id,
+        'session_year' => now()->year,
+        'gender' => Gender::Male,
+        'status' => StudentStatus::Active,
+    ]);
+    $marksheet = Marksheet::create(['student_id' => $student->id, 'exam_id' => $exam->id]);
+
+    $this->actingAs($admin);
+
+    Livewire::test(ManageClassMarksheets::class, ['classId' => $class->id])
+        ->assertActionHidden(TestAction::make('download')->table($marksheet));
 });

@@ -10,7 +10,9 @@ use App\Models\Exam;
 use App\Models\ExamType;
 use App\Models\StudentProfile;
 use App\Models\User;
+use Filament\Actions\Testing\TestAction;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
@@ -93,4 +95,48 @@ it('refuses routine admit cards for an exam whose exam schedule is empty, with a
         ->assertNotified('এই পরীক্ষার রুটিন এখনো দেওয়া হয়নি');
 
     expect(AdmitCard::count())->toBe(0);
+});
+
+it('downloads a single generated admit card PDF from the row download action', function () {
+    Storage::fake('local');
+    $admin = grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]));
+    test()->actingAs($admin);
+
+    $class = Classes::create(['name' => 'Row Download Class', 'order' => 1]);
+    $exam = makeManageClassAdmitCardsTestExam($class->id);
+    $student = makeManageClassAdmitCardsTestStudent($class->id);
+
+    Storage::disk('local')->put('admit-cards/test.pdf', '%PDF-1.4 test');
+    $admitCard = AdmitCard::create([
+        'student_id' => $student->id,
+        'exam_id' => $exam->id,
+        'is_generated' => true,
+        'file_path' => 'admit-cards/test.pdf',
+        'page_size' => 'A4',
+    ]);
+
+    Livewire::test(ManageClassAdmitCards::class, ['classId' => $class->id])
+        ->assertActionVisible(TestAction::make('download')->table($admitCard))
+        ->callAction(TestAction::make('download')->table($admitCard))
+        ->assertFileDownloaded("admit-card-{$student->id}-{$exam->id}.pdf");
+});
+
+it('hides the row download action when the admit card PDF is not generated', function () {
+    Storage::fake('local');
+    $admin = grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]));
+    test()->actingAs($admin);
+
+    $class = Classes::create(['name' => 'Row Hidden Class', 'order' => 1]);
+    $exam = makeManageClassAdmitCardsTestExam($class->id);
+    $student = makeManageClassAdmitCardsTestStudent($class->id);
+
+    $admitCard = AdmitCard::create([
+        'student_id' => $student->id,
+        'exam_id' => $exam->id,
+        'is_generated' => false,
+        'page_size' => 'A4',
+    ]);
+
+    Livewire::test(ManageClassAdmitCards::class, ['classId' => $class->id])
+        ->assertActionHidden(TestAction::make('download')->table($admitCard));
 });

@@ -306,16 +306,16 @@
                 <td class="info-col">
                     <table class="info">
                         <tr>
+                            <td class="label">{{ __('Student ID') }}</td>
+                            <td>{{ BengaliNumber::localize($student->idCardNumber()) }}</td>
+                        </tr>
+                        <tr>
                             <td class="label">{{ __('Student Name') }}</td>
                             <td colspan="3">{{ $student->user?->name }}</td>
                         </tr>
                         <tr>
                             <td class="label">{{ __('Class') }}</td>
                             <td>{{ $student->class?->display_name }}</td>
-                        </tr>
-                        <tr>
-                            <td class="label">{{ __('Student ID') }}</td>
-                            <td>{{ BengaliNumber::localize($student->idCardNumber()) }}</td>
                         </tr>
                         <tr>
                             <td class="label">{{ __('Roll No') }}</td>

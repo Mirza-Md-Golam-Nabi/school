@@ -197,27 +197,29 @@
                                             <td class="info">
                                                 <table class="info-table">
                                                     <tr>
-                                                        <td class="label">Name</td>
-                                                        <td>{{ $student->user?->name }}</td>
-                                                    </tr>
-                                                    <tr>
                                                         <td class="label">Student ID</td>
                                                         <td>{{ $student->idCardNumber() }}</td>
                                                     </tr>
                                                     <tr>
-                                                        <td class="label">Class</td>
-                                                        <td>{{ $student->class?->display_name }}</td>
+                                                        <td class="label">Name</td>
+                                                        <td>{{ $student->user?->name }}</td>
                                                     </tr>
                                                     <tr>
+                                                        <td class="label">Class</td>
+                                                        <td>{{ $student->class?->display_name }}</td>
                                                         <td class="label">Roll No</td>
                                                         <td>{{ sprintf('%02d', $student->roll_no) }}</td>
                                                     </tr>
                                                     @if ($student->group || $student->section)
                                                         <tr>
-                                                            <td class="label">Group</td>
-                                                            <td>{{ $student->group?->name ?? "-" }}</td>
-                                                            <td class="label">Section</td>
-                                                            <td>{{ $student->section?->name ?? "-" }}</td>
+                                                            @if ($student->group)
+                                                                <td class="label">Group</td>
+                                                                <td>{{ $student->group->name }}</td>
+                                                            @endif
+                                                            @if ($student->section)
+                                                                <td class="label">Section</td>
+                                                                <td>{{ $student->section->name }}</td>
+                                                            @endif
                                                         </tr>
                                                     @endif
                                                     <tr>

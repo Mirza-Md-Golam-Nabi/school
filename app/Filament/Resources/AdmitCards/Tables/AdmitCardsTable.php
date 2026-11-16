@@ -6,6 +6,7 @@ use App\Jobs\GenerateAdmitCardPdfJob;
 use App\Models\AdmitCard;
 use App\Models\Exam;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\ViewAction;
@@ -17,6 +18,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AdmitCardsTable
 {
@@ -25,12 +27,13 @@ class AdmitCardsTable
         return $table
             ->modifyQueryUsing(fn ($query) => $query->with(['student.user', 'student.class', 'student.section', 'exam.examType']))
             ->columns([
+                TextColumn::make('student.roll_no')
+                    ->label('Roll')
+                    ->searchable(),
                 TextColumn::make('student.user.name')
-                    ->label('Student')
+                    ->label('Name')
                     ->searchable()
                     ->sortable(),
-                TextColumn::make('student.class.name')
-                    ->label('Class'),
                 TextColumn::make('student.section.name')
                     ->label('Section'),
                 TextColumn::make('exam.examType.name')
@@ -53,32 +56,54 @@ class AdmitCardsTable
                 TernaryFilter::make('is_generated'),
             ])
             ->recordActions([
-                ViewAction::make(),
-                Action::make('view')
-                    ->label('View')
-                    ->icon(Heroicon::OutlinedEye)
-                    ->visible(fn (AdmitCard $record): bool => $record->is_generated && $record->file_path && Storage::disk('local')->exists($record->file_path))
-                    ->url(fn (AdmitCard $record): string => route('admit-cards.view', $record))
-                    ->openUrlInNewTab(),
-                Action::make('regenerate')
-                    ->label('Regenerate')
-                    ->icon(Heroicon::OutlinedArrowPath)
-                    ->requiresConfirmation()
-                    ->color('warning')
-                    ->action(function (AdmitCard $record) {
-                        $record->update(['is_generated' => false]);
-                        GenerateAdmitCardPdfJob::dispatch($record->id);
+                Action::make('download')
+                    ->label('Download')
+                    ->iconButton()
+                    ->icon(Heroicon::OutlinedArrowDownTray)
+                    ->tooltip('Download')
+                    ->visible(fn (AdmitCard $record): bool => self::hasGeneratedFile($record))
+                    ->action(fn (AdmitCard $record): StreamedResponse => Storage::disk('local')->download(
+                        $record->file_path,
+                        "admit-card-{$record->student_id}-{$record->exam_id}.pdf",
+                    )),
+                ActionGroup::make([
+                    ViewAction::make(),
+                    Action::make('view')
+                        ->label('View PDF')
+                        ->icon(Heroicon::OutlinedDocumentText)
+                        ->visible(fn (AdmitCard $record): bool => self::hasGeneratedFile($record))
+                        ->url(fn (AdmitCard $record): string => route('admit-cards.view', $record))
+                        ->openUrlInNewTab(),
+                    Action::make('regenerate')
+                        ->label('Regenerate')
+                        ->icon(Heroicon::OutlinedArrowPath)
+                        ->requiresConfirmation()
+                        ->color('warning')
+                        ->action(function (AdmitCard $record) {
+                            $record->update(['is_generated' => false]);
+                            GenerateAdmitCardPdfJob::dispatch($record->id);
 
-                        Notification::make()
-                            ->title('Regeneration queued.')
-                            ->success()
-                            ->send();
-                    }),
+                            Notification::make()
+                                ->title('Regeneration queued.')
+                                ->success()
+                                ->send();
+                        }),
+                ]),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    /**
+     * Whether the admit card's PDF has been generated and still exists on disk.
+     */
+    private static function hasGeneratedFile(AdmitCard $record): bool
+    {
+        return $record->is_generated
+            && $record->file_path
+            && Storage::disk('local')->exists($record->file_path);
     }
 }
