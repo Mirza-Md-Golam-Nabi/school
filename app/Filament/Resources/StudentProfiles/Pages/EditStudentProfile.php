@@ -36,7 +36,7 @@ class EditStudentProfile extends EditRecord
         $profile = $this->getRecord()->loadMissing('user', 'addresses', 'optionalSubjects');
 
         $data['name'] = $profile->user?->name;
-        $data['email'] = $profile->user?->email;
+        $data['student_id_no'] = $profile->idCardNumber();
 
         $present = $profile->addresses->firstWhere('type', 'present');
         $permanent = $profile->addresses->firstWhere('type', 'permanent');

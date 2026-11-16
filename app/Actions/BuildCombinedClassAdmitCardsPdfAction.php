@@ -57,10 +57,8 @@ class BuildCombinedClassAdmitCardsPdfAction
      */
     private function writeSimpleCards(Mpdf $mpdf, Collection $admitCards): void
     {
-        // Each card embeds base64 photo/logo/seal/signature images, so a single
-        // WriteHTML() call covering a whole page (several cards at once) can push
-        // past PHP's pcre.backtrack_limit even after raising it — feed mpdf one
-        // row (2 cards) per call instead, keeping every call's HTML small.
+        // Feed mpdf one row (2 cards) per WriteHTML() call so each call's HTML
+        // stays small; images are local file paths (PdfImage), not base64.
         $rowsPerPage = (int) ceil(self::CARDS_PER_PAGE / 2);
 
         foreach ($admitCards->chunk(2)->values() as $rowIndex => $row) {

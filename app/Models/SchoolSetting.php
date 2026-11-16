@@ -22,6 +22,10 @@ class SchoolSetting extends Model
 
     public const EIIN_SETTING = 'school_eiin';
 
+    public const SCHOOL_CODE_SETTING = 'school_code';
+
+    public const DEFAULT_SCHOOL_CODE = 1;
+
     protected $fillable = ['key', 'value'];
 
     protected static function booted(): void
@@ -55,6 +59,23 @@ class SchoolSetting extends Model
         }
 
         return app()->getLocale() === 'bn' ? self::DEFAULT_HEAD_TITLE_BN : self::DEFAULT_HEAD_TITLE;
+    }
+
+    /**
+     * The 3-digit school code that prefixes every Student ID (1–999): the one
+     * set in School Settings, else a numeric CENTRAL_SCHOOL_ID, else 1.
+     */
+    public static function schoolCode(): int
+    {
+        foreach ([static::get(self::SCHOOL_CODE_SETTING), config('central.school_id')] as $candidate) {
+            $candidate = trim((string) $candidate);
+
+            if (ctype_digit($candidate) && (int) $candidate >= 1 && (int) $candidate <= 999) {
+                return (int) $candidate;
+            }
+        }
+
+        return self::DEFAULT_SCHOOL_CODE;
     }
 
     /**

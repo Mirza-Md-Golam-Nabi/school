@@ -17,9 +17,9 @@ trait BuildsMpdfDocuments
 {
     /**
      * Build an mpdf instance configured with the app's Bangla font (SolaimanLipi)
-     * and temp directory. Also raises PHP's pcre.backtrack_limit — documents with
-     * embedded base64 images (photos, logos, seals) can otherwise blow past the
-     * default 1,000,000 limit when mpdf parses a large WriteHTML() call.
+     * and temp directory. Also raises PHP's pcre.backtrack_limit as a safety net
+     * for large WriteHTML() calls — images themselves are passed as local file
+     * paths via PdfImage, not inlined as base64, to keep the HTML small.
      */
     protected function makeMpdf(string $format = 'A4', string $orientation = 'P'): Mpdf
     {

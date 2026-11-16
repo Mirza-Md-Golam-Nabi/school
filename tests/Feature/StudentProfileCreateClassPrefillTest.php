@@ -37,15 +37,15 @@ it('leaves the class field empty when no classId is passed', function () {
     $response->assertDontSee('&quot;current_class_id&quot;:'.$class->id, false);
 });
 
-it('does not show the email field on create, since it is system-generated', function () {
+it('does not show the student id field on create, since it is system-generated', function () {
     $admin = grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]));
     $this->actingAs($admin);
 
     Livewire::test(CreateStudentProfile::class)
-        ->assertFormFieldIsHidden('email');
+        ->assertFormFieldIsHidden('student_id_no');
 });
 
-it('shows the existing student email when a matching birth certificate no is entered on create', function () {
+it('shows the existing student id when a matching birth certificate no is entered on create', function () {
     $admin = grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]));
     $this->actingAs($admin);
 
@@ -63,11 +63,11 @@ it('shows the existing student email when a matching birth certificate no is ent
 
     Livewire::test(CreateStudentProfile::class)
         ->fillForm(['birth_certificate_no' => '1111111111'])
-        ->assertFormSet(['email' => 'std00001@school.com']);
+        ->assertFormSet(['student_id_no' => StudentProfile::where('birth_certificate_no', '1111111111')->value('student_id_no')]);
 
     Livewire::test(CreateStudentProfile::class)
         ->fillForm(['birth_certificate_no' => '9999999999'])
-        ->assertFormSet(['email' => null]);
+        ->assertFormSet(['student_id_no' => null]);
 });
 
 it('replaces the matching profile in place instead of creating a duplicate when the birth certificate no already exists', function () {
@@ -120,7 +120,7 @@ it('replaces the matching profile in place instead of creating a duplicate when 
         ->and($refreshedUser->pin)->toBeNull();
 
     expect(session('generated_student_credentials'))->toBe([
-        'email' => 'std00001@school.com',
+        'student_id' => $existingProfile->student_id_no,
         'password' => 'password',
     ]);
 });
@@ -180,6 +180,8 @@ it('generates a std-prefixed email from the new student_profiles id and forces a
     $user = $profile->user;
 
     expect($user->email)->toBe(sprintf('std%05d@school.com', $profile->id))
+        ->and($profile->student_id_no)->toBe(StudentProfile::makeStudentIdNo($profile->id))
+        ->and(strlen($profile->student_id_no))->toBe(8)
         ->and($user->must_change_password)->toBeTrue();
 
     expect(Address::where('addressable_id', $profile->id)->count())->toBe(0);
@@ -210,7 +212,7 @@ it('flashes the generated credentials and shows them in a modal on the class lis
     $profile = StudentProfile::where('birth_certificate_no', '3333333333')->firstOrFail();
 
     expect(session('generated_student_credentials'))->toBe([
-        'email' => $profile->user->email,
+        'student_id' => $profile->student_id_no,
         'password' => 'password',
     ]);
 });
@@ -237,7 +239,7 @@ it('opens the credentials modal on the create page when using create and create 
         ->call('createAnother')
         ->assertHasNoFormErrors()
         ->assertActionMounted('studentCredentials')
-        ->assertSee(sprintf('std%05d@school.com', StudentProfile::where('birth_certificate_no', '5555555555')->value('id')));
+        ->assertSet('mountedActions.0.arguments.student_id', StudentProfile::where('birth_certificate_no', '5555555555')->value('student_id_no'));
 });
 
 it('mounts the credentials modal on the class list page when credentials are flashed', function () {
@@ -247,7 +249,7 @@ it('mounts the credentials modal on the class list page when credentials are fla
     $class = Classes::create(['name' => 'Class 5', 'order' => 5]);
 
     $this->withSession([
-        'generated_student_credentials' => ['email' => 'std00099@school.com', 'password' => 'password'],
+        'generated_student_credentials' => ['student_id' => '00100099', 'password' => 'password'],
     ]);
 
     // The action itself is mounted client-side via wire:init once the component
@@ -257,10 +259,10 @@ it('mounts the credentials modal on the class list page when credentials are fla
     // credentials (it would silently no-op if the action were hidden).
     Livewire::test(StudentsByClass::class, ['classId' => $class->id])
         ->assertSet('defaultAction', 'studentCredentials')
-        ->assertSet('defaultActionArguments', ['email' => 'std00099@school.com', 'password' => 'password'])
-        ->mountAction('studentCredentials', ['email' => 'std00099@school.com', 'password' => 'password'])
+        ->assertSet('defaultActionArguments', ['student_id' => '00100099', 'password' => 'password'])
+        ->mountAction('studentCredentials', ['student_id' => '00100099', 'password' => 'password'])
         ->assertActionMounted('studentCredentials')
-        ->assertSee('std00099@school.com');
+        ->assertSee('00100099');
 
     expect(session('generated_student_credentials'))->toBeNull();
 });
@@ -282,8 +284,8 @@ it('never touches the email when editing an existing student profile and changin
     ]);
 
     Livewire::test(EditStudentProfile::class, ['record' => $profile->id])
-        ->assertFormSet(['email' => 'existing.student@example.com'])
-        ->assertFormFieldIsDisabled('email')
+        ->assertFormSet(['student_id_no' => $profile->student_id_no])
+        ->assertFormFieldIsDisabled('student_id_no')
         ->fillForm(['roll_no' => 15])
         ->call('save')
         ->assertHasNoFormErrors();

@@ -8,8 +8,8 @@ use App\Models\SchoolSetting;
 use App\Models\StudentProfile;
 use App\Support\Concerns\BuildsMpdfDocuments;
 use App\Support\IdCardPhotoRenderer;
+use App\Support\PdfImage;
 use App\Support\StudentIdCardLayout;
-use Illuminate\Support\Facades\Storage;
 
 class BuildClassStudentIdCardsPdfAction
 {
@@ -121,25 +121,8 @@ class BuildClassStudentIdCardsPdfAction
         return [
             'name' => (string) SchoolSetting::get('school_name', ''),
             'address' => (string) SchoolSetting::get('school_address', ''),
-            'logo' => $this->imageDataUri(SchoolSetting::get('school_logo')),
-            'signature' => $this->imageDataUri(SchoolSetting::get('principal_signature')),
+            'logo' => PdfImage::path(SchoolSetting::get('school_logo')),
+            'signature' => PdfImage::path(SchoolSetting::get('principal_signature')),
         ];
-    }
-
-    private function imageDataUri(?string $path): ?string
-    {
-        if (blank($path)) {
-            return null;
-        }
-
-        $storage = Storage::disk('public');
-
-        if (! $storage->exists($path)) {
-            return null;
-        }
-
-        $mime = $storage->mimeType($path) ?: 'image/png';
-
-        return "data:{$mime};base64,".base64_encode((string) $storage->get($path));
     }
 }

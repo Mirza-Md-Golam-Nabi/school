@@ -17,7 +17,7 @@ class CreateStudentProfile extends CreateRecord
     public int $filterClassId = 0;
 
     /**
-     * @var array{email: string, password: string}|null
+     * @var array{student_id: string, password: string}|null
      */
     protected ?array $generatedStudentCredentials = null;
 
@@ -43,12 +43,12 @@ class CreateStudentProfile extends CreateRecord
 
     protected function afterCreate(): void
     {
-        $email = $this->record?->generated_email ?? null;
+        $studentId = $this->record?->generated_student_id ?? null;
         $password = $this->record?->generated_password ?? null;
 
-        if ($email && $password) {
+        if ($studentId && $password) {
             $this->generatedStudentCredentials = [
-                'email' => $email,
+                'student_id' => $studentId,
                 'password' => $password,
             ];
         }

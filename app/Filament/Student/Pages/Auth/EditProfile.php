@@ -58,8 +58,9 @@ class EditProfile extends BaseEditProfile
 
     protected function getEmailFormComponent(): Component
     {
-        return TextInput::make('email')
-            ->label(__('filament-panels::auth/pages/edit-profile.form.email.label'))
+        return TextInput::make('student_id')
+            ->label('Student ID')
+            ->formatStateUsing(fn (): ?string => $this->getUser()->studentProfile?->student_id_no)
             ->disabled()
             ->dehydrated(false);
     }

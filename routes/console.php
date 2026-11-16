@@ -4,6 +4,7 @@ use App\Console\Commands\CheckLeaveExcess;
 use App\Console\Commands\GenerateMonthlyFeeInvoices;
 use App\Console\Commands\GenerateMonthlySalaryInvoices;
 use App\Console\Commands\MarkAbsentAttendance;
+use App\Console\Commands\PrunePdfThumbnails;
 use App\Console\Commands\PrunePushNotificationDeliveries;
 use App\Console\Commands\ResendUnacknowledgedPushNotifications;
 use App\Console\Commands\SendCentralStudentReport;
@@ -60,6 +61,11 @@ Schedule::command(ResendUnacknowledgedPushNotifications::class)
 // daily instead of weekly just sweeps stale rows out sooner after they cross
 // that age, rather than letting up to a week's worth pile up between runs.
 Schedule::command(PrunePushNotificationDeliveries::class)->dailyAt('02:00');
+
+// Delete cached PDF image thumbnails (see App\Support\PdfImage) not used for
+// 30 days, weekly. Each use touches the file, so only thumbnails of replaced
+// photos or departed students age out; any deleted one is rebuilt on demand.
+Schedule::command(PrunePdfThumbnails::class)->weeklyOn(0, '02:30');
 
 // Report this school's total student count to the central app at midnight on
 // the 15th of every month. The central app can also pull the same number at

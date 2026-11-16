@@ -6,7 +6,7 @@ use Filament\Support\Contracts\HasLabel;
 
 enum StudentListColumn: string implements HasLabel
 {
-    case Email = 'email';
+    case StudentId = 'student_id';
     case Section = 'section';
     case Group = 'group';
     case RegistrationNo = 'registration_no';
@@ -29,7 +29,7 @@ enum StudentListColumn: string implements HasLabel
     public function getLabel(): string
     {
         return match ($this) {
-            self::Email => 'Email',
+            self::StudentId => 'Student ID',
             self::Section => 'Section',
             self::Group => 'Group',
             self::RegistrationNo => 'Registration No',
@@ -66,6 +66,6 @@ enum StudentListColumn: string implements HasLabel
      */
     public static function defaults(): array
     {
-        return [self::Email->value, self::Section->value, self::Group->value];
+        return [self::StudentId->value, self::Section->value, self::Group->value];
     }
 }

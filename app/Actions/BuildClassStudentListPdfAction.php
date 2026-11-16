@@ -80,7 +80,7 @@ class BuildClassStudentListPdfAction
     private function resolveColumnValue(StudentProfile $student, StudentListColumn $column): string
     {
         return match ($column) {
-            StudentListColumn::Email => $student->user?->email ?? '-',
+            StudentListColumn::StudentId => $student->idCardNumber(),
             StudentListColumn::Section => $student->section?->name ?? '-',
             StudentListColumn::Group => $student->group?->name ?? '-',
             StudentListColumn::RegistrationNo => $student->registration_no ?? '-',

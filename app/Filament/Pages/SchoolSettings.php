@@ -50,6 +50,7 @@ class SchoolSettings extends Page
 
         $this->form->fill([
             'school_name' => SchoolSetting::get('school_name', ''),
+            SchoolSetting::SCHOOL_CODE_SETTING => SchoolSetting::schoolCode(),
             'weekend_days' => json_decode($weekendRaw, true) ?? ['friday'],
             'school_logo' => SchoolSetting::get('school_logo') ?: null,
             'school_address' => SchoolSetting::get('school_address', ''),
@@ -81,6 +82,13 @@ class SchoolSettings extends Page
                         TextInput::make('school_name')
                             ->label('School Name')
                             ->required(),
+                        TextInput::make(SchoolSetting::SCHOOL_CODE_SETTING)
+                            ->label('School Code')
+                            ->integer()
+                            ->minValue(1)
+                            ->maxValue(999)
+                            ->required()
+                            ->helperText('৮ ডিজিটের Student ID-র প্রথম ৩ ডিজিট (যেমন: 101 → 10100025)। শুধু নতুন student-এর ID-তে প্রযোজ্য — আগে তৈরি ID বদলাবে না।'),
                     ]),
 
                 Section::make('Working Days')
@@ -227,6 +235,7 @@ class SchoolSettings extends Page
         $data = $this->form->getState();
 
         SchoolSetting::set('school_name', $data['school_name']);
+        SchoolSetting::set(SchoolSetting::SCHOOL_CODE_SETTING, (string) (int) $data[SchoolSetting::SCHOOL_CODE_SETTING]);
         SchoolSetting::set('weekend_days', json_encode($data['weekend_days'] ?? []));
         SchoolSetting::set('school_logo', $data['school_logo'] ?? '');
         SchoolSetting::set('school_address', $data['school_address'] ?? '');

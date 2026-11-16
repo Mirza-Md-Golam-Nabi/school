@@ -2,7 +2,6 @@
 
 namespace App\Filament\Student\Pages\Auth;
 
-use App\Models\User;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Auth\Http\Responses\Contracts\PasswordResetResponse;
@@ -47,7 +46,7 @@ class RequestPinPasswordReset extends SimplePage
     {
         $data = $this->form->getState();
 
-        $rateLimitKey = 'student-pin-reset:'.sha1($data['email']);
+        $rateLimitKey = 'student-pin-reset:'.sha1($data['student_id']);
 
         if (RateLimiter::tooManyAttempts($rateLimitKey, maxAttempts: 5)) {
             Notification::make()
@@ -58,13 +57,13 @@ class RequestPinPasswordReset extends SimplePage
             return null;
         }
 
-        $user = User::where('email', $data['email'])->first();
+        $user = Login::findUserByStudentId($data['student_id']);
 
         if (! $user || blank($user->pin) || ! Hash::check($data['pin'], $user->pin)) {
             RateLimiter::hit($rateLimitKey, 900);
 
             Notification::make()
-                ->title('Email অথবা PIN সঠিক নয়')
+                ->title('Student ID অথবা PIN সঠিক নয়')
                 ->danger()
                 ->send();
 
@@ -97,10 +96,11 @@ class RequestPinPasswordReset extends SimplePage
 
     protected function getEmailFormComponent(): Component
     {
-        return TextInput::make('email')
-            ->label('Login Email')
+        return TextInput::make('student_id')
+            ->label('Student ID')
             ->required()
-            ->autocomplete()
+            ->extraInputAttributes(['inputmode' => 'numeric'])
+            ->autocomplete('username')
             ->autofocus();
     }
 

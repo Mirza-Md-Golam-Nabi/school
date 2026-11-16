@@ -15,18 +15,18 @@ trait HasStudentCredentialsModal
         return Action::make('studentCredentials')
             ->label('Student Login Credentials')
             ->modalHeading('Student Login তৈরি হয়েছে')
-            ->modalDescription('এই email ও password সংরক্ষণ করে student-কে দিন। Email পরিবর্তনযোগ্য নয়; প্রথম লগইনেই student-কে password পরিবর্তন করতে হবে।')
+            ->modalDescription('এই Student ID ও password সংরক্ষণ করে student-কে দিন। Student ID পরিবর্তনযোগ্য নয়; প্রথম লগইনেই student-কে password পরিবর্তন করতে হবে।')
             ->modalWidth(Width::Large)
             ->schema([
                 Section::make()
                     ->schema([
                         Grid::make(2)->schema([
-                            TextEntry::make('email')
-                                ->label('Email')
-                                ->state(fn ($livewire): string => $livewire->getMountedAction()?->getArguments()['email'] ?? '')
+                            TextEntry::make('student_id')
+                                ->label('Student ID')
+                                ->state(fn ($livewire): string => $livewire->getMountedAction()?->getArguments()['student_id'] ?? '')
                                 ->copyable()
-                                ->copyMessage('Email copied!')
-                                ->icon('heroicon-o-envelope')
+                                ->copyMessage('Student ID copied!')
+                                ->icon('heroicon-o-identification')
                                 ->weight('bold'),
 
                             TextEntry::make('password')

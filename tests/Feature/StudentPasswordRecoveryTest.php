@@ -1,9 +1,12 @@
 <?php
 
+use App\Enums\Gender;
+use App\Enums\StudentStatus;
 use App\Enums\UserType;
 use App\Filament\Resources\StudentProfiles\Pages\EditStudentProfile;
 use App\Filament\Student\Pages\Auth\EditProfile;
 use App\Filament\Student\Pages\Auth\RequestPinPasswordReset;
+use App\Models\Classes;
 use App\Models\StudentProfile;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -77,7 +80,7 @@ it('lets the admin reset a student password back to default and clears the pin',
         ->and(Hash::check('password', $student->password))->toBeTrue();
 });
 
-it('resets the password via a correct email and pin', function () {
+it('resets the password via a correct student id and pin', function () {
     $student = makeStudent([
         'must_change_password' => false,
         'pin' => Hash::make('4321'),
@@ -85,7 +88,7 @@ it('resets the password via a correct email and pin', function () {
 
     Livewire::test(RequestPinPasswordReset::class)
         ->fillForm([
-            'email' => $student->email,
+            'student_id' => giveStudentProfile($student),
             'pin' => '4321',
             'password' => 'brand-new-password',
             'passwordConfirmation' => 'brand-new-password',
@@ -103,7 +106,7 @@ it('rejects an incorrect pin without changing the password', function () {
 
     Livewire::test(RequestPinPasswordReset::class)
         ->fillForm([
-            'email' => $student->email,
+            'student_id' => giveStudentProfile($student),
             'pin' => '0000',
             'password' => 'brand-new-password',
             'passwordConfirmation' => 'brand-new-password',
@@ -113,18 +116,18 @@ it('rejects an incorrect pin without changing the password', function () {
     expect(Hash::check('brand-new-password', $student->fresh()->password))->toBeFalse();
 });
 
-it('locks pin attempts out after 5 failures for the same email', function () {
+it('locks pin attempts out after 5 failures for the same student id', function () {
     $student = makeStudent([
         'must_change_password' => false,
         'pin' => Hash::make('4321'),
     ]);
 
-    RateLimiter::clear('student-pin-reset:'.sha1($student->email));
+    RateLimiter::clear('student-pin-reset:'.sha1(giveStudentProfile($student)));
 
     for ($i = 0; $i < 5; $i++) {
         Livewire::test(RequestPinPasswordReset::class)
             ->fillForm([
-                'email' => $student->email,
+                'student_id' => giveStudentProfile($student),
                 'pin' => '0000',
                 'password' => 'brand-new-password',
                 'passwordConfirmation' => 'brand-new-password',
@@ -132,11 +135,11 @@ it('locks pin attempts out after 5 failures for the same email', function () {
             ->call('resetWithPin');
     }
 
-    expect(RateLimiter::tooManyAttempts('student-pin-reset:'.sha1($student->email), 5))->toBeTrue();
+    expect(RateLimiter::tooManyAttempts('student-pin-reset:'.sha1(giveStudentProfile($student)), 5))->toBeTrue();
 
     Livewire::test(RequestPinPasswordReset::class)
         ->fillForm([
-            'email' => $student->email,
+            'student_id' => giveStudentProfile($student),
             'pin' => '4321',
             'password' => 'brand-new-password',
             'passwordConfirmation' => 'brand-new-password',
@@ -145,3 +148,20 @@ it('locks pin attempts out after 5 failures for the same email', function () {
 
     expect(Hash::check('brand-new-password', $student->fresh()->password))->toBeFalse();
 });
+
+/**
+ * Gives the student user a profile (once) and returns its Student ID, the
+ * login identifier the PIN recovery form asks for.
+ */
+function giveStudentProfile(User $student): string
+{
+    $profile = $student->studentProfile()->firstOrCreate([], [
+        'roll_no' => 1,
+        'current_class_id' => Classes::firstOrCreate(['name' => 'PIN Class'], ['order' => 1])->id,
+        'session_year' => now()->year,
+        'gender' => Gender::Male,
+        'status' => StudentStatus::Active,
+    ]);
+
+    return $profile->student_id_no;
+}

@@ -35,14 +35,14 @@ class StudentProfileForm
                     ->columnSpanFull()
                     ->schema([
                         Grid::make(3)->schema([
-                            TextInput::make('email')
-                                ->label('Email')
+                            TextInput::make('student_id_no')
+                                ->label('Student ID')
                                 ->disabled()
                                 ->dehydrated(false)
-                                ->hidden(fn (string $operation, Get $get): bool => $operation === 'create' && blank($get('email')))
-                                ->helperText(fn (string $operation, Get $get): string => ($operation === 'create' && filled($get('email')))
-                                    ? 'এই Birth Certificate No. আগে থেকেই নিবন্ধিত — নতুন account তৈরি না করে এই বিদ্যমান email-এ তথ্য আপডেট হবে এবং password রিসেট হয়ে যাবে'
-                                    : 'এই ইমেইল সিস্টেম কর্তৃক স্বয়ংক্রিয়ভাবে তৈরি — পরিবর্তনযোগ্য নয়'),
+                                ->hidden(fn (string $operation, Get $get): bool => $operation === 'create' && blank($get('student_id_no')))
+                                ->helperText(fn (string $operation, Get $get): string => ($operation === 'create' && filled($get('student_id_no')))
+                                    ? 'এই Birth Certificate No. আগে থেকেই নিবন্ধিত — নতুন account তৈরি না করে এই বিদ্যমান Student ID-তে তথ্য আপডেট হবে এবং password রিসেট হয়ে যাবে'
+                                    : 'এই Student ID সিস্টেম কর্তৃক স্বয়ংক্রিয়ভাবে তৈরি — এটা দিয়েই student লগইন করবে, পরিবর্তনযোগ্য নয়'),
 
                             TextInput::make('name')
                                 ->label('Full Name')
@@ -55,6 +55,9 @@ class StudentProfileForm
                                 ->directory('student-profiles/photos')
                                 ->visibility('public')
                                 ->imageEditor()
+                                ->automaticallyResizeImagesMode('contain')
+                                ->automaticallyResizeImagesToWidth('600')
+                                ->automaticallyResizeImagesToHeight('600')
                                 ->helperText('অফিসিয়াল ছবি — ID card, admit card ইত্যাদিতে এই ছবিই ছাপা হয়।'),
                         ]),
                     ]),
@@ -180,8 +183,8 @@ class StudentProfileForm
                                         return;
                                     }
 
-                                    $set('email', filled($state)
-                                        ? StudentProfile::where('birth_certificate_no', $state)->first()?->user?->email
+                                    $set('student_id_no', filled($state)
+                                        ? StudentProfile::where('birth_certificate_no', $state)->first()?->idCardNumber()
                                         : null);
                                 })
                                 // On edit, a genuine duplicate against a DIFFERENT profile is still an

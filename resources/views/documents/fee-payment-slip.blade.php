@@ -176,6 +176,10 @@
                 <td colspan="3">{{ $student->user?->name }}</td>
             </tr>
             <tr>
+                <td class="label">Student ID</td>
+                <td colspan="3">{{ $student->idCardNumber() }}</td>
+            </tr>
+            <tr>
                 <td class="label">Class</td>
                 <td>{{ $student->class?->display_name }}</td>
                 <td class="label">Roll No</td>

@@ -63,6 +63,7 @@ class StudentProfileInfolist
         return [
             Section::make('Academic')
                 ->schema([
+                    TextEntry::make('student_id_no')->label('Student ID')->placeholder('—')->copyable(),
                     TextEntry::make('roll_no')->label('Roll No'),
                     TextEntry::make('registration_no')->label('Registration No')->placeholder('—'),
                     TextEntry::make('session_year')->label('Session Year'),
@@ -76,7 +77,6 @@ class StudentProfileInfolist
 
             Section::make('Personal')
                 ->schema([
-                    TextEntry::make('user.email')->label('Email')->placeholder('—'),
                     TextEntry::make('gender')->label('Gender')->badge(),
                     TextEntry::make('date_of_birth')->label('Date of Birth')->date('d M Y')->placeholder('—'),
                     TextEntry::make('blood_group')->label('Blood Group')->badge()->placeholder('—'),

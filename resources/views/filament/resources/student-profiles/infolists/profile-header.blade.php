@@ -35,6 +35,8 @@
         <div class="flex-1 text-center sm:text-left">
             <div class="text-lg font-bold sm:text-2xl">{{ $user?->name ?? 'Unknown Student' }}</div>
 
+            <div class="mt-0.5 text-xs text-white/80 sm:text-sm">Student ID: {{ $student->idCardNumber() }}</div>
+
             @if ($student->registration_no)
                 <div class="mt-0.5 text-xs text-white/80 sm:text-sm">Reg: {{ $student->registration_no }}</div>
             @endif

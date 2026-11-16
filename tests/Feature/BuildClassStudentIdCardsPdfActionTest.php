@@ -247,7 +247,7 @@ it('prints the fields saved for each side and leaves out the ones the student ha
         ->not->toContain('ID NO', 'Abdul Karim', 'BLOOD', 'ISSUE DATE');
 });
 
-it('keeps the id card number stable when the student is promoted to a new session', function () {
+it('prints the student id as the id card number and keeps it stable on promotion', function () {
     $class = Classes::create(['name' => 'ID Number Class', 'order' => 1]);
     $student = makeIdCardTestStudent($class->id, 1, StudentStatus::Active, ['admission_date' => '2022-01-05']);
 
@@ -255,7 +255,8 @@ it('keeps the id card number stable when the student is promoted to a new sessio
 
     $student->update(['session_year' => $student->session_year + 1]);
 
-    expect($numberBeforePromotion)->toBe(sprintf('2022%04d', $student->id))
+    expect($numberBeforePromotion)->toBe(StudentProfile::makeStudentIdNo($student->id))
+        ->and($numberBeforePromotion)->toBe($student->fresh()->student_id_no)
         ->and($student->fresh()->idCardNumber())->toBe($numberBeforePromotion);
 });
 

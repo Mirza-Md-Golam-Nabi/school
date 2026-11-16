@@ -63,6 +63,26 @@ class StudentProfile extends Model
         'session_year' => 'integer',
     ];
 
+    protected static function booted(): void
+    {
+        // The Student ID embeds the primary key, so it can only be set once the row exists.
+        static::created(function (StudentProfile $profile): void {
+            if (blank($profile->student_id_no)) {
+                $profile->forceFill(['student_id_no' => static::makeStudentIdNo($profile->id)])->saveQuietly();
+            }
+        });
+    }
+
+    /**
+     * The 8-digit Student ID the student logs in with and that is printed on
+     * every document: the 3-digit school code followed by the 5-digit profile id
+     * (school 101, profile 25 → 10100025).
+     */
+    public static function makeStudentIdNo(int $profileId): string
+    {
+        return sprintf('%03d%05d', SchoolSetting::schoolCode(), $profileId);
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
@@ -140,18 +160,14 @@ class StudentProfile extends Model
     }
 
     /**
-     * The number printed and barcoded on the student's ID card: their
-     * registration number, or — when none is recorded — the year they joined
-     * plus their profile id. Unlike session_year, neither changes on promotion,
-     * so a card stays valid for the student's whole time at the school.
+     * The number printed and barcoded on the student's ID card: their Student
+     * ID. Unlike session_year or roll no it never changes on promotion, so a
+     * card stays valid for the student's whole time at the school.
      */
     public function idCardNumber(): string
     {
-        if (filled($this->registration_no)) {
-            return (string) $this->registration_no;
-        }
-
-        return sprintf('%d%04d', ($this->admission_date ?? $this->created_at)->year, $this->id);
+        // Unsaved sample students (design previews) have no id yet.
+        return (string) ($this->student_id_no ?? static::makeStudentIdNo((int) $this->id));
     }
 
     public function scopeActive(Builder $query): void

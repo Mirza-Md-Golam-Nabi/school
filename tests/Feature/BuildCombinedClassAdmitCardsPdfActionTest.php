@@ -10,7 +10,10 @@ use App\Models\Exam;
 use App\Models\ExamType;
 use App\Models\StudentProfile;
 use App\Models\User;
+use App\Support\PdfImage;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -101,6 +104,33 @@ it('excludes generated admit cards belonging to a different class', function () 
 
     $pageCount = preg_match_all('/\/Type\s*\/Page[^s]/', $pdf);
     expect($pageCount)->toBe(1);
+});
+
+it('embeds large student photos once each as cached thumbnails rather than base64', function () {
+    Storage::fake('public');
+    Storage::fake('local');
+
+    $class = Classes::create(['name' => 'Combined Admit Class Photos', 'order' => 1]);
+    $exam = makeCombinedAdmitCardTestExam($class->id);
+
+    foreach (range(1, 3) as $rollNo) {
+        $student = makeCombinedAdmitCardTestStudent($class->id, $rollNo);
+        $student->update([
+            'photo' => UploadedFile::fake()->image("student-{$rollNo}.jpg", 3000, 4000)->store('student-profiles/photos', 'public'),
+        ]);
+        AdmitCard::create([
+            'student_id' => $student->id,
+            'exam_id' => $exam->id,
+            'is_generated' => true,
+            'page_size' => 'A4',
+        ]);
+    }
+
+    $pdf = app(BuildCombinedClassAdmitCardsPdfAction::class)->handle($class, $exam);
+
+    expect($pdf)->toStartWith('%PDF')
+        ->and(preg_match_all('/\/Subtype\s*\/Image/', $pdf))->toBe(3)
+        ->and(Storage::disk('local')->files(PdfImage::CACHE_DIRECTORY))->toHaveCount(3);
 });
 
 it('aborts with 404 when no admit card has been generated yet for the class and exam', function () {

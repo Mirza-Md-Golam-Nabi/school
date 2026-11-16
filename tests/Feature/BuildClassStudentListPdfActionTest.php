@@ -81,7 +81,7 @@ it('only includes the selected columns in the pdf', function () {
 
     makeStudentListTestStudent($class->id, 1, now()->year);
 
-    $pdf = app(BuildClassStudentListPdfAction::class)->handle($class, now()->year, ['email']);
+    $pdf = app(BuildClassStudentListPdfAction::class)->handle($class, now()->year, ['student_id']);
 
     expect($pdf)->toStartWith('%PDF');
 });
@@ -156,7 +156,7 @@ it('builds a landscape pdf when requested', function () {
 
     makeStudentListTestStudent($class->id, 1, now()->year);
 
-    $pdf = app(BuildClassStudentListPdfAction::class)->handle($class, now()->year, ['email'], 'L');
+    $pdf = app(BuildClassStudentListPdfAction::class)->handle($class, now()->year, ['student_id'], 'L');
 
     expect($pdf)->toStartWith('%PDF');
 });

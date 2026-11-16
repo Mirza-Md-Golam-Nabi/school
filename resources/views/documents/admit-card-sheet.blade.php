@@ -1,6 +1,6 @@
 @php
     use App\Models\SchoolSetting;
-    use Illuminate\Support\Facades\Storage;
+    use App\Support\PdfImage;
 
     $schoolName = SchoolSetting::get('school_name', '');
     $schoolEiinLine = SchoolSetting::eiinLine();
@@ -11,26 +11,12 @@
         $schoolEstablishedYear ? "Established: {$schoolEstablishedYear}" : null,
     ])->filter()->implode(' | ');
 
-    $toDataUri = function (?string $path, string $disk = 'public'): ?string {
-        if (!$path) {
-            return null;
-        }
-
-        $storage = Storage::disk($disk);
-
-        if (!$storage->exists($path)) {
-            return null;
-        }
-
-        $mime = $storage->mimeType($path) ?: 'image/png';
-
-        return 'data:' . $mime . ';base64,' . base64_encode($storage->get($path));
-    };
+    $imageSrc = fn (?string $path): ?string => PdfImage::path($path);
 
     // School seal/signature are the same for every card on the page, so
     // they're resolved once here instead of once per card.
-    $sealDataUri = $toDataUri(SchoolSetting::get('school_seal'));
-    $signatureDataUri = $toDataUri(SchoolSetting::get('principal_signature'));
+    $sealSrc = $imageSrc(SchoolSetting::get('school_seal'));
+    $signatureSrc = $imageSrc(SchoolSetting::get('principal_signature'));
 @endphp
 <!DOCTYPE html>
 <html>
@@ -177,7 +163,7 @@
                     @php
                         $student = $admitCard->student;
                         $exam = $admitCard->exam;
-                        $studentPhotoDataUri = $toDataUri($student->photo);
+                        $studentPhotoSrc = $imageSrc($student->photo);
                     @endphp
                     <td class="cell">
                         <table class="card">
@@ -215,6 +201,10 @@
                                                         <td>{{ $student->user?->name }}</td>
                                                     </tr>
                                                     <tr>
+                                                        <td class="label">Student ID</td>
+                                                        <td>{{ $student->idCardNumber() }}</td>
+                                                    </tr>
+                                                    <tr>
                                                         <td class="label">Class</td>
                                                         <td>{{ $student->class?->display_name }}</td>
                                                     </tr>
@@ -243,8 +233,8 @@
                                                 </table>
                                             </td>
                                             <td class="photo-cell">
-                                                @if ($studentPhotoDataUri)
-                                                    <img class="photo" src="{{ $studentPhotoDataUri }}" alt="Photo"
+                                                @if ($studentPhotoSrc)
+                                                    <img class="photo" src="{{ $studentPhotoSrc }}" alt="Photo"
                                                         width="42" height="52" style="width: 42px; height: 52px;">
                                                 @endif
                                             </td>
@@ -254,15 +244,15 @@
                                     <table class="signatures">
                                         <tr>
                                             <td>
-                                                @if ($sealDataUri)
-                                                    <img src="{{ $sealDataUri }}" alt="Seal" width="24" height="24"
+                                                @if ($sealSrc)
+                                                    <img src="{{ $sealSrc }}" alt="Seal" width="24" height="24"
                                                         style="width: 24px; height: 24px;"><br>
                                                 @endif
                                                 School Seal
                                             </td>
                                             <td>
-                                                @if ($signatureDataUri)
-                                                    <img src="{{ $signatureDataUri }}" alt="Signature" width="50"
+                                                @if ($signatureSrc)
+                                                    <img src="{{ $signatureSrc }}" alt="Signature" width="50"
                                                         height="20" style="width: 50px; height: 20px;"><br>
                                                 @endif
                                                 {{ SchoolSetting::headSignatoryTitle() }}

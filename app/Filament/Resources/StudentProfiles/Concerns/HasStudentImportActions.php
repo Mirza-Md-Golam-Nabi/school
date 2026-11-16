@@ -88,7 +88,7 @@ trait HasStudentImportActions
                 Notification::make()
                     ->success()
                     ->title("{$result['imported']} জন student import হয়েছে")
-                    ->body('প্রত্যেকের login email তার প্রোফাইলে আছে; password: "password" — প্রথম লগইনে বদলাতে হবে।')
+                    ->body('প্রত্যেকের login Student ID তার প্রোফাইলে আছে; password: "password" — প্রথম লগইনে বদলাতে হবে।')
                     ->persistent()
                     ->send();
             });

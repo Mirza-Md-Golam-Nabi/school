@@ -85,7 +85,7 @@ class MyProfile extends Page
                         ->imageSize(80)
                         ->visible(fn (): bool => filled($profile->user?->avatar)),
                     TextEntry::make('user.name')->label('Name'),
-                    TextEntry::make('user.email')->label('Email'),
+                    TextEntry::make('student_id_no')->label('Student ID'),
                 ])
                 ->columns(3),
 

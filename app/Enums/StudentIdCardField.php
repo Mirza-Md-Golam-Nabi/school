@@ -29,7 +29,7 @@ enum StudentIdCardField: string implements HasLabel
     public function getLabel(): string
     {
         return match ($this) {
-            self::IdNo => 'ID No',
+            self::IdNo => 'Student ID',
             self::ClassName => 'Class',
             self::RollNo => 'Roll No',
             self::Section => 'Section',
@@ -57,6 +57,7 @@ enum StudentIdCardField: string implements HasLabel
     public function shortLabel(): string
     {
         return match ($this) {
+            self::IdNo => 'ID NO',
             self::BloodGroup => 'BLOOD',
             self::DateOfBirth => 'BIRTH DATE',
             self::BirthCertificateNo => 'BIRTH REG.',

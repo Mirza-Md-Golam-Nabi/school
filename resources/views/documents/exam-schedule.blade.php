@@ -1,7 +1,7 @@
 @php
     use App\Models\SchoolSetting;
+    use App\Support\PdfImage;
     use App\Support\BengaliNumber;
-    use Illuminate\Support\Facades\Storage;
 
     $schoolName = SchoolSetting::get('school_name', '');
     $schoolEiinLine = SchoolSetting::eiinLine();
@@ -12,24 +12,10 @@
         $schoolEstablishedYear ? "Established: {$schoolEstablishedYear}" : null,
     ])->filter()->implode(' | ');
 
-    $toDataUri = function (?string $path): ?string {
-        if (!$path) {
-            return null;
-        }
+    $imageSrc = fn (?string $path): ?string => PdfImage::path($path);
 
-        $disk = Storage::disk('public');
-
-        if (!$disk->exists($path)) {
-            return null;
-        }
-
-        $mime = $disk->mimeType($path) ?: 'image/png';
-
-        return 'data:' . $mime . ';base64,' . base64_encode($disk->get($path));
-    };
-
-    $sealDataUri = $toDataUri(SchoolSetting::get('school_seal'));
-    $signatureDataUri = $toDataUri(SchoolSetting::get('principal_signature'));
+    $sealSrc = $imageSrc(SchoolSetting::get('school_seal'));
+    $signatureSrc = $imageSrc(SchoolSetting::get('principal_signature'));
 @endphp
 <!DOCTYPE html>
 <html>
@@ -172,16 +158,16 @@
                 {{ __('Class Teacher') }}
             </td>
             <td>
-                @if ($sealDataUri)
-                    <img src="{{ $sealDataUri }}" alt="Seal" width="50px"><br><br>
+                @if ($sealSrc)
+                    <img src="{{ $sealSrc }}" alt="Seal" width="50px"><br><br>
                 @else
                     <br><br>
                 @endif
                 {{ __('School Seal') }}
             </td>
             <td>
-                @if ($signatureDataUri)
-                    <img src="{{ $signatureDataUri }}" alt="Signature" width="80px"><br><br>
+                @if ($signatureSrc)
+                    <img src="{{ $signatureSrc }}" alt="Signature" width="80px"><br><br>
                 @else
                     <br><br>
                 @endif

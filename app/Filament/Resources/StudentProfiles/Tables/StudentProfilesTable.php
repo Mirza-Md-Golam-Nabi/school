@@ -48,6 +48,11 @@ class StudentProfilesTable
                     ->searchable()
                     ->sortable(),
 
+                TextColumn::make('student_id_no')
+                    ->label('Student ID')
+                    ->searchable()
+                    ->copyable(),
+
                 TextColumn::make('section.name')
                     ->label('Section')
                     ->placeholder('-')

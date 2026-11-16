@@ -1,6 +1,6 @@
 @php
     use App\Models\SchoolSetting;
-    use Illuminate\Support\Facades\Storage;
+    use App\Support\PdfImage;
 
     $student = $admitCard->student;
     $exam = $admitCard->exam;
@@ -15,25 +15,11 @@
     ])->filter()->implode(' | ');
     $footerText = SchoolSetting::get('admit_card_footer_text', '');
 
-    $toDataUri = function (?string $path): ?string {
-        if (!$path) {
-            return null;
-        }
+    $imageSrc = fn (?string $path): ?string => PdfImage::path($path);
 
-        $disk = Storage::disk('public');
-
-        if (!$disk->exists($path)) {
-            return null;
-        }
-
-        $mime = $disk->mimeType($path) ?: 'image/png';
-
-        return 'data:' . $mime . ';base64,' . base64_encode($disk->get($path));
-    };
-
-    $sealDataUri = $toDataUri(SchoolSetting::get('school_seal'));
-    $signatureDataUri = $toDataUri(SchoolSetting::get('principal_signature'));
-    $studentPhotoDataUri = $toDataUri($student->photo);
+    $sealSrc = $imageSrc(SchoolSetting::get('school_seal'));
+    $signatureSrc = $imageSrc(SchoolSetting::get('principal_signature'));
+    $studentPhotoSrc = $imageSrc($student->photo);
 @endphp
 <!DOCTYPE html>
 <html>
@@ -177,6 +163,10 @@
                 <td colspan="3">{{ $student->user?->name }}</td>
             </tr>
             <tr>
+                <td class="label">Student ID</td>
+                <td colspan="3">{{ $student->idCardNumber() }}</td>
+            </tr>
+            <tr>
                 <td class="label">Class</td>
                 <td>{{ $student->class?->display_name }}</td>
                 <td class="label">Roll No</td>
@@ -214,14 +204,14 @@
         <table class="signatures">
             <tr>
                 <td>
-                    @if ($sealDataUri)
-                        <img src="{{ $sealDataUri }}" alt="Seal" width="50px"><br><br>
+                    @if ($sealSrc)
+                        <img src="{{ $sealSrc }}" alt="Seal" width="50px"><br><br>
                     @endif
                     School Seal
                 </td>
                 <td>
-                    @if ($signatureDataUri)
-                        <img src="{{ $signatureDataUri }}" alt="Signature" width="80px"><br>
+                    @if ($signatureSrc)
+                        <img src="{{ $signatureSrc }}" alt="Signature" width="80px"><br>
                     @endif
                     {{ SchoolSetting::headSignatoryTitle() }}
                 </td>

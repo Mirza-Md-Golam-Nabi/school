@@ -11,11 +11,12 @@
 
     $student = $admitCard->student;
     $exam = $admitCard->exam;
-    $photoDataUri = AdmitCardBranding::dataUri($student->photo);
+    $photoSrc = AdmitCardBranding::imagePath($student->photo);
     [$leftRoutine, $rightRoutine] = $exam->admitCardRoutineColumns();
 
     $details = collect([
         ['Student Name', $student->user?->name],
+        ['Student ID', $student->idCardNumber()],
         ['Class', $student->class?->display_name],
         ['Roll No', sprintf('%02d', $student->roll_no)],
         ['Section', $student->section?->name],
@@ -38,8 +39,8 @@
     <table class="arc-head">
         <tr>
             <td class="arc-logo-cell">
-                @if ($branding->logoDataUri)
-                    <img src="{{ $branding->logoDataUri }}" alt="Logo" width="48" height="48" style="width: 48px; height: 48px;">
+                @if ($branding->logoSrc)
+                    <img src="{{ $branding->logoSrc }}" alt="Logo" width="48" height="48" style="width: 48px; height: 48px;">
                 @endif
             </td>
             <td style="text-align: center;">
@@ -81,8 +82,8 @@
                 </table>
             </td>
             <td class="arc-photo-cell">
-                @if ($photoDataUri)
-                    <img class="arc-photo" src="{{ $photoDataUri }}" alt="Photo" width="74" height="88" style="width: 74px; height: 88px;">
+                @if ($photoSrc)
+                    <img class="arc-photo" src="{{ $photoSrc }}" alt="Photo" width="74" height="88" style="width: 74px; height: 88px;">
                 @else
                     {{-- A table cell, not a div: mPDF ignores a div's size inside a table. --}}
                     <table class="arc-photo-placeholder" align="right">
@@ -125,14 +126,14 @@
     <table class="arc-signatures">
         <tr>
             <td>
-                @if ($branding->sealDataUri)
-                    <img src="{{ $branding->sealDataUri }}" alt="Seal" width="34" height="34" style="width: 34px; height: 34px;"><br>
+                @if ($branding->sealSrc)
+                    <img src="{{ $branding->sealSrc }}" alt="Seal" width="34" height="34" style="width: 34px; height: 34px;"><br>
                 @endif
                 <div class="arc-sign-line">School Seal</div>
             </td>
             <td>
-                @if ($branding->signatureDataUri)
-                    <img src="{{ $branding->signatureDataUri }}" alt="Signature" width="70" height="26" style="width: 70px; height: 26px;"><br>
+                @if ($branding->signatureSrc)
+                    <img src="{{ $branding->signatureSrc }}" alt="Signature" width="70" height="26" style="width: 70px; height: 26px;"><br>
                 @endif
                 <div class="arc-sign-line">{{ \App\Models\SchoolSetting::headSignatoryTitle() }}</div>
             </td>

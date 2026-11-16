@@ -26,7 +26,8 @@ class CreateStudentProfileAction
                 return $this->replaceExistingProfile($existingProfile, $data);
             }
 
-            // Email depends on the student_profiles primary key, which only exists after
+            // Students log in with their Student ID; the email is only an internal unique
+            // value. It depends on the student_profiles primary key, which only exists after
             // the profile row is inserted — so the user is created with a placeholder first.
             $user = User::create([
                 'name' => $data['name'],
@@ -43,13 +44,12 @@ class CreateStudentProfileAction
 
             $profile = $user->studentProfile()->create($this->profileData($data));
 
-            $generatedEmail = sprintf('std%05d@school.com', $profile->id);
-            $user->update(['email' => $generatedEmail]);
+            $user->update(['email' => sprintf('std%05d@school.com', $profile->id)]);
 
             $this->saveAddresses($profile, $data);
             $this->saveOptionalSubjects($profile, $data);
 
-            $profile->setAttribute('generated_email', $generatedEmail);
+            $profile->setAttribute('generated_student_id', $profile->student_id_no);
             $profile->setAttribute('generated_password', 'password');
 
             return $profile;
@@ -60,7 +60,7 @@ class CreateStudentProfileAction
      * A birth certificate number matching an existing profile means this is the
      * same real student re-enrolling, not a new admission — update that profile
      * (and its user's name) in place instead of creating a duplicate account,
-     * reusing the existing login email rather than generating a new one. The
+     * keeping the existing Student ID rather than generating a new one. The
      * password is reset to the default and must be changed again on next
      * login, the same as the "Reset Password" action on the edit page.
      */
@@ -77,7 +77,7 @@ class CreateStudentProfileAction
         $this->saveAddresses($existingProfile, $data);
         $this->saveOptionalSubjects($existingProfile, $data);
 
-        $existingProfile->setAttribute('generated_email', $existingProfile->user?->email);
+        $existingProfile->setAttribute('generated_student_id', $existingProfile->idCardNumber());
         $existingProfile->setAttribute('generated_password', 'password');
 
         return $existingProfile;
