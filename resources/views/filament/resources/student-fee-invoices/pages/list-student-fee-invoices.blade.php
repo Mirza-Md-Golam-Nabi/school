@@ -66,6 +66,10 @@
                                                 <span class="text-[10px] font-semibold text-gray-500 dark:text-gray-400">
                                                     ৳{{ number_format($stat->total_amount, 0) }}
                                                 </span>
+                                            @elseif ($status === InvoiceStatus::Defaulted)
+                                                <span class="text-[10px] font-semibold text-danger-600 dark:text-danger-400">
+                                                    ৳{{ number_format($stat->defaulted_amount, 0) }}
+                                                </span>
                                             @endif
                                         </div>
                                     </div>

@@ -8,6 +8,7 @@ use App\Actions\ResolveDefaultPromotionOptionalSubjects;
 use App\Enums\ExamConfigType;
 use App\Enums\PaymentMethod;
 use App\Enums\PromotionStatus;
+use App\Filament\Resources\StudentFeeInvoices\Actions\FeeDefaultActions;
 use App\Models\Classes;
 use App\Models\ClassGroupSubject;
 use App\Models\Exam;
@@ -142,6 +143,7 @@ class PromoteStudentsForClass extends Page implements HasTable
             ->color('info')
             ->iconButton()
             ->modalHeading(fn (StudentProfile $record): string => 'Promote — '.($record->user?->name ?? $record->roll_no))
+            ->modalDescription(fn (StudentProfile $record): ?string => FeeDefaultActions::defaultedDuesWarning($record))
             ->modalWidth('lg')
             ->modalSubmitActionLabel('Promote')
             ->successNotificationTitle('Student has been promoted')

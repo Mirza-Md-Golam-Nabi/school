@@ -10,6 +10,7 @@ use App\Models\Classes;
 use App\Models\ClassGroupSubject;
 use App\Models\Exam;
 use App\Models\Section;
+use App\Models\StudentFeeInvoice;
 use App\Models\StudentMeritRanking;
 use App\Models\StudentOptionalSubject;
 use App\Models\StudentProfile;
@@ -333,6 +334,26 @@ class BulkPromoteStudentsForClass extends Page
         $this->redirect(PromoteStudentsForClass::getUrl(['classId' => $this->classId, 'year' => $this->year]));
     }
 
+    /**
+     * Default বকেয়া থাকা student-দের promote আটকায় না — শুধু confirmation-এ জানায়।
+     */
+    private function defaultedDuesNotice(): string
+    {
+        $studentIds = $this->getStudents()->modelKeys();
+
+        $defaulted = StudentFeeInvoice::query()
+            ->defaulted()
+            ->whereIn('student_id', $studentIds)
+            ->selectRaw('COUNT(DISTINCT student_id) as student_count, COALESCE(SUM(default_amount), 0) as total')
+            ->first();
+
+        if (! $defaulted || (int) $defaulted->student_count === 0) {
+            return '';
+        }
+
+        return ' ⚠ এদের মধ্যে '.$defaulted->student_count.' জনের মোট ৳'.number_format((float) $defaulted->total, 2).' default (অনাদায়ী) বকেয়া আছে।';
+    }
+
     public function promoteAction(): Action
     {
         return Action::make('promote')
@@ -341,7 +362,8 @@ class BulkPromoteStudentsForClass extends Page
             ->color('success')
             ->requiresConfirmation()
             ->modalHeading('Students Promote করবেন?')
-            ->modalDescription(fn (): string => 'আপনি কি নিশ্চিত এই '.$this->getStudents()->count().' জন student-কে promote করতে চান?')
+            ->modalDescription(fn (): string => 'আপনি কি নিশ্চিত এই '.$this->getStudents()->count().' জন student-কে promote করতে চান?'
+                .$this->defaultedDuesNotice())
             ->modalSubmitActionLabel('হ্যাঁ, Promote করো')
             ->action(fn () => $this->promote());
     }

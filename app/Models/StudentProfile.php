@@ -131,6 +131,14 @@ class StudentProfile extends Model
         return $this->hasMany(StudentFeeInvoice::class, 'student_id');
     }
 
+    /**
+     * Default (অনাদায়ী) ঘোষিত মোট বকেয়া — ভর্তি/promotion/marksheet-এ সতর্কবার্তার জন্য।
+     */
+    public function defaultedDueAmount(): float
+    {
+        return (float) $this->feeInvoices()->defaulted()->sum('default_amount');
+    }
+
     public function feePayments(): HasMany
     {
         return $this->hasMany(FeePayment::class, 'student_id');

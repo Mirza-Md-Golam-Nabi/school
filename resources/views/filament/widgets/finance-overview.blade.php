@@ -4,7 +4,7 @@
         <span class="text-xs text-gray-500 dark:text-gray-400 sm:text-sm">{{ $monthLabel }}</span>
     </div>
 
-    <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+    <div class="grid grid-cols-2 gap-3 lg:grid-cols-5">
         {{-- Income --}}
         <a
             href="{{ $transactionsUrl }}"
@@ -55,6 +55,18 @@
                 <span class="truncate">{{ __('Total Due Fee') }}</span>
             </div>
             <p class="mt-1 text-base font-bold text-warning-600 dark:text-warning-400 sm:text-xl">৳ {{ number_format($totalDue) }}</p>
+        </a>
+
+        {{-- Defaulted (অনাদায়ী) — receivable থেকে আলাদা, account-এ কোনো এন্ট্রি নেই --}}
+        <a
+            href="{{ $duesUrl }}"
+            class="col-span-2 block rounded-xl bg-white p-3 shadow-sm ring-1 ring-gray-950/5 transition-shadow duration-150 hover:shadow-md dark:bg-gray-900 dark:ring-white/10 sm:p-4 lg:col-span-1"
+        >
+            <div class="flex items-center gap-x-1.5 text-xs text-gray-500 dark:text-gray-400 sm:text-sm">
+                <x-heroicon-o-no-symbol class="h-4 w-4 text-danger-500" />
+                <span class="truncate">{{ __('Defaulted Fee') }}</span>
+            </div>
+            <p class="mt-1 text-base font-bold text-danger-600 dark:text-danger-400 sm:text-xl">৳ {{ number_format($totalDefaulted) }}</p>
         </a>
     </div>
 </x-filament-widgets::widget>

@@ -13,7 +13,7 @@ class ClassInvoiceDuesSummaryWidget extends StatsOverviewWidget
 
     protected int|array|null $columns = [
         'default' => 2,
-        'sm' => 3,
+        'sm' => 4,
     ];
 
     protected function getStats(): array
@@ -35,6 +35,10 @@ class ClassInvoiceDuesSummaryWidget extends StatsOverviewWidget
         $partialCount = $partialInvoices->count();
         $partialRemaining = $partialInvoices->sum(fn ($inv) => $inv->net_amount - ($inv->paid_amount ?? 0));
 
+        $defaulted = $baseQuery()->defaulted()
+            ->selectRaw('COUNT(*) as count, COALESCE(SUM(default_amount), 0) as total')
+            ->first();
+
         $compact = ['class' => '!py-3 !px-3 sm:!px-4 lg:!px-5'];
 
         return [
@@ -48,6 +52,12 @@ class ClassInvoiceDuesSummaryWidget extends StatsOverviewWidget
                 ->description('৳'.number_format($partialRemaining, 0).' still remaining')
                 ->color('warning')
                 ->icon('heroicon-o-clock')
+                ->extraAttributes($compact),
+
+            Stat::make('Defaulted Invoices', $defaulted->count ?? 0)
+                ->description('৳'.number_format($defaulted->total ?? 0, 0).' অনাদায়ী')
+                ->color('danger')
+                ->icon('heroicon-o-no-symbol')
                 ->extraAttributes($compact),
 
             Stat::make('Total Outstanding', ($unpaid->count ?? 0) + $partialCount)

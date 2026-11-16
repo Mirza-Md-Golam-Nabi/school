@@ -29,6 +29,10 @@ class StudentFeeInvoice extends Model
         'net_amount',
         'waiver_by',
         'waiver_reason',
+        'default_amount',
+        'defaulted_by',
+        'defaulted_at',
+        'default_reason',
         'status',
     ];
 
@@ -40,6 +44,8 @@ class StudentFeeInvoice extends Model
         'fine_amount' => 'decimal:2',
         'waiver_amount' => 'decimal:2',
         'net_amount' => 'decimal:2',
+        'default_amount' => 'decimal:2',
+        'defaulted_at' => 'datetime',
         'status' => InvoiceStatus::class,
     ];
 
@@ -56,6 +62,11 @@ class StudentFeeInvoice extends Model
     public function waivedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'waiver_by');
+    }
+
+    public function defaultedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'defaulted_by');
     }
 
     public function payments(): HasMany
@@ -87,6 +98,24 @@ class StudentFeeInvoice extends Model
         $query->whereIn('status', [InvoiceStatus::Unpaid, InvoiceStatus::Partial]);
     }
 
+    /**
+     * এখনো আদায় হয়নি এমন অংশ — net_amount থেকে মোট পরিশোধ বাদে (ঋণাত্মক নয়)।
+     */
+    public function getOutstandingAmountAttribute(): float
+    {
+        return max(0, round((float) $this->net_amount - $this->total_paid, 2));
+    }
+
+    public function isDefaulted(): bool
+    {
+        return $this->status === InvoiceStatus::Defaulted;
+    }
+
+    public function scopeDefaulted(Builder $query): void
+    {
+        $query->where('status', InvoiceStatus::Defaulted);
+    }
+
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
@@ -103,6 +132,7 @@ class StudentFeeInvoice extends Model
             'student_id' => fn (int|string|null $id): ?string => $id === null ? null : self::studentLabel($id),
             'fee_type_id' => fn (int|string|null $id): ?string => $id === null ? null : self::activityNameLabel(FeeType::class, $id),
             'waiver_by' => fn (int|string|null $id): ?string => $id === null ? null : self::activityNameLabel(User::class, $id),
+            'defaulted_by' => fn (int|string|null $id): ?string => $id === null ? null : self::activityNameLabel(User::class, $id),
             'status' => fn (?string $value): ?string => $value === null ? null : InvoiceStatus::tryFrom($value)?->getLabel(),
         ];
     }

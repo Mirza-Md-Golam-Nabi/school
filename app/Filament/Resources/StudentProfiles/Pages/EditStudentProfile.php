@@ -4,6 +4,7 @@ namespace App\Filament\Resources\StudentProfiles\Pages;
 
 use App\Actions\UpdateStudentProfileAction;
 use App\Enums\OptionalSubjectRole;
+use App\Filament\Resources\StudentFeeInvoices\Actions\FeeDefaultActions;
 use App\Filament\Resources\StudentProfiles\Concerns\HasResetPasswordAction;
 use App\Filament\Resources\StudentProfiles\StudentProfileResource;
 use App\Models\StudentProfile;
@@ -22,11 +23,14 @@ class EditStudentProfile extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            FeeDefaultActions::recoverStudentDues(),
+
             $this->resetPasswordAction('warning'),
 
             DeleteAction::make(),
             ForceDeleteAction::make(),
-            RestoreAction::make(),
+            RestoreAction::make()
+                ->modalDescription(fn (StudentProfile $record): string => FeeDefaultActions::defaultedDuesWarning($record) ?? 'Are you sure you would like to do this?'),
         ];
     }
 

@@ -28,6 +28,8 @@ class ProcessFeePaymentAction
 
         $invoices = StudentFeeInvoice::with('payments')
             ->whereIn('id', $invoiceIds)
+            // Default invoice-এ টাকা নিতে হলে আগে Recover করতে হবে
+            ->where('status', '!=', InvoiceStatus::Defaulted)
             ->orderBy('year')
             ->orderByRaw('COALESCE(month, 13)')
             ->orderBy('id')

@@ -4,6 +4,7 @@ namespace App\Filament\Resources\StudentFeeInvoices\Pages;
 
 use App\Enums\InvoiceStatus;
 use App\Filament\Resources\StudentFeeInvoices\StudentFeeInvoiceResource;
+use App\Filament\Resources\StudentFeeInvoices\Widgets\FeeReconciliationWidget;
 use App\Models\Classes;
 use App\Models\StudentFeeInvoice;
 use Filament\Actions\Action;
@@ -27,7 +28,7 @@ class ListStudentFeeInvoices extends Page
                 $stats = StudentFeeInvoice::whereHas(
                     'student', fn ($q) => $q->where('current_class_id', $class->id)
                 )
-                    ->selectRaw('status, COUNT(*) as count, COALESCE(SUM(net_amount), 0) as total_amount')
+                    ->selectRaw('status, COUNT(*) as count, COALESCE(SUM(net_amount), 0) as total_amount, COALESCE(SUM(default_amount), 0) as defaulted_amount')
                     ->groupBy('status')
                     ->get()
                     ->keyBy(fn ($item) => $item->getRawOriginal('status'));
@@ -41,6 +42,13 @@ class ListStudentFeeInvoices extends Page
                     ))
                     ->sum('total_amount');
             });
+    }
+
+    protected function getHeaderWidgets(): array
+    {
+        return [
+            FeeReconciliationWidget::class,
+        ];
     }
 
     protected function getHeaderActions(): array

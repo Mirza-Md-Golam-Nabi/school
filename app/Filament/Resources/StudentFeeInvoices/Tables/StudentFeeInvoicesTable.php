@@ -3,9 +3,11 @@
 namespace App\Filament\Resources\StudentFeeInvoices\Tables;
 
 use App\Enums\InvoiceStatus;
+use App\Filament\Resources\StudentFeeInvoices\Actions\FeeDefaultActions;
 use App\Models\FeeType;
 use App\Models\StudentFeeInvoice;
 use Carbon\Carbon;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -102,6 +104,16 @@ class StudentFeeInvoicesTable
                             ])
                             ->columns(['default' => 2, 'sm' => 3, 'lg' => 4]),
 
+                        Section::make('Default Info')
+                            ->visible(fn (StudentFeeInvoice $record): bool => $record->isDefaulted())
+                            ->schema([
+                                TextEntry::make('default_amount')->label('Defaulted Amount')->money('BDT')->color('danger')->weight('bold'),
+                                TextEntry::make('defaultedBy.name')->label('Defaulted By'),
+                                TextEntry::make('defaulted_at')->label('Defaulted At')->dateTime(),
+                                TextEntry::make('default_reason')->label('Reason')->columnSpanFull(),
+                            ])
+                            ->columns(['default' => 2, 'sm' => 3]),
+
                         Section::make('Payment History')
                             ->schema([
                                 RepeatableEntry::make('payments')
@@ -119,9 +131,15 @@ class StudentFeeInvoicesTable
                     ->modalCancelActionLabel('Close'),
 
                 EditAction::make()->iconButton(),
+
+                ActionGroup::make([
+                    FeeDefaultActions::markInvoice(),
+                    FeeDefaultActions::recoverInvoice(),
+                ]),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
+                    FeeDefaultActions::markInvoicesInBulk(),
                     DeleteBulkAction::make(),
                 ]),
             ]);

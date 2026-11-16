@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\StudentProfiles\Tables;
 
 use App\Enums\StudentStatus;
+use App\Filament\Resources\StudentFeeInvoices\Actions\FeeDefaultActions;
 use App\Models\Classes;
 use App\Models\StudentProfile;
 use Filament\Actions\BulkActionGroup;
@@ -103,7 +104,9 @@ class StudentProfilesTable
                 ViewAction::make()->iconButton(),
                 EditAction::make()->iconButton(),
                 DeleteAction::make()->iconButton(),
-                RestoreAction::make()->iconButton(),
+                RestoreAction::make()
+                    ->iconButton()
+                    ->modalDescription(fn (StudentProfile $record): string => FeeDefaultActions::defaultedDuesWarning($record) ?? 'Are you sure you would like to do this?'),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

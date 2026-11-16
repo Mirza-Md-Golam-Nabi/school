@@ -23,6 +23,10 @@ enum FeePermission: string
     case CREATE_STUDENT_FEE_INVOICES = 'create_student_fee_invoices';
     case EDIT_STUDENT_FEE_INVOICES = 'edit_student_fee_invoices';
     case DELETE_STUDENT_FEE_INVOICES = 'delete_student_fee_invoices';
+    /** বকেয়া invoice অনাদায়ী (default) ঘোষণা — role management থেকে দিতে হয়, admin-এ ডিফল্টভাবে নেই */
+    case MARK_FEE_DEFAULT = 'mark_fee_default';
+    /** default invoice আবার আদায়যোগ্য করা */
+    case RECOVER_FEE_DEFAULT = 'recover_fee_default';
 
     case VIEW_FEE_PAYMENTS = 'view_fee_payments';
     case CREATE_FEE_PAYMENTS = 'create_fee_payments';

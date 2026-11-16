@@ -4,6 +4,7 @@ namespace App\Filament\Resources\StudentFeeInvoices\Tables;
 
 use App\Enums\InvoiceStatus;
 use App\Filament\Resources\FeePayments\FeePaymentResource as AdminFeePaymentResource;
+use App\Filament\Resources\StudentFeeInvoices\Actions\FeeDefaultActions;
 use App\Filament\Resources\StudentFeeInvoices\StudentFeeInvoiceResource as AdminStudentFeeInvoiceResource;
 use App\Filament\Teacher\Resources\FeePayments\FeePaymentResource as TeacherFeePaymentResource;
 use App\Filament\Teacher\Resources\StudentFeeInvoices\StudentFeeInvoiceResource as TeacherStudentFeeInvoiceResource;
@@ -115,6 +116,10 @@ class ClassInvoicesByStudentTable
                     ])
                     ->modalSubmitAction(false)
                     ->modalCancelActionLabel('Close'),
+
+                FeeDefaultActions::markStudentDues()
+                    ->iconButton()
+                    ->visible(fn (): bool => Filament::getCurrentPanel()?->getId() === 'admin' && FeeDefaultActions::canMarkDefault()),
             ]);
     }
 

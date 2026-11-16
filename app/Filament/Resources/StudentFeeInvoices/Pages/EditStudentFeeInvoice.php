@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\StudentFeeInvoices\Pages;
 
+use App\Filament\Resources\StudentFeeInvoices\Actions\FeeDefaultActions;
 use App\Filament\Resources\StudentFeeInvoices\StudentFeeInvoiceResource;
 use App\Notifications\Concerns\NotifiesStudentFeeInvoice;
 use Filament\Actions\DeleteAction;
@@ -27,8 +28,20 @@ class EditStudentFeeInvoice extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            FeeDefaultActions::markInvoice()
+                ->after(fn () => $this->reloadPage()),
+            FeeDefaultActions::recoverInvoice()
+                ->after(fn () => $this->reloadPage()),
             DeleteAction::make(),
         ];
+    }
+
+    /**
+     * Status বদলের পর form-এর status (disabled/enabled) নতুন অবস্থা অনুযায়ী দেখাতে।
+     */
+    private function reloadPage(): void
+    {
+        $this->redirect(StudentFeeInvoiceResource::getUrl('edit', ['record' => $this->getRecord()]));
     }
 
     protected function afterSave(): void

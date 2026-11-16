@@ -155,7 +155,7 @@ class CollectPromotionFeesAction
                 $invoice = $existingInvoices->get($structure->fee_type_id.'-'.($month ?? 0));
 
                 if ($invoice) {
-                    $due = $invoice->status === InvoiceStatus::Waived
+                    $due = in_array($invoice->status, [InvoiceStatus::Waived, InvoiceStatus::Defaulted], true)
                         ? 0.0
                         : max(0, (float) $invoice->net_amount - (float) $invoice->payments->sum('amount_paid'));
 

@@ -67,6 +67,13 @@ class FeePayment extends Model
 
             $totalPaid = (float) $invoice->payments()->sum('amount_paid');
 
+            // Default invoice default-ই থাকে; শুধু অনাদায়ী অংশটা নতুন পরিশোধ অনুযায়ী ঠিক হয়।
+            if ($invoice->status === InvoiceStatus::Defaulted) {
+                $invoice->update(['default_amount' => max(0, (float) $invoice->net_amount - $totalPaid)]);
+
+                return;
+            }
+
             $newStatus = match (true) {
                 $totalPaid <= 0 => InvoiceStatus::Unpaid,
                 $totalPaid >= (float) $invoice->net_amount => InvoiceStatus::Paid,

@@ -152,7 +152,11 @@ class StudentFeeInvoiceForm
                             ->helperText('Auto-calculated: Original − Discount + Fine − Waiver'),
 
                         Select::make('status')
-                            ->options(InvoiceStatus::class)
+                            ->options(fn (?StudentFeeInvoice $record): array => InvoiceStatus::selectableOptions($record?->status))
+                            ->disabled(fn (?StudentFeeInvoice $record): bool => $record?->status === InvoiceStatus::Defaulted)
+                            ->helperText(fn (?StudentFeeInvoice $record): ?string => $record?->status === InvoiceStatus::Defaulted
+                                ? 'Default করা invoice-এর status শুধু "Recover" action দিয়ে বদলানো যায়।'
+                                : null)
                             ->default(InvoiceStatus::Unpaid)
                             ->required()
                             ->native(false),

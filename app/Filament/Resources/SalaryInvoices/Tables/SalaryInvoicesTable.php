@@ -74,7 +74,7 @@ class SalaryInvoicesTable
             ])
             ->filters([
                 SelectFilter::make('status')
-                    ->options(InvoiceStatus::class),
+                    ->options(InvoiceStatus::selectableOptions()),
                 SelectFilter::make('profileable_type')
                     ->label('Type')
                     ->options([

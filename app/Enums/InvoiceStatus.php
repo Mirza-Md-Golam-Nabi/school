@@ -14,6 +14,9 @@ enum InvoiceStatus: string implements HasColor, HasIcon, HasLabel
     case Paid = 'paid';
     case Waived = 'waived';
 
+    /** অনাদায়ী (খেলাপি) — student আর দেবে না; শুধু student fee invoice-এ ব্যবহৃত হয় */
+    case Defaulted = 'defaulted';
+
     public function getLabel(): string
     {
         return match ($this) {
@@ -21,6 +24,7 @@ enum InvoiceStatus: string implements HasColor, HasIcon, HasLabel
             self::Partial => 'Partial',
             self::Paid => 'Paid',
             self::Waived => 'Waived',
+            self::Defaulted => 'Defaulted',
         };
     }
 
@@ -31,6 +35,7 @@ enum InvoiceStatus: string implements HasColor, HasIcon, HasLabel
             self::Partial => 'warning',
             self::Paid => 'success',
             self::Waived => 'gray',
+            self::Defaulted => 'danger',
         };
     }
 
@@ -41,6 +46,22 @@ enum InvoiceStatus: string implements HasColor, HasIcon, HasLabel
             self::Partial => Heroicon::OutlinedClock,
             self::Paid => Heroicon::OutlinedCheckCircle,
             self::Waived => Heroicon::OutlinedMinusCircle,
+            self::Defaulted => Heroicon::OutlinedNoSymbol,
         };
+    }
+
+    /**
+     * হাতে (form/filter থেকে) বেছে নেওয়া যায় এমন status — Defaulted শুধু
+     * permission-যুক্ত action দিয়ে সেট হয়, আর salary invoice-এ প্রযোজ্যই নয়।
+     * ইতিমধ্যে Defaulted record edit করার সময় সেটা option-এ রাখা হয় যাতে badge ঠিক দেখায়।
+     *
+     * @return array<string, string>
+     */
+    public static function selectableOptions(?self $current = null): array
+    {
+        return collect(self::cases())
+            ->reject(fn (self $status): bool => $status === self::Defaulted && $current !== self::Defaulted)
+            ->mapWithKeys(fn (self $status): array => [$status->value => $status->getLabel()])
+            ->all();
     }
 }

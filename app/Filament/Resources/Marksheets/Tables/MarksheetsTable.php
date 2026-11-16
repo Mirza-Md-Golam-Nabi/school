@@ -2,9 +2,11 @@
 
 namespace App\Filament\Resources\Marksheets\Tables;
 
+use App\Enums\InvoiceStatus;
 use App\Jobs\GenerateMarksheetPdfJob;
 use App\Models\Exam;
 use App\Models\Marksheet;
+use App\Models\StudentFeeInvoice;
 use App\Models\StudentProfile;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
@@ -27,7 +29,14 @@ class MarksheetsTable
     public static function configure(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn ($query) => $query->with(['student.user', 'student.class', 'student.section', 'exam.examType']))
+            ->modifyQueryUsing(fn ($query) => $query
+                ->with(['student.user', 'student.class', 'student.section', 'exam.examType'])
+                // Download-এর confirmation-এর জন্য — প্রতি row-এ আলাদা query এড়াতে একসাথে আনা
+                ->addSelect(['student_defaulted_due' => StudentFeeInvoice::query()
+                    ->selectRaw('COALESCE(SUM(default_amount), 0)')
+                    ->whereColumn('student_fee_invoices.student_id', 'marksheets.student_id')
+                    ->where('status', InvoiceStatus::Defaulted),
+                ]))
             ->defaultSort(fn (Builder $query): Builder => $query->orderBy(
                 StudentProfile::select('roll_no')->whereColumn('student_profiles.id', 'marksheets.student_id')
             ))
@@ -67,6 +76,11 @@ class MarksheetsTable
                     ->icon(Heroicon::OutlinedArrowDownTray)
                     ->tooltip('Download')
                     ->visible(fn (Marksheet $record): bool => self::hasGeneratedFile($record))
+                    ->requiresConfirmation(fn (Marksheet $record): bool => (float) $record->student_defaulted_due > 0)
+                    ->modalHeading('Marksheet Download')
+                    ->modalDescription(fn (Marksheet $record): string => '⚠ এই student-এর ৳'.number_format((float) $record->student_defaulted_due, 2)
+                        .' default (অনাদায়ী) বকেয়া আছে। তবুও download করবেন?')
+                    ->modalSubmitActionLabel('Download')
                     ->action(fn (Marksheet $record): StreamedResponse => Storage::disk('local')->download(
                         $record->file_path,
                         "marksheet-{$record->student_id}-{$record->exam_id}.pdf",
