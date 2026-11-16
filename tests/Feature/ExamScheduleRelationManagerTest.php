@@ -11,8 +11,10 @@ use App\Models\ExamType;
 use App\Models\Subject;
 use App\Models\User;
 use Filament\Actions\CreateAction;
+use Filament\Actions\EditAction;
 use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
+use Filament\Forms\Components\Select;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 
@@ -106,7 +108,7 @@ it('rejects scheduling the same subject twice for one exam', function () {
     expect(ExamSchedule::where('exam_id', $exam->id)->count())->toBe(1);
 });
 
-it('defaults to A4 page size when downloading the schedule', function () {
+it('defaults to A5 page size when downloading the schedule', function () {
     $admin = User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]);
     test()->actingAs($admin);
 
@@ -118,7 +120,7 @@ it('defaults to A4 page size when downloading the schedule', function () {
 
     Livewire::test(ScheduleRelationManager::class, ['ownerRecord' => $exam, 'pageClass' => EditExam::class])
         ->callAction(TestAction::make('downloadSchedule')->table())
-        ->assertRedirect(route('exams.schedule.download', ['exam' => $exam, 'pageSize' => 'A4']));
+        ->assertRedirect(route('exams.schedule.download', ['exam' => $exam, 'pageSize' => 'A5', 'subjectLanguage' => 'en']));
 });
 
 it('redirects to the schedule download route with the selected page size', function () {
@@ -134,6 +136,46 @@ it('redirects to the schedule download route with the selected page size', funct
     Livewire::test(ScheduleRelationManager::class, ['ownerRecord' => $exam, 'pageClass' => EditExam::class])
         ->callAction(TestAction::make('downloadSchedule')->table(), ['pageSize' => 'A5'])
         ->assertRedirect(route('exams.schedule.download', ['exam' => $exam, 'pageSize' => 'A5', 'subjectLanguage' => 'en']));
+});
+
+it('hides already scheduled subjects from the create form options', function () {
+    $admin = User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]);
+    test()->actingAs($admin);
+
+    $class = Classes::create(['name' => 'Class Six', 'order' => 6, 'is_active' => true]);
+    $exam = createExamScheduleTestExam($class);
+    $scheduledSubject = createExamScheduleTestSubject($class, 'Bangla');
+    $freeSubject = createExamScheduleTestSubject($class, 'English');
+
+    ExamSchedule::create(['exam_id' => $exam->id, 'subject_id' => $scheduledSubject->id, 'exam_date' => '2026-03-05']);
+
+    Livewire::test(ScheduleRelationManager::class, ['ownerRecord' => $exam, 'pageClass' => EditExam::class])
+        ->mountAction(TestAction::make(CreateAction::class)->table())
+        ->assertFormFieldExists('subject_id', function (Select $field) use ($scheduledSubject, $freeSubject): bool {
+            $options = $field->getOptions();
+
+            return array_key_exists($freeSubject->id, $options) && ! array_key_exists($scheduledSubject->id, $options);
+        });
+});
+
+it('keeps the current subject in the options when editing a schedule', function () {
+    $admin = User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]);
+    test()->actingAs($admin);
+
+    $class = Classes::create(['name' => 'Class Six', 'order' => 6, 'is_active' => true]);
+    $exam = createExamScheduleTestExam($class);
+    $subject = createExamScheduleTestSubject($class, 'Bangla');
+
+    $schedule = ExamSchedule::create(['exam_id' => $exam->id, 'subject_id' => $subject->id, 'exam_date' => '2026-03-05']);
+
+    Livewire::test(ScheduleRelationManager::class, ['ownerRecord' => $exam, 'pageClass' => EditExam::class])
+        ->callAction(TestAction::make(EditAction::class)->table($schedule), [
+            'subject_id' => $subject->id,
+            'exam_date' => '2026-03-07',
+        ])
+        ->assertHasNoFormErrors();
+
+    assertDatabaseHas(ExamSchedule::class, ['id' => $schedule->id, 'exam_date' => '2026-03-07']);
 });
 
 it('only offers subjects assigned to the exam class', function () {

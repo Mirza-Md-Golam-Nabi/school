@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Exams\RelationManagers;
 
+use App\Models\ExamSchedule;
 use App\Models\Subject;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
@@ -37,10 +38,16 @@ class ScheduleRelationManager extends RelationManager
             ->components([
                 Select::make('subject_id')
                     ->label('Subject')
-                    ->options(fn () => Subject::whereHas(
-                        'classes',
-                        fn (Builder $q) => $q->where('classes.id', $classId)
-                    )->get()->pluck('display_name', 'id'))
+                    ->options(fn (?ExamSchedule $record) => Subject::query()
+                        ->whereHas('classes', fn (Builder $q) => $q->where('classes.id', $classId))
+                        ->whereNotIn(
+                            'id',
+                            $exam->schedules()
+                                ->when($record, fn ($query) => $query->whereKeyNot($record->getKey()))
+                                ->pluck('subject_id'),
+                        )
+                        ->get()
+                        ->pluck('display_name', 'id'))
                     ->searchable()
                     ->native(false)
                     ->required()
