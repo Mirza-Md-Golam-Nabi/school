@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\AdmitCards\Tables;
 
+use App\Actions\QueueAdmitCardBundleAction;
 use App\Jobs\GenerateAdmitCardPdfJob;
 use App\Models\AdmitCard;
 use App\Models\Exam;
@@ -82,6 +83,7 @@ class AdmitCardsTable
                         ->action(function (AdmitCard $record) {
                             $record->update(['is_generated' => false]);
                             GenerateAdmitCardPdfJob::dispatch($record->id);
+                            app(QueueAdmitCardBundleAction::class)->handle($record->exam);
 
                             Notification::make()
                                 ->title('Regeneration queued.')

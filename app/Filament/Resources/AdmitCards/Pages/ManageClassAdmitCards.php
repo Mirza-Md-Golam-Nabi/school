@@ -2,16 +2,19 @@
 
 namespace App\Filament\Resources\AdmitCards\Pages;
 
+use App\Actions\BuildCombinedClassAdmitCardsPdfAction;
 use App\Actions\GenerateAdmitCardsForExamAction;
 use App\Filament\Resources\AdmitCards\AdmitCardResource;
 use App\Filament\Resources\AdmitCards\Schemas\AdmitCardDesignRadio;
 use App\Models\AdmitCard;
+use App\Models\AdmitCardBundle;
 use App\Models\Classes;
 use App\Models\Exam;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Support\Enums\Width;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
@@ -117,10 +120,12 @@ class ManageClassAdmitCards extends ListRecords
                             ->mapWithKeys(fn (Exam $exam) => [$exam->id => "{$exam->examType?->name} — {$exam->session_year}"]))
                         ->searchable()
                         ->native(false)
+                        ->live()
+                        ->helperText(fn (Get $get): ?string => $this->bundleStatus($get('exam_id')))
                         ->required(),
                 ])
                 ->modalHeading(fn (): string => 'Download All Admit Cards — '.(Classes::query()->find($this->classId)?->name ?? 'Class'))
-                ->modalDescription('আগে থেকে generate করা সব admit card একটা A4 PDF-এ, প্রতি পেজে দুই কলামে অনেকগুলো, combine করে download হবে।')
+                ->modalDescription('আগে থেকে generate করা সব admit card একটা A4 PDF-এ, প্রতি পেজে দুই কলামে অনেকগুলো, combine করে download হবে। PDF আগে থেকে তৈরি থাকলে সাথে সাথে download হবে, না থাকলে এখনই তৈরি হবে — একটু সময় লাগতে পারে।')
                 ->modalSubmitActionLabel('Download')
                 ->action(function (array $data) {
                     $examId = (int) $data['exam_id'];
@@ -146,5 +151,28 @@ class ManageClassAdmitCards extends ListRecords
                     ]));
                 }),
         ];
+    }
+
+    /**
+     * Whether the chosen exam's combined PDF is already stored, still being
+     * built, or will be built at download time.
+     */
+    private function bundleStatus(mixed $examId): ?string
+    {
+        $exam = blank($examId) ? null : Exam::find((int) $examId);
+
+        if (! $exam) {
+            return null;
+        }
+
+        $bundle = AdmitCardBundle::where('exam_id', $exam->id)->first();
+        $currentCardCount = app(BuildCombinedClassAdmitCardsPdfAction::class)->admitCardsQuery($this->classId, $exam)->count();
+
+        return match (true) {
+            $bundle === null => 'এখনো তৈরি হয়নি — download-এর সময় তৈরি হবে।',
+            ! $bundle->is_generated => 'তৈরি হচ্ছে… এখন download করলে নতুন করে তৈরি হবে।',
+            $bundle->isReadyFor($currentCardCount) => "✓ তৈরি আছে — {$bundle->card_count}টি admit card, সাথে সাথে download হবে।",
+            default => 'আগের ফাইলটা পুরনো হয়ে গেছে — download-এর সময় নতুন করে তৈরি হবে।',
+        };
     }
 }

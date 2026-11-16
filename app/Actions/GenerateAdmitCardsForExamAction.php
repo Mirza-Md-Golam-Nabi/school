@@ -5,6 +5,7 @@ namespace App\Actions;
 use App\Enums\AdmitCardDesign;
 use App\Jobs\GenerateAdmitCardPdfJob;
 use App\Models\AdmitCard;
+use App\Models\AdmitCardBundle;
 use App\Models\Exam;
 use App\Models\StudentProfile;
 
@@ -19,6 +20,9 @@ class GenerateAdmitCardsForExamAction
      *
      * A card with the routine is never generated for an exam without an Exam
      * Schedule: nothing is created, and `without_routine` says so.
+     *
+     * Alongside the per-card jobs, the class's combined "Download All" PDF is
+     * queued too, whenever a card changed or the stored one is missing/stale.
      *
      * @return array{created: int, updated: int, skipped: int, without_routine: bool}
      */
@@ -74,9 +78,32 @@ class GenerateAdmitCardsForExamAction
             GenerateAdmitCardPdfJob::dispatch($admitCard->id);
         }
 
+        if ($created + $updated > 0 || ! $this->hasReadyBundle($exam)) {
+            app(QueueAdmitCardBundleAction::class)->handle($exam);
+        }
+
         $this->logGeneration($exam, $created, $updated, $skipped, $pageSize, $design);
 
         return ['created' => $created, 'updated' => $updated, 'skipped' => $skipped, 'without_routine' => false];
+    }
+
+    /**
+     * Whether the stored combined PDF still covers exactly this exam's cards —
+     * if so, a run that changed nothing need not rebuild it.
+     */
+    private function hasReadyBundle(Exam $exam): bool
+    {
+        $bundle = AdmitCardBundle::where('exam_id', $exam->id)->first();
+
+        if (! $bundle) {
+            return false;
+        }
+
+        $currentCardCount = app(BuildCombinedClassAdmitCardsPdfAction::class)
+            ->admitCardsQuery($exam->class_id, $exam)
+            ->count();
+
+        return $currentCardCount === 0 || $bundle->isReadyFor($currentCardCount);
     }
 
     private function logGeneration(Exam $exam, int $created, int $updated, int $skipped, string $pageSize, AdmitCardDesign $design): void

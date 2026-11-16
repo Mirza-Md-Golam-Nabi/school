@@ -8,6 +8,7 @@ use App\Models\Classes;
 use App\Models\Exam;
 use App\Support\AdmitCardBranding;
 use App\Support\Concerns\BuildsMpdfDocuments;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Mpdf\Mpdf;
 
@@ -32,16 +33,62 @@ class BuildCombinedClassAdmitCardsPdfAction
      */
     public function handle(Classes $class, Exam $exam): string
     {
-        $admitCards = AdmitCard::where('exam_id', $exam->id)
-            ->where('is_generated', true)
-            ->whereHas('student', fn ($query) => $query->where('current_class_id', $class->id))
+        $admitCards = $this->loadAdmitCards($this->admitCardsQuery($class->id, $exam)->where('is_generated', true));
+
+        abort_if($admitCards->isEmpty(), 404, 'এই ক্লাস ও exam-এর জন্য এখনো কোনো admit card generate করা হয়নি।');
+
+        return $this->render($admitCards);
+    }
+
+    /**
+     * Build the ready-made bundle PDF of this exam's class. Unlike handle(), it
+     * includes every admit card record of the exam — not only those whose own
+     * PDF job has already finished — because the bundle job runs alongside them.
+     *
+     * @return array{pdf: ?string, card_count: int}
+     */
+    public function buildBundle(Exam $exam): array
+    {
+        $admitCards = $this->loadAdmitCards($this->admitCardsQuery($exam->class_id, $exam));
+
+        if ($admitCards->isEmpty()) {
+            return ['pdf' => null, 'card_count' => 0];
+        }
+
+        return ['pdf' => $this->render($admitCards), 'card_count' => $admitCards->count()];
+    }
+
+    /**
+     * Every admit card record of this exam whose student is in the class —
+     * the same set a stored bundle covers, so its count tells whether the
+     * bundle is still up to date.
+     *
+     * @return Builder<AdmitCard>
+     */
+    public function admitCardsQuery(int $classId, Exam $exam): Builder
+    {
+        return AdmitCard::where('exam_id', $exam->id)
+            ->whereHas('student', fn (Builder $query) => $query->where('current_class_id', $classId));
+    }
+
+    /**
+     * @param  Builder<AdmitCard>  $query
+     * @return Collection<int, AdmitCard>
+     */
+    private function loadAdmitCards(Builder $query): Collection
+    {
+        return $query
             ->with(['student.user', 'student.class', 'student.section', 'student.group', 'exam.examType', 'exam.schedules.subject'])
             ->get()
             ->sortBy(fn (AdmitCard $admitCard) => $admitCard->student?->roll_no)
             ->values();
+    }
 
-        abort_if($admitCards->isEmpty(), 404, 'এই ক্লাস ও exam-এর জন্য এখনো কোনো admit card generate করা হয়নি।');
-
+    /**
+     * @param  Collection<int, AdmitCard>  $admitCards
+     */
+    private function render(Collection $admitCards): string
+    {
         $mpdf = $this->makeMpdf();
 
         [$routineCards, $simpleCards] = $admitCards->partition(fn (AdmitCard $admitCard): bool => $admitCard->design === AdmitCardDesign::WithRoutine);

@@ -4,6 +4,7 @@ namespace App\Actions;
 
 use App\Enums\AdmitCardDesign;
 use App\Models\AdmitCard;
+use App\Models\AdmitCardBundle;
 use App\Models\Exam;
 use App\Models\ExamType;
 use Illuminate\Support\Collection;
@@ -54,6 +55,13 @@ class GenerateAdmitCardsForExamTypeAction
 
     protected function clearAdmitCardsForOtherExamTypes(ExamType $examType): void
     {
+        AdmitCardBundle::whereIn('exam_id', Exam::where('exam_type_id', '!=', $examType->id)->select('id'))
+            ->get()
+            ->each(function (AdmitCardBundle $bundle): void {
+                $bundle->deleteStoredFile();
+                $bundle->delete();
+            });
+
         $clearedCount = 0;
 
         AdmitCard::whereIn('exam_id', Exam::where('exam_type_id', '!=', $examType->id)->select('id'))
