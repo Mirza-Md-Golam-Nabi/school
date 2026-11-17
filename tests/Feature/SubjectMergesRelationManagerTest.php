@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\CopySubjectMergesToExamAction;
 use App\Enums\MergedAbsentRule;
 use App\Enums\MergedComponentPassRule;
 use App\Enums\MergedPassRule;
@@ -191,4 +192,98 @@ it('locks an exam\'s merges once its result is published', function () {
     Livewire::test(ExamSubjectMergesRelationManager::class, ['ownerRecord' => $exam, 'pageClass' => EditExam::class])
         ->assertActionHidden(TestAction::make(CreateAction::class)->table())
         ->assertActionHidden(TestAction::make('applyClassDefault')->table());
+});
+
+it('brings a class default change to its unpublished exams that follow it', function () {
+    $following = subjectMergeTestExam($this->class);
+    $published = subjectMergeTestExam($this->class, isPublished: true);
+    $custom = subjectMergeTestExam($this->class);
+    $custom->update(['has_custom_subject_merges' => true]);
+    $ownMerge = ExamSubjectMerge::factory()->create(['exam_id' => $custom->id, 'name' => 'Own']);
+
+    $merge = SubjectMerge::factory()->create([
+        'class_id' => $this->class->id,
+        'name' => 'Bangla',
+        'first_subject_id' => $this->banglaFirst->id,
+        'second_subject_id' => $this->banglaSecond->id,
+    ]);
+
+    assertDatabaseHas(ExamSubjectMerge::class, ['exam_id' => $following->id, 'name' => 'Bangla']);
+    assertDatabaseMissing(ExamSubjectMerge::class, ['exam_id' => $published->id]);
+    expect($custom->subjectMerges()->pluck('id')->all())->toBe([$ownMerge->id]);
+
+    $merge->update(['name' => 'বাংলা মোট', 'rounding' => ResultRounding::Down]);
+
+    assertDatabaseHas(ExamSubjectMerge::class, ['exam_id' => $following->id, 'name' => 'বাংলা মোট', 'rounding' => ResultRounding::Down->value]);
+    expect($following->subjectMerges()->count())->toBe(1);
+
+    $merge->delete();
+
+    assertDatabaseMissing(ExamSubjectMerge::class, ['exam_id' => $following->id]);
+    assertDatabaseHas(ExamSubjectMerge::class, ['id' => $ownMerge->id]);
+});
+
+it('keeps an exam\'s own merges once changed on the exam, until the class default is applied again', function () {
+    $exam = subjectMergeTestExam($this->class);
+
+    Livewire::test(ExamSubjectMergesRelationManager::class, ['ownerRecord' => $exam, 'pageClass' => EditExam::class])
+        ->callAction(TestAction::make(CreateAction::class)->table(), [
+            'name' => 'Bangla',
+            'first_subject_id' => $this->banglaFirst->id,
+            'second_subject_id' => $this->banglaSecond->id,
+            'pass_rule' => MergedPassRule::EachPaper->value,
+            'component_pass_rule' => MergedComponentPassRule::EachPaper->value,
+            'absent_rule' => MergedAbsentRule::Fail->value,
+            'rounding' => ResultRounding::Down->value,
+        ])
+        ->assertHasNoFormErrors();
+
+    expect($exam->refresh()->has_custom_subject_merges)->toBeTrue();
+
+    SubjectMerge::factory()->create([
+        'class_id' => $this->class->id,
+        'name' => 'Class Bangla',
+        'first_subject_id' => $this->banglaFirst->id,
+        'second_subject_id' => $this->banglaSecond->id,
+    ]);
+
+    assertDatabaseMissing(ExamSubjectMerge::class, ['exam_id' => $exam->id, 'name' => 'Class Bangla']);
+
+    Livewire::test(ExamSubjectMergesRelationManager::class, ['ownerRecord' => $exam, 'pageClass' => EditExam::class])
+        ->callAction(TestAction::make('applyClassDefault')->table());
+
+    expect($exam->refresh()->has_custom_subject_merges)->toBeFalse()
+        ->and($exam->subjectMerges()->pluck('name')->all())->toBe(['Class Bangla']);
+});
+
+it('leaves merges already matching the class default untouched', function () {
+    SubjectMerge::factory()->create([
+        'class_id' => $this->class->id,
+        'first_subject_id' => $this->banglaFirst->id,
+        'second_subject_id' => $this->banglaSecond->id,
+    ]);
+    $exam = subjectMergeTestExam($this->class);
+    app(CopySubjectMergesToExamAction::class)->handle($exam);
+    $mergeId = $exam->subjectMerges()->value('id');
+
+    app(CopySubjectMergesToExamAction::class)->handle($exam);
+
+    expect($exam->subjectMerges()->pluck('id')->all())->toBe([$mergeId]);
+});
+
+it('swaps in the new class\'s default merges when an exam moves to another class', function () {
+    $exam = subjectMergeTestExam($this->class);
+    $exam->update(['has_custom_subject_merges' => true]);
+    ExamSubjectMerge::factory()->create(['exam_id' => $exam->id, 'name' => 'Old Class Merge']);
+
+    $otherClass = Classes::create(['name' => 'Class 7', 'order' => 7, 'is_active' => true]);
+    SubjectMerge::factory()->create(['class_id' => $otherClass->id, 'name' => 'Class 7 Bangla']);
+
+    Livewire::test(EditExam::class, ['record' => $exam->id])
+        ->fillForm(['class_id' => $otherClass->id])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    expect($exam->refresh()->has_custom_subject_merges)->toBeFalse()
+        ->and($exam->subjectMerges()->pluck('name')->all())->toBe(['Class 7 Bangla']);
 });

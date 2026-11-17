@@ -25,6 +25,7 @@ class Exam extends Model
         'start_date',
         'end_date',
         'is_published',
+        'has_custom_subject_merges',
         'result_rule_snapshot',
     ];
 
@@ -32,6 +33,7 @@ class Exam extends Model
         'start_date' => 'date:Y-m-d',
         'end_date' => 'date:Y-m-d',
         'is_published' => 'boolean',
+        'has_custom_subject_merges' => 'boolean',
         'session_year' => 'integer',
         'result_rule_snapshot' => 'array',
     ];
@@ -69,6 +71,8 @@ class Exam extends Model
 
     /**
      * Subjects counted as one in this exam's result (e.g. Bangla 1st + 2nd paper).
+     * They follow the class's default merges until changed on the exam
+     * itself (`has_custom_subject_merges`).
      */
     public function subjectMerges(): HasMany
     {
@@ -137,7 +141,7 @@ class Exam extends Model
         return LogOptions::defaults()
             ->logFillable()
             // A copy of the result rule, saved by the result calculation — not an edit.
-            ->logExcept(['result_rule_snapshot'])
+            ->logExcept(['result_rule_snapshot', 'has_custom_subject_merges'])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs()
             ->useLogName('exam')

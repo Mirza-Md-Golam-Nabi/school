@@ -17,8 +17,9 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 
 /**
- * This exam's own subject merges — copied from the class when the exam was
- * created, changeable here until the result is published.
+ * This exam's subject merges — the class's default until changed here, after
+ * which the exam keeps its own (until "Apply Class Default"). Locked once
+ * the result is published.
  */
 class SubjectMergesRelationManager extends RelationManager
 {
@@ -39,9 +40,13 @@ class SubjectMergesRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         $isEditable = fn (): bool => ! $this->getOwnerRecord()->is_published;
+        $markCustom = fn () => $this->getOwnerRecord()->update(['has_custom_subject_merges' => true]);
 
         return $table
-            ->description('রেজাল্টে এই সাবজেক্টগুলো দুই পত্র মিলে একটা বিষয় হিসেবে গোনা হবে। বদলানোর পর Calculate Rankings আবার চালান। রেজাল্ট প্রকাশের পর বদলানো যায় না।')
+            ->description(fn (): string => ($this->getOwnerRecord()->has_custom_subject_merges
+                ? 'এই পরীক্ষার নিজস্ব মার্জ — ক্লাসের ডিফল্ট বদলালে এখানে বদলাবে না। আবার ক্লাসের সাথে মেলাতে "Apply Class Default" চাপুন।'
+                : 'ক্লাসের ডিফল্ট মার্জ — ক্লাসে বদলালে এখানেও বদলাবে। এখানে কিছু বদলালে এই পরীক্ষা নিজস্ব মার্জে চলবে।')
+                .' রেজাল্টে এই সাবজেক্টগুলো দুই পত্র মিলে একটা বিষয় হিসেবে গোনা হবে। বদলানোর পর Calculate Rankings আবার চালান। রেজাল্ট প্রকাশের পর বদলানো যায় না।')
             ->columns(SubjectMergeFields::columns())
             ->headerActions([
                 Action::make('applyClassDefault')
@@ -51,7 +56,7 @@ class SubjectMergesRelationManager extends RelationManager
                     ->visible($isEditable)
                     ->requiresConfirmation()
                     ->modalHeading('ক্লাসের ডিফল্ট মার্জ বসাবেন?')
-                    ->modalDescription('এই পরীক্ষার এখনকার সব মার্জ মুছে ক্লাসের ডিফল্ট মার্জগুলো বসবে।')
+                    ->modalDescription('এই পরীক্ষার এখনকার সব মার্জ মুছে ক্লাসের ডিফল্ট মার্জগুলো বসবে, আর পরে ক্লাসে বদলালে এখানেও বদলাবে।')
                     ->action(function (): void {
                         $count = app(CopySubjectMergesToExamAction::class)->handle($this->getOwnerRecord());
 
@@ -63,16 +68,19 @@ class SubjectMergesRelationManager extends RelationManager
                 CreateAction::make()
                     ->label('Merge Subjects')
                     ->visible($isEditable)
+                    ->after($markCustom)
                     ->modalWidth(Width::TwoExtraLarge),
             ])
             ->recordActions([
                 EditAction::make()
                     ->iconButton()
                     ->visible($isEditable)
+                    ->after($markCustom)
                     ->modalWidth(Width::TwoExtraLarge),
                 DeleteAction::make()
                     ->iconButton()
-                    ->visible($isEditable),
+                    ->visible($isEditable)
+                    ->after($markCustom),
             ])
             ->emptyStateHeading('No merged subjects')
             ->emptyStateDescription('যেমন: বাংলা ১ম পত্র + বাংলা ২য় পত্র = বাংলা');

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Actions\SyncClassSubjectMergesAction;
 use App\Enums\MergedAbsentRule;
 use App\Enums\MergedComponentPassRule;
 use App\Enums\MergedPassRule;
@@ -17,8 +18,9 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 /**
  * A class's default subject merge (e.g. Bangla 1st + 2nd paper = Bangla).
- * Copied onto each new exam of the class (ExamSubjectMerge), where it can
- * be changed for that exam. A rule left empty follows School Settings.
+ * Copied onto each exam of the class (ExamSubjectMerge) and kept in step
+ * until the exam's merges are changed on the exam itself or its result is
+ * published. A rule left empty follows School Settings.
  */
 class SubjectMerge extends Model
 {
@@ -48,6 +50,18 @@ class SubjectMerge extends Model
         'absent_rule',
         'rounding',
     ];
+
+    /**
+     * Every change to a class default reaches the class's exams that still
+     * follow it (unpublished, not changed on the exam itself).
+     */
+    protected static function booted(): void
+    {
+        $syncClassExams = fn (SubjectMerge $merge) => app(SyncClassSubjectMergesAction::class)->handle($merge->class_id);
+
+        static::saved($syncClassExams);
+        static::deleted($syncClassExams);
+    }
 
     public function class(): BelongsTo
     {

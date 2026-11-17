@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Exams\Pages;
 
 use App\Actions\CalculateExamRankings;
+use App\Actions\CopySubjectMergesToExamAction;
 use App\Filament\Pages\ExamAttendanceTotals;
 use App\Filament\Resources\Exams\ExamResource;
 use App\Models\Exam;
@@ -62,6 +63,7 @@ class EditExam extends EditRecord
     {
         $wasPublished = (bool) $record->is_published;
         $willBePublished = (bool) ($data['is_published'] ?? false);
+        $isClassChanged = (int) $record->class_id !== (int) $data['class_id'];
 
         $record->update([
             'exam_type_id' => $data['exam_type_id'],
@@ -71,6 +73,11 @@ class EditExam extends EditRecord
             'end_date' => $data['end_date'],
             'is_published' => $willBePublished,
         ]);
+
+        // The old class's merges name subjects the new class may not have.
+        if ($isClassChanged && ! $willBePublished) {
+            app(CopySubjectMergesToExamAction::class)->handle($record);
+        }
 
         // Only a genuine false→true flip is worth notifying students about —
         // not a resave of an already-published exam.

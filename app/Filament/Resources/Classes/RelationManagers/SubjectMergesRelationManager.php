@@ -13,7 +13,7 @@ use Filament\Tables\Table;
 
 /**
  * The class's default subject merges (e.g. Bangla 1st + 2nd paper = Bangla),
- * copied onto each new exam of the class.
+ * kept in step on every exam of the class that still follows the default.
  */
 class SubjectMergesRelationManager extends RelationManager
 {
@@ -33,7 +33,7 @@ class SubjectMergesRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
-            ->description('নতুন পরীক্ষা তৈরি হলে এই মার্জগুলো পরীক্ষায় কপি হয়। আগে তৈরি পরীক্ষায় বসাতে পরীক্ষার পেজ থেকে "Apply Class Default" চাপুন।')
+            ->description('এই ক্লাসের সব পরীক্ষায় এই মার্জগুলো নিজে থেকেই বসে, আর এখানে বদলালে পরীক্ষাগুলোতেও বদলায়। শুধু প্রকাশিত রেজাল্ট, আর যে পরীক্ষায় নিজে মার্জ বদলানো হয়েছে — সেগুলো বদলায় না।')
             ->columns(SubjectMergeFields::columns())
             ->headerActions([
                 CreateAction::make()

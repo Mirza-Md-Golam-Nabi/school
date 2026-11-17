@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Actions\SyncClassSubjectMergesAction;
 use App\Enums\MergedAbsentRule;
 use App\Enums\MergedComponentPassRule;
 use App\Enums\MergedPassRule;
@@ -252,8 +253,15 @@ class SchoolSettings extends Page
         SchoolSetting::set('marksheet_footer_text', $data['marksheet_footer_text'] ?? '');
         SchoolSetting::set(ResultRule::DEFAULT_FULL_MARKS_SETTING, $data[ResultRule::DEFAULT_FULL_MARKS_SETTING]);
 
+        $previousMergeRules = SubjectMerge::defaultRules();
+
         foreach ([SubjectMerge::PASS_RULE_SETTING, SubjectMerge::COMPONENT_PASS_RULE_SETTING, SubjectMerge::ABSENT_RULE_SETTING, SubjectMerge::ROUNDING_SETTING] as $key) {
             SchoolSetting::set($key, $data[$key] instanceof BackedEnum ? $data[$key]->value : $data[$key]);
+        }
+
+        // Class merges that leave a rule empty follow these settings — so do their exams.
+        if (SubjectMerge::defaultRules() !== $previousMergeRules) {
+            app(SyncClassSubjectMergesAction::class)->handle();
         }
 
         Notification::make()
