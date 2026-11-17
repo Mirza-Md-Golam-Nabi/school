@@ -5,6 +5,7 @@ namespace App\Filament\Resources\AdmitCards\Pages;
 use App\Actions\GenerateAdmitCardsForExamTypeAction;
 use App\Filament\Resources\AdmitCards\AdmitCardResource;
 use App\Filament\Resources\AdmitCards\Schemas\AdmitCardDesignRadio;
+use App\Filament\Resources\AdmitCards\Schemas\AdmitCardLanguageRadios;
 use App\Models\AdmitCard;
 use App\Models\Classes;
 use App\Models\ExamType;
@@ -63,6 +64,7 @@ class ListAdmitCards extends Page
                         ->default('A4')
                         ->native(false)
                         ->required(),
+                    AdmitCardLanguageRadios::make(),
                     ...AdmitCardDesignRadio::components(),
                 ])
                 ->modalWidth(Width::FiveExtraLarge)
@@ -73,11 +75,18 @@ class ListAdmitCards extends Page
                     $examType = ExamType::findOrFail($data['exam_type_id']);
 
                     $result = app(GenerateAdmitCardsForExamTypeAction::class)
-                        ->handle($examType, auth()->id(), $data['page_size'], $data['design']);
+                        ->handle(
+                            $examType,
+                            auth()->id(),
+                            $data['page_size'],
+                            $data['design'],
+                            $data['routine_language'] ?? 'en',
+                            $data['student_info_language'] ?? 'en',
+                        );
 
                     Notification::make()
                         ->title('Admit card generation queued')
-                        ->body("Created: {$result['created']} | Switched to this design: {$result['updated']} | Skipped (already exists): {$result['skipped']}")
+                        ->body("Created: {$result['created']} | Switched to this design/language: {$result['updated']} | Skipped (already exists): {$result['skipped']}")
                         ->success()
                         ->send();
 

@@ -14,6 +14,8 @@ class AdmitCard extends Model
         'is_generated',
         'page_size',
         'design',
+        'routine_language',
+        'student_info_language',
         'generated_by',
         'generated_at',
         'file_path',

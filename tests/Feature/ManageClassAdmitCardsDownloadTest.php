@@ -12,6 +12,7 @@ use App\Models\StudentProfile;
 use App\Models\User;
 use Filament\Actions\Testing\TestAction;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 
@@ -95,6 +96,31 @@ it('refuses routine admit cards for an exam whose exam schedule is empty, with a
         ->assertNotified('এই পরীক্ষার রুটিন এখনো দেওয়া হয়নি');
 
     expect(AdmitCard::count())->toBe(0);
+});
+
+it('saves the routine and student info languages chosen in the generate window', function () {
+    Queue::fake();
+    $admin = grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]));
+    test()->actingAs($admin);
+
+    $class = Classes::create(['name' => 'Language Class', 'order' => 1]);
+    $student = makeManageClassAdmitCardsTestStudent($class->id);
+    $exam = makeManageClassAdmitCardsTestExam($class->id);
+
+    Livewire::test(ManageClassAdmitCards::class, ['classId' => $class->id])
+        ->callAction('generateAdmitCards', [
+            'exam_id' => $exam->id,
+            'page_size' => 'A4',
+            'design' => 'simple',
+            'routine_language' => 'bn',
+            'student_info_language' => 'en',
+        ])
+        ->assertHasNoFormErrors()
+        ->assertNotified('Admit card generation queued');
+
+    expect(AdmitCard::where('student_id', $student->id)->sole())
+        ->routine_language->toBe('bn')
+        ->student_info_language->toBe('en');
 });
 
 it('downloads a single generated admit card PDF from the row download action', function () {

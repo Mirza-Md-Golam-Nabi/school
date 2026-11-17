@@ -4,26 +4,47 @@
      * date and subject, numbered, half on the left and the rest on the right).
      * Shared by the single-card PDF and the class sheet.
      *
+     * The student details (with the card's title) are in the card's
+     * student_info_language and the routine in its routine_language.
+     *
      * @var \App\Models\AdmitCard $admitCard
      * @var \App\Support\AdmitCardBranding $branding
      */
     use App\Support\AdmitCardBranding;
+    use App\Support\BengaliNumber;
+    use App\Support\DocumentLocale;
+    use Illuminate\Support\Str;
 
     $student = $admitCard->student;
     $exam = $admitCard->exam;
     $photoSrc = AdmitCardBranding::imagePath($student->photo);
-    [$leftRoutine, $rightRoutine] = $exam->admitCardRoutineColumns();
 
-    $details = collect([
-        ['Student Name', $student->user?->name],
-        ['Student ID', $student->idCardNumber()],
-        ['Class', $student->class?->display_name],
-        ['Roll No', sprintf('%02d', $student->roll_no)],
-        ['Section', $student->section?->name],
-        ['Group', $student->group?->name],
-        ['Reg. No', $student->registration_no],
-        ['Academic Year', $exam->session_year],
-    ])->filter(fn (array $detail): bool => filled($detail[1]))->values();
+    $info = DocumentLocale::using($admitCard->student_info_language, fn (): array => [
+        'title' => Str::upper(__('Admit Card')),
+        'examName' => $exam->examType?->name.' ('.BengaliNumber::localize((string) $exam->session_year).')',
+        'details' => collect([
+            [__('Student Name'), $student->user?->name],
+            [__('Student ID'), BengaliNumber::localize((string) $student->idCardNumber())],
+            [__('Class'), $student->class?->display_name],
+            [__('Roll No'), BengaliNumber::localize(sprintf('%02d', $student->roll_no))],
+            [__('Section'), $student->section?->name],
+            [__('Group'), $student->group?->display_name],
+            [__('Reg. No'), BengaliNumber::localize((string) $student->registration_no)],
+            [__('Academic Year'), BengaliNumber::localize((string) $exam->session_year)],
+        ])->filter(fn (array $detail): bool => filled($detail[1]))->values(),
+    ]);
+    $details = $info['details'];
+
+    $routine = DocumentLocale::using($admitCard->routine_language, fn (): array => [
+        'title' => Str::upper(__('Examination Routine')),
+        'dateHeading' => Str::upper(__('Date')),
+        'subjectHeading' => Str::upper(__('Subject')),
+        'columns' => array_map(
+            fn (array $column): array => array_map(fn (array $row): array => [...$row, 'serial' => BengaliNumber::localize(sprintf('%02d', $row['serial']))], $column),
+            $exam->admitCardRoutineColumns(),
+        ),
+    ]);
+    [$leftRoutine, $rightRoutine] = $routine['columns'];
 @endphp
 
 <div class="arc-card">
@@ -58,9 +79,9 @@
 
     {{-- Plain divs, not a table cell: mPDF rounds corners only outside tables. --}}
     <div class="arc-title">
-        <div class="arc-pill">ADMIT CARD</div>
+        <div class="arc-pill">{{ $info['title'] }}</div>
         {{-- SolaimanLipi has no dash glyphs, so no "—" here. --}}
-        <div class="arc-exam-name">{{ $exam->examType?->name }} ({{ $exam->session_year }})</div>
+        <div class="arc-exam-name">{{ $info['examName'] }}</div>
     </div>
 
     <table class="arc-body">
@@ -96,7 +117,7 @@
         </tr>
     </table>
 
-    <div class="arc-section-title">EXAMINATION ROUTINE</div>
+    <div class="arc-section-title">{{ $routine['title'] }}</div>
 
     <table class="arc-routine-wrap">
         <tr>
@@ -106,12 +127,12 @@
                         <table class="arc-routine">
                             <tr>
                                 <th>#</th>
-                                <th>DATE</th>
-                                <th>SUBJECT</th>
+                                <th>{{ $routine['dateHeading'] }}</th>
+                                <th>{{ $routine['subjectHeading'] }}</th>
                             </tr>
                             @foreach ($column as $row)
                                 <tr @class(['arc-even' => $loop->even])>
-                                    <td class="arc-serial">{{ sprintf('%02d', $row['serial']) }}</td>
+                                    <td class="arc-serial">{{ $row['serial'] }}</td>
                                     <td class="arc-date">{{ $row['date'] }}</td>
                                     <td>{{ $row['subject'] }}</td>
                                 </tr>

@@ -6,6 +6,7 @@ use App\Actions\BuildCombinedClassAdmitCardsPdfAction;
 use App\Actions\GenerateAdmitCardsForExamAction;
 use App\Filament\Resources\AdmitCards\AdmitCardResource;
 use App\Filament\Resources\AdmitCards\Schemas\AdmitCardDesignRadio;
+use App\Filament\Resources\AdmitCards\Schemas\AdmitCardLanguageRadios;
 use App\Models\AdmitCard;
 use App\Models\AdmitCardBundle;
 use App\Models\Classes;
@@ -77,6 +78,7 @@ class ManageClassAdmitCards extends ListRecords
                         ->default('A4')
                         ->native(false)
                         ->required(),
+                    AdmitCardLanguageRadios::make(),
                     ...AdmitCardDesignRadio::components(),
                 ])
                 ->modalWidth(Width::FiveExtraLarge)
@@ -86,7 +88,14 @@ class ManageClassAdmitCards extends ListRecords
                     $exam = Exam::findOrFail($data['exam_id']);
 
                     $result = app(GenerateAdmitCardsForExamAction::class)
-                        ->handle($exam, auth()->id(), $data['page_size'], $data['design']);
+                        ->handle(
+                            $exam,
+                            auth()->id(),
+                            $data['page_size'],
+                            $data['design'],
+                            $data['routine_language'] ?? 'en',
+                            $data['student_info_language'] ?? 'en',
+                        );
 
                     if ($result['without_routine']) {
                         Notification::make()
@@ -100,7 +109,7 @@ class ManageClassAdmitCards extends ListRecords
 
                     Notification::make()
                         ->title('Admit card generation queued')
-                        ->body("Created: {$result['created']} | Switched to this design: {$result['updated']} | Skipped (already exists): {$result['skipped']}")
+                        ->body("Created: {$result['created']} | Switched to this design/language: {$result['updated']} | Skipped (already exists): {$result['skipped']}")
                         ->success()
                         ->send();
                 }),

@@ -157,5 +157,12 @@
     "The connection code or secret is wrong.": "সংযোগ কোড বা সিক্রেট ভুল।",
     "The school account in the Question Bank is not approved yet, or is suspended.": "প্রশ্নব্যাংকে স্কুলের একাউন্ট এখনো অনুমোদিত হয়নি, অথবা স্থগিত আছে।",
     "The Question Bank refused the connection (:status).": "প্রশ্নব্যাংক সংযোগ নেয়নি (:status)।",
-    "School questions": "স্কুলের প্রশ্ন"
+    "School questions": "স্কুলের প্রশ্ন",
+    "Name": "নাম",
+    "Reg. No": "রেজি. নং",
+    "Academic Year": "শিক্ষাবর্ষ",
+    "Exam Period": "পরীক্ষার সময়কাল",
+    "Period": "সময়কাল",
+    ":start to :end": ":start থেকে :end",
+    "Examination Routine": "পরীক্ষার রুটিন"
 }

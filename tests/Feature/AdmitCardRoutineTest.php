@@ -107,6 +107,82 @@ it('prints the routine with dates and subjects but no time, and Powered by Next 
         ->not->toContain('AM', 'PM');
 });
 
+it('prints the routine in বাংলা while the student info stays in English', function () {
+    $class = Classes::create(['name' => 'Class Three', 'name_bn' => 'তৃতীয় শ্রেণি', 'order' => 3]);
+    $exam = makeRoutineTestExam($class);
+    $subject = Subject::create(['name' => 'Mathematics', 'name_bn' => 'গণিত', 'has_mcq' => false, 'has_written' => true, 'has_practical' => false, 'is_active' => true]);
+    ExamSchedule::create(['exam_id' => $exam->id, 'subject_id' => $subject->id, 'exam_date' => '2026-01-02']);
+    $admitCard = AdmitCard::create([
+        'student_id' => makeRoutineTestStudent($class)->id,
+        'exam_id' => $exam->id,
+        'page_size' => 'A4',
+        'design' => AdmitCardDesign::WithRoutine,
+        'routine_language' => 'bn',
+        'student_info_language' => 'en',
+    ]);
+
+    $html = view('documents.admit-card-routine', ['admitCard' => $admitCard->load('exam.schedules.subject')])->render();
+
+    expect($html)->toContain(__('Examination Routine', [], 'bn'), 'গণিত', '০২', 'Student Name', 'Class Three')
+        ->not->toContain('EXAMINATION ROUTINE', 'Mathematics', '02 Jan 2026', 'তৃতীয় শ্রেণি')
+        ->and(app()->getLocale())->toBe('en');
+});
+
+it('prints the student info in বাংলা while the routine stays in English', function () {
+    $class = Classes::create(['name' => 'Class Three', 'name_bn' => 'তৃতীয় শ্রেণি', 'order' => 3]);
+    $exam = makeRoutineTestExam($class);
+    addRoutineTestSchedule($exam, ['Mathematics' => '2026-01-02']);
+    $admitCard = AdmitCard::create([
+        'student_id' => makeRoutineTestStudent($class, 7)->id,
+        'exam_id' => $exam->id,
+        'page_size' => 'A4',
+        'design' => AdmitCardDesign::WithRoutine,
+        'routine_language' => 'en',
+        'student_info_language' => 'bn',
+    ]);
+
+    $html = view('documents.admit-card-routine', ['admitCard' => $admitCard->load('exam.schedules.subject')])->render();
+
+    expect($html)->toContain(__('Student Name', [], 'bn'), 'তৃতীয় শ্রেণি', '০৭', 'EXAMINATION ROUTINE', '02 Jan 2026', 'Mathematics')
+        ->not->toContain('Student Name', 'Class Three');
+});
+
+it('prints the simple card and the class sheet student info in বাংলা', function () {
+    $class = Classes::create(['name' => 'Class Three', 'name_bn' => 'তৃতীয় শ্রেণি', 'order' => 3]);
+    $admitCard = AdmitCard::create([
+        'student_id' => makeRoutineTestStudent($class, 7)->id,
+        'exam_id' => makeRoutineTestExam($class)->id,
+        'page_size' => 'A4',
+        'student_info_language' => 'bn',
+    ]);
+
+    $card = view('documents.admit-card', ['admitCard' => $admitCard])->render();
+    $sheet = view('documents.admit-card-sheet', ['admitCards' => collect([$admitCard])])->render();
+
+    foreach ([$card, $sheet] as $html) {
+        expect($html)->toContain(__('Admit Card', [], 'bn'), __('Roll No', [], 'bn'), 'তৃতীয় শ্রেণি', '০৭')
+            ->not->toContain('Roll No', 'Class Three');
+    }
+});
+
+it('generates existing cards again when only the language changes', function () {
+    Queue::fake();
+    $class = Classes::create(['name' => 'Class Three', 'order' => 3]);
+    $student = makeRoutineTestStudent($class);
+    $exam = makeRoutineTestExam($class);
+    $card = AdmitCard::create(['student_id' => $student->id, 'exam_id' => $exam->id, 'page_size' => 'A4', 'design' => AdmitCardDesign::Simple, 'is_generated' => true]);
+
+    $sameLanguages = app(GenerateAdmitCardsForExamAction::class)->handle($exam);
+    $result = app(GenerateAdmitCardsForExamAction::class)->handle($exam, studentInfoLanguage: 'bn');
+
+    expect($sameLanguages['skipped'])->toBe(1)
+        ->and($result)->toBe(['created' => 0, 'updated' => 1, 'skipped' => 0, 'without_routine' => false])
+        ->and($card->refresh()->student_info_language)->toBe('bn')
+        ->and($card->routine_language)->toBe('en')
+        ->and($card->is_generated)->toBeFalse();
+    Queue::assertPushed(GenerateAdmitCardPdfJob::class, fn (GenerateAdmitCardPdfJob $job): bool => $job->admitCardId === $card->id);
+});
+
 it('adds Powered by Next Fusion to the simple admit card too', function () {
     $class = Classes::create(['name' => 'Class Three', 'order' => 3]);
     $admitCard = AdmitCard::create(['student_id' => makeRoutineTestStudent($class)->id, 'exam_id' => makeRoutineTestExam($class)->id, 'page_size' => 'A4']);

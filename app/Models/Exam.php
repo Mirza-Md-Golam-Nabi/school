@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\StudentMeritRanking;
+use App\Support\BengaliNumber;
 use App\Traits\LogsRelationLabels;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -89,6 +90,9 @@ class Exam extends Model
      * split into two columns — the first half (rounded up) on the left, so
      * 7 subjects are 4 + 3.
      *
+     * Dates and subject names follow the current locale, so in বাংলা the
+     * month, the digits and the subject (name_bn) are Bengali.
+     *
      * @return array{0: list<array{serial: int, date: ?string, subject: string}>, 1: list<array{serial: int, date: ?string, subject: string}>}
      */
     public function admitCardRoutineColumns(): array
@@ -98,7 +102,7 @@ class Exam extends Model
             ->values()
             ->map(fn (ExamSchedule $schedule, int $index): array => [
                 'serial' => $index + 1,
-                'date' => $schedule->exam_date?->format('d M Y'),
+                'date' => $schedule->exam_date ? BengaliNumber::localize($schedule->exam_date->translatedFormat('d M Y')) : null,
                 'subject' => $schedule->subject?->display_name ?? '—',
             ]);
 

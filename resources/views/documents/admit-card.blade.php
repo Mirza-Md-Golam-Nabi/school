@@ -1,5 +1,7 @@
 @php
     use App\Models\SchoolSetting;
+    use App\Support\BengaliNumber;
+    use App\Support\DocumentLocale;
     use App\Support\PdfImage;
 
     $student = $admitCard->student;
@@ -20,6 +22,23 @@
     $sealSrc = $imageSrc(SchoolSetting::get('school_seal'));
     $signatureSrc = $imageSrc(SchoolSetting::get('principal_signature'));
     $studentPhotoSrc = $imageSrc($student->photo);
+
+    // The card's title and student details, in the card's student_info_language.
+    $info = DocumentLocale::using($admitCard->student_info_language, fn (): array => [
+        'title' => __('Admit Card'),
+        'labels' => collect(['Student ID', 'Student Name', 'Class', 'Roll No', 'Group', 'Section', 'Exam', 'Exam Period'])
+            ->mapWithKeys(fn (string $label): array => [$label => __($label)]),
+        'studentId' => BengaliNumber::localize((string) $student->idCardNumber()),
+        'className' => $student->class?->display_name,
+        'rollNo' => BengaliNumber::localize(sprintf('%02d', $student->roll_no)),
+        'groupName' => $student->group?->display_name,
+        'exam' => $exam->examType?->name.' - '.BengaliNumber::localize((string) $exam->session_year),
+        'period' => __(':start to :end', [
+            'start' => BengaliNumber::localize((string) $exam->start_date?->translatedFormat('d M Y')),
+            'end' => BengaliNumber::localize((string) $exam->end_date?->translatedFormat('d M Y')),
+        ]),
+    ]);
+    $label = $info['labels'];
 @endphp
 <!DOCTYPE html>
 <html>
@@ -155,49 +174,48 @@
             @endif
         </div>
 
-        <div class="title">Admit Card</div>
+        <div class="title">{{ $info['title'] }}</div>
 
         <table class="info">
             <tr>
-                <td class="label">Student ID</td>
-                <td colspan="3">{{ $student->idCardNumber() }}</td>
+                <td class="label">{{ $label['Student ID'] }}</td>
+                <td colspan="3">{{ $info['studentId'] }}</td>
             </tr>
             <tr>
-                <td class="label">Student Name</td>
+                <td class="label">{{ $label['Student Name'] }}</td>
                 <td colspan="3">{{ $student->user?->name }}</td>
             </tr>
             <tr>
-                <td class="label">Class</td>
-                <td>{{ $student->class?->display_name }}</td>
-                <td class="label">Roll No</td>
-                <td>{{ sprintf('%02d', $student->roll_no) }}</td>
+                <td class="label">{{ $label['Class'] }}</td>
+                <td>{{ $info['className'] }}</td>
+                <td class="label">{{ $label['Roll No'] }}</td>
+                <td>{{ $info['rollNo'] }}</td>
             </tr>
             @if ($student->group && $student->section)
                 <tr>
-                    <td class="label">Group</td>
-                    <td>{{ $student->group?->name }}</td>
-                    <td class="label">Section</td>
+                    <td class="label">{{ $label['Group'] }}</td>
+                    <td>{{ $info['groupName'] }}</td>
+                    <td class="label">{{ $label['Section'] }}</td>
                     <td>{{ $student->section?->name }}</td>
                 </tr>
             @elseif($student->group)
                 <tr>
-                    <td class="label">Group</td>
-                    <td colspan="3">{{ $student->group?->name }}</td>
+                    <td class="label">{{ $label['Group'] }}</td>
+                    <td colspan="3">{{ $info['groupName'] }}</td>
                 </tr>
             @elseif($student->section)
                 <tr>
-                    <td class="label">Section</td>
+                    <td class="label">{{ $label['Section'] }}</td>
                     <td colspan="3">{{ $student->section?->name }}</td>
                 </tr>
             @endif
             <tr>
-                <td class="label">Exam</td>
-                <td colspan="3">{{ $exam->examType?->name }} {{" - "}} {{ $exam->session_year }}</td>
+                <td class="label">{{ $label['Exam'] }}</td>
+                <td colspan="3">{{ $info['exam'] }}</td>
             </tr>
             <tr>
-                <td class="label">Exam Period</td>
-                <td colspan="3">{{ $exam->start_date?->format('d M Y') }} to
-                    {{ $exam->end_date?->format('d M Y') }}</td>
+                <td class="label">{{ $label['Exam Period'] }}</td>
+                <td colspan="3">{{ $info['period'] }}</td>
             </tr>
         </table>
 

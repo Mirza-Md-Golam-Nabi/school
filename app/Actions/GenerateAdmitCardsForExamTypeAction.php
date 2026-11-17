@@ -25,10 +25,19 @@ class GenerateAdmitCardsForExamTypeAction
      * With the routine design, a class whose exam has no Exam Schedule gets
      * no cards; its name is listed in `classes_without_routine`.
      *
+     * $routineLanguage and $studentInfoLanguage ('en' / 'bn') set the language
+     * of the card's exam routine and of its student details, each on its own.
+     *
      * @return array{created: int, updated: int, skipped: int, classes_without_routine: list<string>}
      */
-    public function handle(ExamType $examType, ?int $generatedBy = null, string $pageSize = 'A4', AdmitCardDesign $design = AdmitCardDesign::Simple): array
-    {
+    public function handle(
+        ExamType $examType,
+        ?int $generatedBy = null,
+        string $pageSize = 'A4',
+        AdmitCardDesign $design = AdmitCardDesign::Simple,
+        string $routineLanguage = 'en',
+        string $studentInfoLanguage = 'en',
+    ): array {
         $this->clearAdmitCardsForOtherExamTypes($examType);
 
         $created = 0;
@@ -39,7 +48,7 @@ class GenerateAdmitCardsForExamTypeAction
         $exams = Exam::where('exam_type_id', $examType->id)->with('class:id,name')->get();
 
         foreach ($exams as $exam) {
-            $result = app(GenerateAdmitCardsForExamAction::class)->handle($exam, $generatedBy, $pageSize, $design);
+            $result = app(GenerateAdmitCardsForExamAction::class)->handle($exam, $generatedBy, $pageSize, $design, $routineLanguage, $studentInfoLanguage);
 
             $created += $result['created'];
             $updated += $result['updated'];

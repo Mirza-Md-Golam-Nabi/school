@@ -127,3 +127,29 @@ it('skips students who already have an admit card for the exam and does not redi
 
     Queue::assertNotPushed(GenerateAdmitCardPdfJob::class);
 });
+
+it('deletes the class\'s admit cards of other exams so each student keeps only one card', function () {
+    Queue::fake();
+    Storage::fake('local');
+
+    $class = Classes::create(['name' => 'Class Five', 'order' => 5]);
+    $otherClass = Classes::create(['name' => 'Class Six', 'order' => 6]);
+    $oldExam = createAdmitCardTestExam($class->id);
+    $newExam = createAdmitCardTestExam($class->id);
+    $otherClassExam = createAdmitCardTestExam($otherClass->id);
+
+    $student = createAdmitCardTestStudent($class->id);
+    $otherClassStudent = createAdmitCardTestStudent($otherClass->id);
+
+    Storage::disk('local')->put('admit-cards/old.pdf', 'pdf');
+    $oldCard = AdmitCard::create(['student_id' => $student->id, 'exam_id' => $oldExam->id, 'file_path' => 'admit-cards/old.pdf', 'is_generated' => true]);
+    $otherClassCard = AdmitCard::create(['student_id' => $otherClassStudent->id, 'exam_id' => $otherClassExam->id]);
+
+    app(GenerateAdmitCardsForExamAction::class)->handle($newExam);
+
+    expect(AdmitCard::find($oldCard->id))->toBeNull()
+        ->and(AdmitCard::where('student_id', $student->id)->pluck('exam_id')->all())->toBe([$newExam->id])
+        ->and(AdmitCard::find($otherClassCard->id))->not->toBeNull();
+
+    Storage::disk('local')->assertMissing('admit-cards/old.pdf');
+});
