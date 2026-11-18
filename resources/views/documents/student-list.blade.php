@@ -105,7 +105,9 @@
         <thead>
             <tr>
                 <th class="roll">Roll</th>
-                <th>Name</th>
+                @foreach ($nameHeaders as $nameHeader)
+                    <th>{{ $nameHeader }}</th>
+                @endforeach
                 @foreach ($columns as $column)
                     <th>{{ $column->getLabel() }}</th>
                 @endforeach
@@ -115,7 +117,9 @@
             @foreach ($rows as $row)
                 <tr>
                     <td class="roll">{{ $row['roll'] }}</td>
-                    <td>{{ $row['name'] }}</td>
+                    @foreach ($row['names'] as $name)
+                        <td>{{ $name }}</td>
+                    @endforeach
                     @foreach ($row['values'] as $value)
                         <td>{{ $value }}</td>
                     @endforeach

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Actions\BuildClassStudentListPdfAction;
+use App\Enums\StudentListNameLanguage;
 use App\Models\Classes;
 use App\Support\Concerns\SanitizesFilenames;
 use Illuminate\Http\Request;
@@ -21,8 +22,9 @@ class ClassStudentListPdfController extends Controller
 
         $columns = (array) $request->query('columns', []);
         $orientation = (string) $request->query('orientation', 'P');
+        $nameLanguage = StudentListNameLanguage::tryFrom((string) $request->query('name_language')) ?? StudentListNameLanguage::English;
 
-        $pdf = $action->handle($class, $sessionYear, $columns, $orientation);
+        $pdf = $action->handle($class, $sessionYear, $columns, $orientation, $nameLanguage);
 
         $filename = "student-list-{$this->sanitizeFilenameSegment($class->name)}-{$sessionYear}.pdf";
 

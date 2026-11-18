@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\StudentProfiles\Pages;
 
 use App\Enums\StudentListColumn;
+use App\Enums\StudentListNameLanguage;
 use App\Filament\Resources\StudentProfiles\Concerns\HasStudentCredentialsModal;
 use App\Filament\Resources\StudentProfiles\Concerns\HasStudentImportActions;
 use App\Filament\Resources\StudentProfiles\StudentProfileResource;
@@ -101,6 +102,16 @@ class StudentsByClass extends ListRecords
                                 ->gridDirection(GridDirection::Row)
                                 ->bulkToggleable(),
                         ]),
+                    Section::make('Name')
+                        ->schema([
+                            Radio::make('name_language')
+                                ->hiddenLabel()
+                                ->options(StudentListNameLanguage::class)
+                                ->default(StudentListNameLanguage::English->value)
+                                ->inline()
+                                ->inlineLabel(false)
+                                ->required(),
+                        ]),
                     Section::make('Orientation')
                         ->schema([
                             Radio::make('orientation')
@@ -121,6 +132,9 @@ class StudentsByClass extends ListRecords
                     'class' => $this->classId,
                     'columns' => $data['columns'] ?? [],
                     'orientation' => $data['orientation'] ?? 'P',
+                    'name_language' => ($data['name_language'] ?? null) instanceof StudentListNameLanguage
+                        ? $data['name_language']->value
+                        : ($data['name_language'] ?? StudentListNameLanguage::English->value),
                 ]))),
         ];
     }

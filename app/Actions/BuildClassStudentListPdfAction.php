@@ -4,6 +4,7 @@ namespace App\Actions;
 
 use App\Enums\OptionalSubjectRole;
 use App\Enums\StudentListColumn;
+use App\Enums\StudentListNameLanguage;
 use App\Models\Classes;
 use App\Models\StudentProfile;
 use App\Support\Concerns\BuildsMpdfDocuments;
@@ -15,11 +16,11 @@ class BuildClassStudentListPdfAction
 
     /**
      * Build a PDF listing every student in this class for the given session —
-     * roll and name always, plus whichever optional columns were selected.
+     * roll and name always (in the chosen language), plus whichever optional columns were selected.
      *
      * @param  array<int, string>  $columns
      */
-    public function handle(Classes $class, int $sessionYear, array $columns = [], string $orientation = 'P'): string
+    public function handle(Classes $class, int $sessionYear, array $columns = [], string $orientation = 'P', StudentListNameLanguage $nameLanguage = StudentListNameLanguage::English): string
     {
         $students = StudentProfile::with([
             'user',
@@ -38,7 +39,7 @@ class BuildClassStudentListPdfAction
 
         $rows = $students->map(fn (StudentProfile $student): array => [
             'roll' => sprintf('%02d', $student->roll_no),
-            'name' => $student->user?->name,
+            'names' => $nameLanguage->names($student),
             'values' => $selectedColumns
                 ->map(fn (StudentListColumn $column) => $this->resolveColumnValue($student, $column))
                 ->all(),
@@ -49,6 +50,7 @@ class BuildClassStudentListPdfAction
         $html = view('documents.student-list', [
             'class' => $class,
             'sessionYear' => $sessionYear,
+            'nameHeaders' => $nameLanguage->headers(),
             'columns' => $selectedColumns,
             'rows' => $rows,
         ])->render();

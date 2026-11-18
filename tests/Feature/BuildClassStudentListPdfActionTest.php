@@ -4,9 +4,11 @@ use App\Actions\BuildClassStudentListPdfAction;
 use App\Enums\Gender;
 use App\Enums\OptionalSubjectRole;
 use App\Enums\StudentListColumn;
+use App\Enums\StudentListNameLanguage;
 use App\Enums\StudentStatus;
 use App\Enums\SubjectType;
 use App\Enums\UserType;
+use App\Filament\Resources\StudentProfiles\Pages\StudentsByClass;
 use App\Models\Classes;
 use App\Models\Group;
 use App\Models\Section;
@@ -15,6 +17,7 @@ use App\Models\StudentProfile;
 use App\Models\Subject;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Livewire;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -96,11 +99,12 @@ it('shows the section and group columns when explicitly selected', function () {
     $rendered = view('documents.student-list', [
         'class' => $class,
         'sessionYear' => now()->year,
+        'nameHeaders' => ['Name'],
         'columns' => collect([StudentListColumn::Section, StudentListColumn::Group]),
         'rows' => [
             [
                 'roll' => '01',
-                'name' => 'Student Roll 1',
+                'names' => ['Student Roll 1'],
                 'values' => ['A', 'Science'],
             ],
         ],
@@ -126,11 +130,12 @@ it('shows the birth certificate no column when explicitly selected', function ()
     $rendered = view('documents.student-list', [
         'class' => $class,
         'sessionYear' => now()->year,
+        'nameHeaders' => ['Name'],
         'columns' => collect([StudentListColumn::BirthCertificateNo]),
         'rows' => [
             [
                 'roll' => '01',
-                'name' => 'Student Roll 1',
+                'names' => ['Student Roll 1'],
                 'values' => ['1234567890'],
             ],
         ],
@@ -184,11 +189,12 @@ it('shows the main subject and additional subject columns when explicitly select
     $rendered = view('documents.student-list', [
         'class' => $class,
         'sessionYear' => now()->year,
+        'nameHeaders' => ['Name'],
         'columns' => collect([StudentListColumn::MainSubject, StudentListColumn::AdditionalSubject]),
         'rows' => [
             [
                 'roll' => '01',
-                'name' => 'Student Roll 1',
+                'names' => ['Student Roll 1'],
                 'values' => ['Biology', 'Higher Math'],
             ],
         ],
@@ -211,6 +217,55 @@ it('shows "-" for main subject and additional subject when the student has no op
     expect($pdf)->toStartWith('%PDF');
 });
 
+it('shows the bangla name, falling back to the english name, when bangla is chosen', function () {
+    $class = Classes::create(['name' => 'Student List Bangla Name Class', 'order' => 1]);
+
+    $withBanglaName = makeStudentListTestStudent($class->id, 1, now()->year);
+    $withBanglaName->update(['name_bn' => 'আব্দুর রহমান']);
+    $withoutBanglaName = makeStudentListTestStudent($class->id, 2, now()->year);
+
+    expect(StudentListNameLanguage::Bangla->headers())->toBe(['নাম'])
+        ->and(StudentListNameLanguage::Bangla->names($withBanglaName))->toBe(['আব্দুর রহমান'])
+        ->and(StudentListNameLanguage::Bangla->names($withoutBanglaName))->toBe(['Student Roll 2'])
+        ->and(StudentListNameLanguage::Both->names($withBanglaName))->toBe(['Student Roll 1', 'আব্দুর রহমান'])
+        ->and(StudentListNameLanguage::English->names($withBanglaName))->toBe(['Student Roll 1']);
+
+    expect(app(BuildClassStudentListPdfAction::class)->handle($class, now()->year, nameLanguage: StudentListNameLanguage::Both))
+        ->toStartWith('%PDF');
+});
+
+it('renders one name column per chosen language', function () {
+    $class = Classes::create(['name' => 'Student List Both Names Class', 'order' => 1]);
+
+    $rendered = view('documents.student-list', [
+        'class' => $class,
+        'sessionYear' => now()->year,
+        'nameHeaders' => StudentListNameLanguage::Both->headers(),
+        'columns' => collect(),
+        'rows' => [
+            ['roll' => '01', 'names' => ['Abdur Rahman', 'আব্দুর রহমান'], 'values' => []],
+        ],
+    ])->render();
+
+    expect($rendered)
+        ->toContain('<th>Name</th>')
+        ->toContain('<th>নাম</th>')
+        ->toContain('Abdur Rahman')
+        ->toContain('আব্দুর রহমান');
+});
+
+it('passes the chosen name language through the http route', function () {
+    $admin = grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]));
+    $class = Classes::create(['name' => 'Student List Bangla Route Class', 'order' => 1]);
+
+    makeStudentListTestStudent($class->id, 1, now()->year);
+
+    $this->actingAs($admin)
+        ->get(route('student-list.class.download', ['class' => $class->id, 'name_language' => 'bn']))
+        ->assertOk()
+        ->assertHeader('Content-Type', 'application/pdf');
+});
+
 it('streams the student list pdf as a download through the http route', function () {
     $admin = grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]));
     $class = Classes::create(['name' => 'Student List Route Class', 'order' => 1]);
@@ -222,3 +277,24 @@ it('streams the student list pdf as a download through the http route', function
     $response->assertStatus(Response::HTTP_OK);
     $response->assertHeader('Content-Type', 'application/pdf');
 });
+
+it('sends the name language chosen in the download modal to the pdf route', function (string $nameLanguage) {
+    $admin = grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]));
+    $this->actingAs($admin);
+
+    $class = Classes::create(['name' => 'Student List Modal Class', 'order' => 1]);
+
+    Livewire::test(StudentsByClass::class, ['classId' => $class->id])
+        ->callAction('downloadStudentList', [
+            'columns' => StudentListColumn::defaults(),
+            'name_language' => $nameLanguage,
+            'orientation' => 'P',
+        ])
+        ->assertHasNoActionErrors()
+        ->assertRedirect(route('student-list.class.download', [
+            'class' => $class->id,
+            'columns' => StudentListColumn::defaults(),
+            'orientation' => 'P',
+            'name_language' => $nameLanguage,
+        ]));
+})->with(['en', 'bn', 'both']);
