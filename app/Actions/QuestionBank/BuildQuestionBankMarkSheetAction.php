@@ -14,10 +14,11 @@ class BuildQuestionBankMarkSheetAction
 
     /**
      * একটা পরীক্ষার একটা বিষয়ের মার্কশিট, Question Bank যেভাবে মেলায়: বিষয়ের MCQ পূর্ণমান, পরীক্ষা
-     * প্রকাশিত কি না, আর যে ছাত্ররা বিষয়টা নেয় (মার্ক এন্ট্রি পেজের একই নিয়মে) — রোল, নাম, সেকশন,
+     * প্রকাশিত কি না, আর যে ছাত্ররা বিষয়টা নেয় (মার্ক এন্ট্রি পেজের একই নিয়মে) — রোল, রেজিস্ট্রেশন নম্বর (Question Bank-এর OMR শীট
+     * রেজিস্ট্রেশন দিয়ে মেলালে), নাম, সেকশন,
      * আর আগে থেকে থাকা MCQ নম্বর / অনুপস্থিত / অন্য (লিখিত, ব্যবহারিক) নম্বর আছে কি না।
      *
-     * @return array{mcq_total: float, is_published: bool, students: list<array{id: int, roll: ?string, name: ?string, section_id: ?int, section_name: ?string, mcq_marks: ?float, is_absent: bool, has_other_marks: bool}>}
+     * @return array{mcq_total: float, is_published: bool, students: list<array{id: int, roll: ?string, registration: ?string, name: ?string, section_id: ?int, section_name: ?string, mcq_marks: ?float, is_absent: bool, has_other_marks: bool}>}
      */
     public function handle(Exam $exam, ExamSubjectConfig $config): array
     {
@@ -39,6 +40,7 @@ class BuildQuestionBankMarkSheetAction
                 return [
                     'id' => $student->id,
                     'roll' => $student->roll_no !== null ? (string) $student->roll_no : null,
+                    'registration' => $student->registration_no !== null ? (string) $student->registration_no : null,
                     'name' => $student->user?->name,
                     'section_id' => $student->current_section_id,
                     'section_name' => $student->section?->name,

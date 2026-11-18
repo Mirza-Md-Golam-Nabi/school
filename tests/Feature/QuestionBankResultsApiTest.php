@@ -80,13 +80,14 @@ it('lists a class\'s exams with only their MCQ subjects', function () {
 
 it('gives the students of a subject with the marks they already have', function () {
     $rahim = ($this->student)(15, 'Rahim Uddin');
+    $rahim->update(['registration_no' => 4567]);
     StudentResult::create(['exam_id' => $this->exam->id, 'subject_id' => $this->subject->id, 'class_id' => $this->class->id, 'student_id' => $rahim->id, 'written_marks' => 50]);
 
     ($this->asQuestionBank)('GET', "/api/question-bank/exams/{$this->exam->id}/subjects/{$this->subject->id}/students")
         ->assertOk()
         ->assertJsonPath('mcq_total', 30)
         ->assertJsonPath('students.0', [
-            'id' => $rahim->id, 'roll' => '15', 'name' => 'Rahim Uddin', 'section_id' => $this->section->id, 'section_name' => 'A',
+            'id' => $rahim->id, 'roll' => '15', 'registration' => '4567', 'name' => 'Rahim Uddin', 'section_id' => $this->section->id, 'section_name' => 'A',
             'mcq_marks' => null, 'is_absent' => false, 'has_other_marks' => true,
         ]);
 
@@ -96,6 +97,7 @@ it('gives the students of a subject with the marks they already have', function 
 
 it('puts the MCQ marks in, and leaves the written marks as they are', function () {
     $rahim = ($this->student)(15, 'Rahim Uddin');
+    $rahim->update(['registration_no' => 4567]);
     StudentResult::create(['exam_id' => $this->exam->id, 'subject_id' => $this->subject->id, 'class_id' => $this->class->id, 'student_id' => $rahim->id, 'written_marks' => 50]);
 
     ($this->asQuestionBank)('POST', $this->results, ['overwrite' => false, 'marks' => [['student_id' => $rahim->id, 'mcq_marks' => 22.5, 'absent' => false]]])
