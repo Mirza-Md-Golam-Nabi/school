@@ -82,12 +82,13 @@ it('builds a demo file whose header row lists every import column and whose exam
 
     $headers = array_map(fn (string $header): string => rtrim($header, '*'), $sheets['Students'][0]);
 
-    $nationalityIndex = array_search('nationality', $headers);
-    $dataRows = array_slice($sheets['Students'], 1);
+    $firstRow = array_filter(
+        array_combine($headers, array_pad($sheets['Students'][1], count($headers), '')),
+        fn (mixed $value): bool => $value !== '' && $value !== null,
+    );
 
-    expect($sheets['Students'])->toHaveCount(ImportStudentsFromSpreadsheetAction::MAX_ROWS + 1)
-        ->and(array_unique(array_column($dataRows, $nationalityIndex)))->toBe(['Bangladeshi'])
-        ->and(collect($dataRows)->every(fn (array $row): bool => array_filter($row, fn (mixed $value, int $index): bool => $index !== $nationalityIndex && $value !== '' && $value !== null, ARRAY_FILTER_USE_BOTH) === []))->toBeTrue()
+    expect($sheets['Students'])->toHaveCount(2)
+        ->and($firstRow)->toEqual(['session_year' => now()->year, 'nationality' => 'Bangladeshi'])
         ->and($headers)->toBe(array_keys(ImportStudentsFromSpreadsheetAction::COLUMNS))
         ->and($sheets['Students'][0])->toContain('name_bn*', 'name', 'roll_no*', 'gender*', 'section')
         ->and(collect($sheets['Instructions'])->firstWhere(0, 'class')[2])->toBe('Import Class 6');
@@ -209,14 +210,13 @@ it('imports every row of a filled-in demo file as a student with a login account
         ->and($second->nationality)->toBe('Bangladeshi');
 });
 
-it('skips rows of the demo file that only have the prefilled nationality', function () {
+it('skips rows of the demo file that only have the prefilled session and nationality', function () {
     Classes::create(['name' => 'Import Class 6', 'order' => 6]);
 
     $path = makeStudentImportTestFile([
-        ['name_bn*', 'roll_no*', 'class*', 'gender*', 'nationality'],
-        ['আব্দুর রহমান', 1, 'Import Class 6', 'male', 'Bangladeshi'],
-        [null, null, null, null, 'Bangladeshi'],
-        [null, null, null, null, 'Bangladeshi'],
+        ['name_bn*', 'roll_no*', 'class*', 'gender*', 'session_year', 'nationality'],
+        [null, null, null, null, now()->year, 'Bangladeshi'],
+        ['আব্দুর রহমান', 1, 'Import Class 6', 'male', null, null],
     ]);
 
     expect(app(ImportStudentsFromSpreadsheetAction::class)->handle($path))->toBe(['imported' => 1, 'errors' => []]);
