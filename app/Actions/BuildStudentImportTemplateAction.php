@@ -177,6 +177,13 @@ class BuildStudentImportTemplateAction
         foreach ($columnNames as $index => $name) {
             $studentColumn = Coordinate::stringFromColumnIndex($index + 1);
 
+            if (array_key_exists($name, ImportStudentsFromSpreadsheetAction::PREFILLED_VALUES)) {
+                $students->fromArray(
+                    array_fill(0, $lastRow - 1, [ImportStudentsFromSpreadsheetAction::PREFILLED_VALUES[$name]]),
+                    startCell: "{$studentColumn}2",
+                );
+            }
+
             if (in_array($name, self::TEXT_COLUMNS, true)) {
                 $students->getStyle("{$studentColumn}2:{$studentColumn}{$lastRow}")
                     ->getNumberFormat()

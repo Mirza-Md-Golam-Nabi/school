@@ -82,7 +82,12 @@ it('builds a demo file whose header row lists every import column and whose exam
 
     $headers = array_map(fn (string $header): string => rtrim($header, '*'), $sheets['Students'][0]);
 
-    expect($sheets['Students'])->toHaveCount(1)
+    $nationalityIndex = array_search('nationality', $headers);
+    $dataRows = array_slice($sheets['Students'], 1);
+
+    expect($sheets['Students'])->toHaveCount(ImportStudentsFromSpreadsheetAction::MAX_ROWS + 1)
+        ->and(array_unique(array_column($dataRows, $nationalityIndex)))->toBe(['Bangladeshi'])
+        ->and(collect($dataRows)->every(fn (array $row): bool => array_filter($row, fn (mixed $value, int $index): bool => $index !== $nationalityIndex && $value !== '' && $value !== null, ARRAY_FILTER_USE_BOTH) === []))->toBeTrue()
         ->and($headers)->toBe(array_keys(ImportStudentsFromSpreadsheetAction::COLUMNS))
         ->and($sheets['Students'][0])->toContain('name_bn*', 'name', 'roll_no*', 'gender*', 'section')
         ->and(collect($sheets['Instructions'])->firstWhere(0, 'class')[2])->toBe('Import Class 6');
@@ -202,6 +207,19 @@ it('imports every row of a filled-in demo file as a student with a login account
         ->and($second->current_section_id)->toBeNull()
         ->and($second->session_year)->toBe(now()->year)
         ->and($second->nationality)->toBe('Bangladeshi');
+});
+
+it('skips rows of the demo file that only have the prefilled nationality', function () {
+    Classes::create(['name' => 'Import Class 6', 'order' => 6]);
+
+    $path = makeStudentImportTestFile([
+        ['name_bn*', 'roll_no*', 'class*', 'gender*', 'nationality'],
+        ['আব্দুর রহমান', 1, 'Import Class 6', 'male', 'Bangladeshi'],
+        [null, null, null, null, 'Bangladeshi'],
+        [null, null, null, null, 'Bangladeshi'],
+    ]);
+
+    expect(app(ImportStudentsFromSpreadsheetAction::class)->handle($path))->toBe(['imported' => 1, 'errors' => []]);
 });
 
 it('imports nothing and reports each bad row when the file has errors', function () {

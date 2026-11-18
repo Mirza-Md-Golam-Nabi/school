@@ -32,6 +32,14 @@ class ImportStudentsFromSpreadsheetAction
     public const EMPTY_PLACEHOLDERS = ['null', 'n/a', 'na', '-', '--'];
 
     /**
+     * ডেমো ফাইলের প্রতিটা রো-তে এই কলামগুলো আগে থেকে লেখা থাকে। শুধু এগুলো থাকা রো
+     * খালি ধরা হয়, যাতে student-এর তথ্য না লেখা রো import না হয়।
+     *
+     * @var array<string, string>
+     */
+    public const PREFILLED_VALUES = ['nationality' => 'Bangladeshi'];
+
+    /**
      * Excel ফাইলের কলাম — ডেমো ফাইল (BuildStudentImportTemplateAction) আর import দুটোই
      * এই একটা তালিকা থেকে চলে, যাতে কলামের নাম কখনো আলাদা না হয়ে যায়।
      *
@@ -52,7 +60,7 @@ class ImportStudentsFromSpreadsheetAction
         'birth_certificate_no' => ['required' => false, 'note' => 'কলামটা Text ফরম্যাটে রাখুন, নইলে Excel লম্বা সংখ্যা বদলে ফেলে। আগে থেকে নিবন্ধিত নম্বর হলে সেই student-এর তথ্য আপডেট হবে', 'example' => '20141234567890123'],
         'blood_group' => ['required' => false, 'note' => 'A+ / A- / B+ / B- / AB+ / AB- / O+ / O-', 'example' => 'B+'],
         'religion' => ['required' => false, 'note' => 'muslim / hindu / christian / buddhist / other', 'example' => 'muslim'],
-        'nationality' => ['required' => false, 'note' => 'খালি রাখলে Bangladeshi', 'example' => 'Bangladeshi'],
+        'nationality' => ['required' => false, 'note' => 'ডেমো ফাইলে আগে থেকে Bangladeshi লেখা থাকে, দরকার হলে বদলান। খালি রাখলে Bangladeshi', 'example' => 'Bangladeshi'],
         'father_name' => ['required' => false, 'note' => '', 'example' => 'Abdul Karim'],
         'father_occupation' => ['required' => false, 'note' => '', 'example' => 'Business'],
         'mother_name' => ['required' => false, 'note' => '', 'example' => 'Fatema Begum'],
@@ -191,7 +199,7 @@ class ImportStudentsFromSpreadsheetAction
                     }
                 }
 
-                if (array_filter($record, fn (mixed $value): bool => $value !== null) !== []) {
+                if (array_filter(array_diff_key($record, self::PREFILLED_VALUES), fn (mixed $value): bool => $value !== null) !== []) {
                     $rows[$rowNumber] = $record;
                 }
             }
