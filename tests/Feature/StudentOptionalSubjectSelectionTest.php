@@ -48,6 +48,7 @@ it('saves the student-chosen main and extra optional subjects on create', functi
 
     Livewire::test(CreateStudentProfile::class)
         ->fillForm([
+            'name_bn' => 'অপশনাল স্টুডেন্ট',
             'name' => 'Optional Subject Student',
             'roll_no' => 11,
             'session_year' => now()->year,
@@ -85,6 +86,7 @@ it('rejects picking the same subject for both main and extra optional', function
 
     Livewire::test(CreateStudentProfile::class)
         ->fillForm([
+            'name_bn' => 'বাংলা নাম',
             'name' => 'Duplicate Optional Student',
             'roll_no' => 12,
             'session_year' => now()->year,
@@ -111,6 +113,7 @@ it('prefills main/extra optional subjects when editing, and updates the choice o
     $user = User::factory()->create(['user_type' => UserType::Student, 'is_active' => true]);
     $profile = StudentProfile::create([
         'user_id' => $user->id,
+        'name_bn' => 'বাংলা নাম',
         'roll_no' => 13,
         'current_class_id' => $class->id,
         'current_group_id' => $group->id,

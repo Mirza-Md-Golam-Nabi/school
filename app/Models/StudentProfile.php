@@ -25,6 +25,7 @@ class StudentProfile extends Model
 
     protected $fillable = [
         'user_id',
+        'name_bn',
         'photo',
         'roll_no',
         'registration_no',

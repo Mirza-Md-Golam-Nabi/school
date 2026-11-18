@@ -44,9 +44,15 @@ class StudentProfileForm
                                     ? 'এই Birth Certificate No. আগে থেকেই নিবন্ধিত — নতুন account তৈরি না করে এই বিদ্যমান Student ID-তে তথ্য আপডেট হবে এবং password রিসেট হয়ে যাবে'
                                     : 'এই Student ID সিস্টেম কর্তৃক স্বয়ংক্রিয়ভাবে তৈরি — এটা দিয়েই student লগইন করবে, পরিবর্তনযোগ্য নয়'),
 
+                            TextInput::make('name_bn')
+                                ->label('Name (Bangla)')
+                                ->required()
+                                ->maxLength(255),
+
                             TextInput::make('name')
-                                ->label('Full Name')
-                                ->required(),
+                                ->label('Name (English)')
+                                ->maxLength(255)
+                                ->helperText('ঐচ্ছিক — খালি রাখলে বাংলা নামটাই সব জায়গায় দেখানো হবে।'),
 
                             FileUpload::make('photo')
                                 ->label('Student Photo (Official)')

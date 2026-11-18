@@ -92,6 +92,7 @@ it('replaces the matching profile in place instead of creating a duplicate when 
 
     Livewire::test(CreateStudentProfile::class)
         ->fillForm([
+            'name_bn' => 'বাংলা নাম',
             'name' => 'Updated Name',
             'roll_no' => 9,
             'birth_certificate_no' => '1111111111',
@@ -135,6 +136,7 @@ it('still generates a new email when birth certificate no is left blank', functi
 
     Livewire::test(CreateStudentProfile::class)
         ->fillForm([
+            'name_bn' => 'বাংলা নাম',
             'name' => 'No Birth Cert Student',
             'roll_no' => 30,
             'birth_certificate_no' => null,
@@ -162,6 +164,7 @@ it('generates a std-prefixed email from the new student_profiles id and forces a
 
     Livewire::test(CreateStudentProfile::class)
         ->fillForm([
+            'name_bn' => 'বাংলা নাম',
             'name' => 'No Address Student',
             'roll_no' => 12,
             'birth_certificate_no' => '2222222222',
@@ -197,6 +200,7 @@ it('flashes the generated credentials and shows them in a modal on the class lis
 
     Livewire::test(CreateStudentProfile::class)
         ->fillForm([
+            'name_bn' => 'বাংলা নাম',
             'name' => 'Credential Student',
             'roll_no' => 20,
             'birth_certificate_no' => '3333333333',
@@ -227,6 +231,7 @@ it('opens the credentials modal on the create page when using create and create 
 
     Livewire::test(CreateStudentProfile::class)
         ->fillForm([
+            'name_bn' => 'বাংলা নাম',
             'name' => 'Another Student',
             'roll_no' => 21,
             'birth_certificate_no' => '5555555555',
@@ -275,6 +280,7 @@ it('never touches the email when editing an existing student profile and changin
     $user = User::factory()->create(['email' => 'existing.student@example.com']);
     $profile = StudentProfile::create([
         'user_id' => $user->id,
+        'name_bn' => 'বাংলা নাম',
         'roll_no' => 7,
         'birth_certificate_no' => '4444444444',
         'current_class_id' => $class->id,
@@ -303,6 +309,7 @@ it('saves the guardian phone number on create and lets it be updated on edit', f
 
     Livewire::test(CreateStudentProfile::class)
         ->fillForm([
+            'name_bn' => 'বাংলা নাম',
             'name' => 'Guardian Phone Student',
             'roll_no' => 40,
             'birth_certificate_no' => '6666666666',

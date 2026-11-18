@@ -30,7 +30,7 @@ class CreateStudentProfileAction
             // value. It depends on the student_profiles primary key, which only exists after
             // the profile row is inserted — so the user is created with a placeholder first.
             $user = User::create([
-                'name' => $data['name'],
+                'name' => $this->displayName($data),
                 'email' => sprintf('pending-%s@placeholder.internal', Str::uuid()),
                 'password' => 'password',
                 'user_type' => UserType::Student,
@@ -67,7 +67,7 @@ class CreateStudentProfileAction
     private function replaceExistingProfile(StudentProfile $existingProfile, array $data): StudentProfile
     {
         $existingProfile->user?->update([
-            'name' => $data['name'],
+            'name' => $this->displayName($data),
             'password' => 'password',
             'must_change_password' => true,
             'pin' => null,
@@ -148,12 +148,24 @@ class CreateStudentProfileAction
     }
 
     /**
+     * The name shown everywhere (users.name): the English name when given,
+     * otherwise the Bangla name, so a student never ends up nameless.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    public static function displayName(array $data): string
+    {
+        return filled($data['name'] ?? null) ? $data['name'] : (string) $data['name_bn'];
+    }
+
+    /**
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
     private function profileData(array $data): array
     {
         return [
+            'name_bn' => $data['name_bn'] ?? null,
             'photo' => $data['photo'] ?? null,
             'roll_no' => $data['roll_no'] ?? null,
             'registration_no' => $data['registration_no'] ?? null,

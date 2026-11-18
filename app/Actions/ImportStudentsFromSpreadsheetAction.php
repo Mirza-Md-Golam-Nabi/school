@@ -38,7 +38,8 @@ class ImportStudentsFromSpreadsheetAction
      * @var array<string, array{required: bool, note: string, example: string}>
      */
     public const COLUMNS = [
-        'name' => ['required' => true, 'note' => 'Student-এর পূর্ণ নাম', 'example' => 'Abdur Rahman'],
+        'name_bn' => ['required' => true, 'note' => 'Student-এর বাংলা নাম', 'example' => 'আব্দুর রহমান'],
+        'name' => ['required' => false, 'note' => 'Student-এর ইংরেজি নাম। খালি রাখলে বাংলা নামটাই দেখানো হবে', 'example' => 'Abdur Rahman'],
         'roll_no' => ['required' => true, 'note' => 'শুধু সংখ্যা', 'example' => '1'],
         'class' => ['required' => true, 'note' => 'সিস্টেমে থাকা ক্লাসের নাম হুবহু। ক্লাসের পেজ থেকে আপলোড করলে খালি রাখা যায়', 'example' => 'Class 6'],
         'section' => ['required' => false, 'note' => 'ওই ক্লাসের section-এর নাম', 'example' => 'A'],
@@ -251,7 +252,8 @@ class ImportStudentsFromSpreadsheetAction
         $row += array_fill_keys(array_keys(self::COLUMNS), null);
 
         $validator = Validator::make($row, [
-            'name' => ['required', 'string', 'max:255'],
+            'name_bn' => ['required', 'string', 'max:255'],
+            'name' => ['nullable', 'string', 'max:255'],
             'roll_no' => ['required', 'integer', 'min:1'],
             'session_year' => ['nullable', 'integer', 'between:2000,2100'],
             'gender' => ['required'],
@@ -307,6 +309,7 @@ class ImportStudentsFromSpreadsheetAction
         }
 
         return [
+            'name_bn' => $row['name_bn'],
             'name' => $row['name'],
             'roll_no' => (int) $row['roll_no'],
             'registration_no' => $row['registration_no'] !== null ? (int) $row['registration_no'] : null,

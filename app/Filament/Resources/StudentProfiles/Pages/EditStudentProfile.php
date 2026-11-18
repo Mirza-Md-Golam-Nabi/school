@@ -39,7 +39,10 @@ class EditStudentProfile extends EditRecord
         /** @var StudentProfile $profile */
         $profile = $this->getRecord()->loadMissing('user', 'addresses', 'optionalSubjects');
 
-        $data['name'] = $profile->user?->name;
+        // ইংরেজি নাম খালি রেখে সেভ করলে users.name-এ বাংলা নামই বসে — সেক্ষেত্রে
+        // English ফিল্ড খালিই দেখাতে হবে।
+        $userName = $profile->user?->name;
+        $data['name'] = filled($profile->name_bn) && $userName === $profile->name_bn ? null : $userName;
         $data['student_id_no'] = $profile->idCardNumber();
 
         $present = $profile->addresses->firstWhere('type', 'present');

@@ -12,7 +12,7 @@ class UpdateStudentProfileAction
     {
         // Email is system-generated and read-only — never accept updates to it here.
         $userData = [
-            'name' => $data['name'],
+            'name' => CreateStudentProfileAction::displayName($data),
         ];
 
         if (filled($data['password'] ?? null)) {
@@ -22,6 +22,7 @@ class UpdateStudentProfileAction
         $profile->user->update($userData);
 
         $profile->update([
+            'name_bn' => $data['name_bn'] ?? null,
             'photo' => $data['photo'] ?? null,
             'roll_no' => $data['roll_no'] ?? null,
             'registration_no' => $data['registration_no'] ?? null,

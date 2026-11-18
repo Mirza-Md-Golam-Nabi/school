@@ -84,7 +84,7 @@ it('builds a demo file whose header row lists every import column and whose exam
 
     expect($sheets['Students'])->toHaveCount(1)
         ->and($headers)->toBe(array_keys(ImportStudentsFromSpreadsheetAction::COLUMNS))
-        ->and($sheets['Students'][0])->toContain('name*', 'roll_no*', 'gender*', 'section')
+        ->and($sheets['Students'][0])->toContain('name_bn*', 'name', 'roll_no*', 'gender*', 'section')
         ->and(collect($sheets['Instructions'])->firstWhere(0, 'class')[2])->toBe('Import Class 6');
 });
 
@@ -151,7 +151,7 @@ it('treats NULL, N/A and dash cells as empty', function () {
     Classes::create(['name' => 'Import Class 6', 'order' => 6]);
 
     $path = makeStudentImportTestFile([
-        ['name', 'roll_no', 'class', 'section', 'gender', 'blood_group', 'religion', 'father_name', 'date_of_birth'],
+        ['name_bn', 'roll_no', 'class', 'section', 'gender', 'blood_group', 'religion', 'father_name', 'date_of_birth'],
         ['Abdur Rahman', 1, 'Import Class 6', 'NULL', 'male', 'n/a', '-', 'null', 'N/A'],
     ]);
 
@@ -172,9 +172,9 @@ it('imports every row of a filled-in demo file as a student with a login account
     $section = Section::create(['class_id' => $class->id, 'name' => 'A']);
 
     $path = makeStudentImportTestFile([
-        ['name*', 'roll_no*', 'class*', 'section', 'session_year', 'gender*', 'date_of_birth', 'blood_group', 'guardian_phone', 'present_address', 'permanent_address'],
-        ['Abdur Rahman', 1, 'import class 6', 'a', 2026, 'Male', '21/03/2014', 'b+', 1712345678, 'Mirpur, Dhaka', 'Cumilla'],
-        ['Fatema Akter', 2, 'Import Class 6', null, null, 'female', null, null, null, null, null],
+        ['name_bn*', 'name', 'roll_no*', 'class*', 'section', 'session_year', 'gender*', 'date_of_birth', 'blood_group', 'guardian_phone', 'present_address', 'permanent_address'],
+        ['আব্দুর রহমান', 'Abdur Rahman', 1, 'import class 6', 'a', 2026, 'Male', '21/03/2014', 'b+', 1712345678, 'Mirpur, Dhaka', 'Cumilla'],
+        ['ফাতেমা আক্তার', null, 2, 'Import Class 6', null, null, 'female', null, null, null, null, null],
     ]);
 
     $result = app(ImportStudentsFromSpreadsheetAction::class)->handle($path);
@@ -185,6 +185,8 @@ it('imports every row of a filled-in demo file as a student with a login account
     $second = StudentProfile::where('roll_no', 2)->sole();
 
     expect($first->user->name)->toBe('Abdur Rahman')
+        ->and($first->name_bn)->toBe('আব্দুর রহমান')
+        ->and($second->user->name)->toBe('ফাতেমা আক্তার')
         ->and($first->user->email)->toBe(sprintf('std%05d@school.com', $first->id))
         ->and($first->user->hasRole('student'))->toBeTrue()
         ->and($first->current_class_id)->toBe($class->id)
@@ -206,7 +208,7 @@ it('imports nothing and reports each bad row when the file has errors', function
     $class = Classes::create(['name' => 'Import Class 6', 'order' => 6]);
 
     $path = makeStudentImportTestFile([
-        ['name', 'roll_no', 'class', 'section', 'gender', 'date_of_birth'],
+        ['name_bn', 'roll_no', 'class', 'section', 'gender', 'date_of_birth'],
         ['Valid Student', 1, 'Import Class 6', null, 'male', null],
         [null, 2, 'Import Class 6', null, 'male', null],
         ['Wrong Class', 3, 'Class 99', null, 'male', null],
@@ -234,7 +236,7 @@ it('rejects a file that is missing a required column', function () {
     Classes::create(['name' => 'Import Class 6', 'order' => 6]);
 
     $path = makeStudentImportTestFile([
-        ['name', 'class', 'gender'],
+        ['name_bn', 'class', 'gender'],
         ['No Roll', 'Import Class 6', 'male'],
     ]);
 
@@ -249,7 +251,7 @@ it('refuses to import the same file twice instead of creating duplicate students
     Classes::create(['name' => 'Import Class 6', 'order' => 6]);
 
     $path = makeStudentImportTestFile([
-        ['name', 'roll_no', 'class', 'gender'],
+        ['name_bn', 'roll_no', 'class', 'gender'],
         ['Abdur Rahman', 1, 'Import Class 6', 'male'],
     ]);
 
@@ -268,7 +270,7 @@ it("uses the page's class for rows that leave the class column blank", function 
     $class = Classes::create(['name' => 'Import Class 6', 'order' => 6]);
 
     $path = makeStudentImportTestFile([
-        ['name', 'roll_no', 'class', 'gender'],
+        ['name_bn', 'roll_no', 'class', 'gender'],
         ['Abdur Rahman', 1, null, 'male'],
     ]);
 
@@ -286,7 +288,7 @@ it('imports students from the upload action on the class page', function () {
     $class = Classes::create(['name' => 'Import Class 6', 'order' => 6]);
 
     $path = makeStudentImportTestFile([
-        ['name', 'roll_no', 'class', 'gender'],
+        ['name_bn', 'roll_no', 'class', 'gender'],
         ['Abdur Rahman', 1, null, 'male'],
         ['Fatema Akter', 2, null, 'female'],
     ]);
