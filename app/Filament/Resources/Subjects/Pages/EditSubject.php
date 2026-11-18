@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Subjects\Pages;
 
 use App\Filament\Resources\Subjects\SubjectResource;
+use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ForceDeleteAction;
 use Filament\Actions\RestoreAction;
@@ -19,6 +20,15 @@ class EditSubject extends EditRecord
             ForceDeleteAction::make(),
             RestoreAction::make(),
         ];
+    }
+
+    /**
+     * Ctrl/Cmd+Enter (এবং ডিফল্ট Ctrl/Cmd+S) চাপলে Save changes বাটনে ক্লিক পড়বে।
+     */
+    protected function getSaveFormAction(): Action
+    {
+        return parent::getSaveFormAction()
+            ->keyBindings(['mod+s', 'mod+enter']);
     }
 
     protected function getRedirectUrl(): string

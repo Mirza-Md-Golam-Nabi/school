@@ -21,6 +21,11 @@ use Livewire\Livewire;
 use OpenSpout\Common\Entity\Row;
 use OpenSpout\Reader\XLSX\Reader;
 use OpenSpout\Writer\XLSX\Writer;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use PhpOffice\PhpSpreadsheet\Cell\DataValidation;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use Spatie\Permission\Models\Role;
 
 uses(RefreshDatabase::class);
@@ -108,6 +113,58 @@ it('lists the real class, section, group and optional subject names on the allow
     expect($classOnlyRows->contains(['class', '', '', 'Import Class 6']))->toBeTrue()
         ->and($classOnlyRows->contains(['class', '', '', 'Import Class 9']))->toBeFalse()
         ->and($classOnlyRows->contains(['group', 'Import Class 9', '', 'Science']))->toBeFalse();
+});
+
+it('puts dropdowns from a hidden list sheet on the enum, class and section columns of the demo file', function () {
+    $class = Classes::create(['name' => 'Import Class 6', 'order' => 6]);
+    Section::create(['class_id' => $class->id, 'name' => 'Padma']);
+
+    $path = tempnam(sys_get_temp_dir(), 'student-import-dropdown').'.xlsx';
+    file_put_contents($path, app(BuildStudentImportTemplateAction::class)->handle($class));
+
+    $spreadsheet = IOFactory::load($path);
+    $students = $spreadsheet->getSheetByName('Students');
+    $lists = $spreadsheet->getSheetByName(BuildStudentImportTemplateAction::LISTS_SHEET);
+    $columnNames = array_keys(ImportStudentsFromSpreadsheetAction::COLUMNS);
+    $columnOf = fn (string $name): string => Coordinate::stringFromColumnIndex(array_search($name, $columnNames) + 1);
+
+    $listValues = function (string $column) use ($students, $lists): array {
+        $formula = $students->getCell("{$column}2")->getDataValidation()->getFormula1();
+        preg_match('/\$([A-Z]+)\$2:\$[A-Z]+\$(\d+)/', $formula, $matches);
+
+        return array_column($lists->rangeToArray("{$matches[1]}2:{$matches[1]}{$matches[2]}"), 0);
+    };
+
+    expect($lists->getSheetState())->toBe(Worksheet::SHEETSTATE_HIDDEN)
+        ->and($students->getCell($columnOf('gender').'2')->getDataValidation()->getType())->toBe(DataValidation::TYPE_LIST)
+        ->and($students->getCell($columnOf('gender').'1001')->getDataValidation()->getType())->toBe(DataValidation::TYPE_LIST)
+        ->and($listValues($columnOf('gender')))->toBe(['male', 'female', 'other'])
+        ->and($listValues($columnOf('religion')))->toContain('muslim', 'hindu')
+        ->and($listValues($columnOf('blood_group')))->toContain('AB+')
+        ->and($listValues($columnOf('class')))->toBe(['Import Class 6'])
+        ->and($listValues($columnOf('section')))->toBe(['Padma'])
+        ->and($students->getCell($columnOf('name').'2')->getDataValidation()->getType())->toBe(DataValidation::TYPE_NONE)
+        ->and($students->getStyle($columnOf('guardian_phone').'2')->getNumberFormat()->getFormatCode())->toBe(NumberFormat::FORMAT_TEXT);
+});
+
+it('treats NULL, N/A and dash cells as empty', function () {
+    Classes::create(['name' => 'Import Class 6', 'order' => 6]);
+
+    $path = makeStudentImportTestFile([
+        ['name', 'roll_no', 'class', 'section', 'gender', 'blood_group', 'religion', 'father_name', 'date_of_birth'],
+        ['Abdur Rahman', 1, 'Import Class 6', 'NULL', 'male', 'n/a', '-', 'null', 'N/A'],
+    ]);
+
+    $result = app(ImportStudentsFromSpreadsheetAction::class)->handle($path);
+
+    $student = StudentProfile::sole();
+
+    expect($result)->toBe(['imported' => 1, 'errors' => []])
+        ->and($student->current_section_id)->toBeNull()
+        ->and($student->blood_group)->toBeNull()
+        ->and($student->religion)->toBeNull()
+        ->and($student->father_name)->toBeNull()
+        ->and($student->date_of_birth)->toBeNull();
 });
 
 it('imports every row of a filled-in demo file as a student with a login account', function () {

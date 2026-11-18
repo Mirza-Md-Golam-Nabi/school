@@ -25,6 +25,13 @@ class ImportStudentsFromSpreadsheetAction
     public const MAX_ROWS = 1000;
 
     /**
+     * অনেকে খালি ঘরে অভ্যাসবশত এগুলো লেখে — এগুলো খালি (null) ধরা হয়, ছোট-বড় হাতের পার্থক্য ছাড়া।
+     *
+     * @var array<int, string>
+     */
+    public const EMPTY_PLACEHOLDERS = ['null', 'n/a', 'na', '-', '--'];
+
+    /**
      * Excel ফাইলের কলাম — ডেমো ফাইল (BuildStudentImportTemplateAction) আর import দুটোই
      * এই একটা তালিকা থেকে চলে, যাতে কলামের নাম কখনো আলাদা না হয়ে যায়।
      *
@@ -210,7 +217,7 @@ class ImportStudentsFromSpreadsheetAction
 
     /**
      * Excel সংখ্যার ঘরকে int/float আর তারিখের ঘরকে DateTime হিসেবে দেয় — সবকিছুকে
-     * trim করা string-এ (খালি হলে null) আনা হয়, যাতে পরের যাচাই একরকম থাকে।
+     * trim করা string-এ (খালি বা NULL/N/A/- হলে null) আনা হয়, যাতে পরের যাচাই একরকম থাকে।
      */
     private function normalizeValue(mixed $value): ?string
     {
@@ -228,7 +235,7 @@ class ImportStudentsFromSpreadsheetAction
 
         $value = trim((string) $value);
 
-        return $value === '' ? null : $value;
+        return $value === '' || in_array(Str::lower($value), self::EMPTY_PLACEHOLDERS, true) ? null : $value;
     }
 
     /**
