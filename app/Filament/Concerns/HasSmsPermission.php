@@ -15,8 +15,7 @@ trait HasSmsPermission
     }
 
     /**
-     * Provider credentials and the per-SMS rate belong to the platform, not
-     * the school, so only the super-admin account may change them — checked
+     * Provider credentials belong to the platform, not the school, so only the super-admin account may change them — checked
      * by role directly, since Gate::before would let any ability through.
      */
     protected static function isSuperAdmin(): bool

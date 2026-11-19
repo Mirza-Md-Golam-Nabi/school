@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\CentralSmsCreditController;
+use App\Http\Controllers\CentralSmsRateController;
 use App\Http\Controllers\CentralStudentReportController;
 use App\Http\Controllers\DevicePunchController;
 use App\Http\Controllers\DeviceSyncPlanController;
@@ -19,9 +20,10 @@ Route::middleware(['throttle:30,1', 'auth.central'])->prefix('central')->group(f
     Route::get('/student-report', CentralStudentReportController::class)->name('api.central.student-report');
 });
 
-// SMS ব্যালেন্স রিচার্জ — সেন্ট্রাল অ্যাপ body-সহ সই করে পাঠায় (CreditSmsBalanceRequest দেখো)।
+// SMS ব্যালেন্স রিচার্জ ও প্রতি SMS-এর চার্জ — সেন্ট্রাল অ্যাপ body-সহ সই করে পাঠায় (CreditSmsBalanceRequest, UpdateSmsRateRequest দেখো)।
 Route::middleware(['throttle:30,1'])->prefix('central')->group(function (): void {
     Route::post('/sms-credit', CentralSmsCreditController::class)->name('api.central.sms-credit');
+    Route::post('/sms-rate', CentralSmsRateController::class)->name('api.central.sms-rate');
 });
 
 // Question Bank-এর অনুরোধ — এই স্কুলের সংযোগের secret দিয়ে সই করা।

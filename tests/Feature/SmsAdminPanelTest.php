@@ -76,28 +76,23 @@ it('lets an admin switch events on and edit templates', function () {
         ->and($setting->template(SmsEvent::AttendanceAbsent))->toBe('{name} absent today');
 });
 
-it('does not let a school admin change the per-SMS charge', function () {
+it('shows the per-SMS charge but lets no one change it from the panel, not even the super-admin', function (Closure $user) {
     SmsSetting::current()->update(['rate_per_sms' => 0.25]);
-    test()->actingAs(smsSchoolAdmin());
+    test()->actingAs($user());
 
     Livewire::test(SmsSettings::class)
-        ->assertFormFieldIsDisabled('rate_per_sms')
-        ->fillForm(['rate_per_sms' => 0.01])
-        ->call('save');
-
-    expect(SmsSetting::current()->ratePerSms())->toBe(0.25);
-});
-
-it('lets the super-admin set the per-SMS charge', function () {
-    test()->actingAs(grantSuperAdmin(User::factory()->create(['user_type' => UserType::SuperAdmin, 'is_active' => true])));
-
-    Livewire::test(SmsSettings::class)
-        ->fillForm(['rate_per_sms' => 0.35])
+        ->assertSee('৳0.25')
+        ->assertSee('NextFusion')
+        ->assertFormFieldDoesNotExist('rate_per_sms')
+        ->set('data.rate_per_sms', 0.01)
         ->call('save')
         ->assertHasNoFormErrors();
 
-    expect(SmsSetting::current()->ratePerSms())->toBe(0.35);
-});
+    expect(SmsSetting::current()->ratePerSms())->toBe(0.25);
+})->with([
+    'school admin' => [fn () => smsSchoolAdmin()],
+    'super-admin' => [fn () => grantSuperAdmin(User::factory()->create(['user_type' => UserType::SuperAdmin, 'is_active' => true]))],
+]);
 
 it('keeps the SMS menu away from users without the SMS permission', function () {
     test()->actingAs(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]));

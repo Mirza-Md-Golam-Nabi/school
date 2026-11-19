@@ -11,7 +11,6 @@ use App\Support\Sms\SmsSegments;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Notifications\Notification;
@@ -59,7 +58,6 @@ class SmsSettings extends Page
 
         $this->form->fill([
             'is_enabled' => $setting->is_enabled,
-            'rate_per_sms' => $setting->ratePerSms(),
             'events' => collect(SmsEvent::cases())->mapWithKeys(fn (SmsEvent $event): array => [$event->value => in_array($event->value, $enabled, true)])->all(),
             'templates' => collect(SmsEvent::cases())->mapWithKeys(fn (SmsEvent $event): array => [$event->value => $setting->template($event)])->all(),
         ]);
@@ -94,16 +92,10 @@ class SmsSettings extends Page
                                     ->label('SMS Available (approx.)')
                                     ->state(fn (): string => number_format(SmsSetting::current()->smsCountFor()).' টি SMS')
                                     ->helperText('ইংরেজিতে ১৬০ অক্ষর / বাংলায় ৭০ অক্ষর = ১ টি SMS।'),
-                                TextInput::make('rate_per_sms')
+                                TextEntry::make('rate_per_sms_display')
                                     ->label('Charge per SMS (৳)')
-                                    ->numeric()
-                                    ->minValue(0)
-                                    ->maxValue(100)
-                                    ->step(0.0001)
-                                    ->required()
-                                    ->disabled(fn (): bool => ! static::isSuperAdmin())
-                                    ->dehydrated(fn (): bool => static::isSuperAdmin())
-                                    ->helperText(fn (): ?string => static::isSuperAdmin() ? null : 'শুধু Super Admin পরিবর্তন করতে পারবে।'),
+                                    ->state(fn (): string => '৳'.rtrim(rtrim(number_format(SmsSetting::current()->ratePerSms(), 4), '0'), '.'))
+                                    ->weight('bold'),
                             ]),
                         ]),
 
@@ -172,10 +164,6 @@ class SmsSettings extends Page
             'enabled_events' => collect($state['events'] ?? [])->filter()->keys()->values()->all(),
             'templates' => $templates,
         ]);
-
-        if (static::isSuperAdmin() && array_key_exists('rate_per_sms', $state)) {
-            $setting->rate_per_sms = round((float) $state['rate_per_sms'], 4);
-        }
 
         $setting->save();
 
