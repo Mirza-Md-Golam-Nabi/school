@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\SmsVendors\Pages;
 
 use App\Filament\Resources\SmsVendors\SmsVendorResource;
-use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
 
 class ListSmsVendors extends ListRecords
@@ -12,13 +11,6 @@ class ListSmsVendors extends ListRecords
 
     public function getSubheading(): ?string
     {
-        return 'যে vendor চালু থাকবে শুধু সেটা দিয়েই SMS যাবে। একাধিক চালু থাকলে priority অনুযায়ী চেষ্টা হবে।';
-    }
-
-    protected function getHeaderActions(): array
-    {
-        return [
-            CreateAction::make(),
-        ];
+        return 'Vendor, API key ও Sender ID NextFusion থেকে সেট করা হয় — এখান থেকে বদলানো যায় না। একাধিক চালু থাকলে priority অনুযায়ী চেষ্টা হবে।';
     }
 }

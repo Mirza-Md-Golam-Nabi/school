@@ -95,6 +95,7 @@ class SmsSettings extends Page
                                 TextEntry::make('rate_per_sms_display')
                                     ->label('Charge per SMS (৳)')
                                     ->state(fn (): string => '৳'.rtrim(rtrim(number_format(SmsSetting::current()->ratePerSms(), 4), '0'), '.'))
+                                    ->helperText('NextFusion থেকে নির্ধারিত — এখান থেকে বদলানো যায় না।')
                                     ->weight('bold'),
                             ]),
                         ]),

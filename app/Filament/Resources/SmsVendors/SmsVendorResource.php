@@ -4,15 +4,11 @@ namespace App\Filament\Resources\SmsVendors;
 
 use App\Enums\Permissions\SmsPermission;
 use App\Filament\Concerns\HasSmsPermission;
-use App\Filament\Resources\SmsVendors\Pages\CreateSmsVendor;
-use App\Filament\Resources\SmsVendors\Pages\EditSmsVendor;
 use App\Filament\Resources\SmsVendors\Pages\ListSmsVendors;
-use App\Filament\Resources\SmsVendors\Schemas\SmsVendorForm;
 use App\Filament\Resources\SmsVendors\Tables\SmsVendorsTable;
 use App\Models\SmsVendor;
 use BackedEnum;
 use Filament\Resources\Resource;
-use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Auth\Access\Response;
@@ -20,8 +16,9 @@ use Illuminate\Database\Eloquent\Model;
 use UnitEnum;
 
 /**
- * Admins switch vendors on and off; only the super-admin adds vendors or
- * changes their API key and Sender ID.
+ * Read-only list of the SMS vendors. They are set in the central app
+ * (NextFusion) and pushed here, so no one — not even the super-admin — adds,
+ * edits or switches them from this panel.
  */
 class SmsVendorResource extends Resource
 {
@@ -46,27 +43,27 @@ class SmsVendorResource extends Resource
 
     public static function getCreateAuthorizationResponse(): Response
     {
-        return static::superAdminOnly();
+        return self::setCentrally();
     }
 
     public static function getEditAuthorizationResponse(Model $record): Response
     {
-        return static::superAdminOnly();
+        return self::setCentrally();
     }
 
     public static function getDeleteAuthorizationResponse(Model $record): Response
     {
-        return static::superAdminOnly();
+        return self::setCentrally();
     }
 
     public static function getDeleteAnyAuthorizationResponse(): Response
     {
-        return static::superAdminOnly();
+        return self::setCentrally();
     }
 
-    public static function form(Schema $schema): Schema
+    private static function setCentrally(): Response
     {
-        return SmsVendorForm::configure($schema);
+        return Response::deny('SMS vendor শুধু NextFusion থেকে সেট করা যায়।');
     }
 
     public static function table(Table $table): Table
@@ -78,8 +75,6 @@ class SmsVendorResource extends Resource
     {
         return [
             'index' => ListSmsVendors::route('/'),
-            'create' => CreateSmsVendor::route('/create'),
-            'edit' => EditSmsVendor::route('/{record}/edit'),
         ];
     }
 }

@@ -9,9 +9,6 @@ use App\Enums\UserType;
 use App\Filament\Pages\SmsSettings;
 use App\Filament\Resources\Notices\Pages\CreateNotice;
 use App\Filament\Resources\SmsRechargeRequests\Pages\ListSmsRechargeRequests;
-use App\Filament\Resources\SmsVendorResponseCodes\Pages\ManageSmsVendorResponseCodes;
-use App\Filament\Resources\SmsVendorResponseCodes\SmsVendorResponseCodeResource;
-use App\Filament\Resources\SmsVendors\Pages\CreateSmsVendor;
 use App\Filament\Resources\SmsVendors\Pages\ListSmsVendors;
 use App\Filament\Resources\SmsVendors\SmsVendorResource;
 use App\Models\Notice;
@@ -19,10 +16,8 @@ use App\Models\Permission;
 use App\Models\SmsRechargeRequest;
 use App\Models\SmsSetting;
 use App\Models\SmsVendor;
-use App\Models\SmsVendorResponseCode;
 use App\Models\StudentProfile;
 use App\Models\User;
-use Database\Seeders\SmsVendorResponseCodeSeeder;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -100,47 +95,25 @@ it('keeps the SMS menu away from users without the SMS permission', function () 
     Livewire::test(SmsSettings::class)->assertForbidden();
 });
 
-it('lets an admin switch a vendor off but not add or edit vendors', function () {
+it('shows the vendors without the API key and lets no one change them, not even the super-admin', function (Closure $user) {
     $vendor = SmsVendor::factory()->create(['api_key' => 'very-secret-key']);
-    test()->actingAs(smsSchoolAdmin());
+    test()->actingAs($user());
 
     Livewire::test(ListSmsVendors::class)
         ->assertCanSeeTableRecords([$vendor])
         ->assertDontSee('very-secret-key')
-        ->assertActionHidden(CreateAction::class)
-        ->assertActionHidden(TestAction::make(EditAction::class)->table($vendor))
-        ->assertActionHidden(TestAction::make(DeleteAction::class)->table($vendor))
-        ->call('updateTableColumnState', 'is_active', (string) $vendor->id, false);
+        ->assertSee('NextFusion')
+        ->assertActionDoesNotExist(CreateAction::class);
 
-    expect($vendor->refresh()->is_active)->toBeFalse()
-        ->and(SmsVendorResource::canCreate())->toBeFalse()
-        ->and(SmsVendorResource::canEdit($vendor))->toBeFalse();
-
-    $this->get(SmsVendorResource::getUrl('edit', ['record' => $vendor]))->assertForbidden();
-    $this->get(SmsVendorResource::getUrl('create'))->assertForbidden();
-});
-
-it('lets the super-admin add a vendor with an encrypted API key', function () {
-    test()->actingAs(grantSuperAdmin(User::factory()->create(['user_type' => UserType::SuperAdmin, 'is_active' => true])));
-
-    Livewire::test(CreateSmsVendor::class)
-        ->fillForm([
-            'name' => 'BulkSMSBD',
-            'driver' => 'bulksmsbd',
-            'sender_id' => '8809617613451',
-            'api_key' => 'plain-api-key',
-            'priority' => 1,
-            'is_active' => true,
-        ])
-        ->call('create')
-        ->assertHasNoFormErrors();
-
-    $vendor = SmsVendor::sole();
-
-    expect($vendor->api_key)->toBe('plain-api-key')
-        ->and($vendor->getRawOriginal('api_key'))->not->toBe('plain-api-key')
-        ->and($vendor->sender_id)->toBe('8809617613451');
-});
+    expect(SmsVendorResource::canCreate())->toBeFalse()
+        ->and(SmsVendorResource::canEdit($vendor))->toBeFalse()
+        ->and(SmsVendorResource::canDelete($vendor))->toBeFalse()
+        ->and(SmsVendorResource::hasPage('edit'))->toBeFalse()
+        ->and(SmsVendorResource::hasPage('create'))->toBeFalse();
+})->with([
+    'school admin' => [fn () => smsSchoolAdmin()],
+    'super-admin' => [fn () => grantSuperAdmin(User::factory()->create(['user_type' => UserType::SuperAdmin, 'is_active' => true]))],
+]);
 
 it('lets an admin send a recharge request', function () {
     SmsSetting::current()->update(['rate_per_sms' => 0.25]);
@@ -184,30 +157,4 @@ it('stops a notice with SMS from publishing when the balance cannot cover it', f
         ->assertNotified();
 
     expect(Notice::count())->toBe(0);
-});
-
-it('shows the provider response codes to an admin without letting them change them', function () {
-    $this->seed(SmsVendorResponseCodeSeeder::class);
-    test()->actingAs(smsSchoolAdmin());
-
-    Livewire::test(ManageSmsVendorResponseCodes::class)
-        ->assertCanSeeTableRecords(SmsVendorResponseCode::all())
-        ->assertSee('ip Not whitelisted')
-        ->assertActionHidden(CreateAction::class);
-
-    expect(SmsVendorResponseCodeResource::canEdit(SmsVendorResponseCode::first()))->toBeFalse();
-});
-
-it('lets the super-admin add a response code but not a duplicate one', function () {
-    $this->seed(SmsVendorResponseCodeSeeder::class);
-    test()->actingAs(grantSuperAdmin(User::factory()->create(['user_type' => UserType::SuperAdmin, 'is_active' => true])));
-
-    Livewire::test(ManageSmsVendorResponseCodes::class)
-        ->callAction(CreateAction::class, ['driver' => 'bulksmsbd', 'code' => '1040', 'message' => 'New provider error', 'is_success' => false])
-        ->assertHasNoActionErrors()
-        ->callAction(CreateAction::class, ['driver' => 'bulksmsbd', 'code' => '1007', 'message' => 'Duplicate', 'is_success' => false])
-        ->assertHasActionErrors(['code' => 'unique']);
-
-    expect(SmsVendorResponseCode::where('code', '1040')->sole()->message)->toBe('New provider error')
-        ->and(SmsVendorResponseCode::where('code', '1007')->sole()->message)->toBe('Balance Insufficient');
 });

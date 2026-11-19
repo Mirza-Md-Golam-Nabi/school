@@ -20,6 +20,7 @@ class SmsVendor extends Model
     use LogsActivity;
 
     protected $fillable = [
+        'central_id',
         'name',
         'driver',
         'api_key',

@@ -3,10 +3,8 @@
 namespace App\Filament\Resources\SmsVendors\Tables;
 
 use App\Filament\Resources\Concerns\ResponsiveText;
-use Filament\Actions\DeleteAction;
-use Filament\Actions\EditAction;
+use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Table;
 
 class SmsVendorsTable
@@ -31,16 +29,14 @@ class SmsVendorsTable
                     ->label('Sender ID')
                     ->copyable()
                     ->extraAttributes(['class' => ResponsiveText::CLASSES]),
-                ToggleColumn::make('is_active')
-                    ->label('Active'),
+                IconColumn::make('is_active')
+                    ->label('Active')
+                    ->boolean(),
                 TextColumn::make('updated_at')
+                    ->label('Last synced')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
-            ])
-            ->recordActions([
-                EditAction::make()->iconButton(),
-                DeleteAction::make()->iconButton(),
             ]);
     }
 }
