@@ -2,10 +2,12 @@
 
 namespace App\Actions\Attendance;
 
+use App\Actions\Sms\SendAttendanceSmsAction;
 use App\Enums\AttendanceMode;
 use App\Enums\AttendanceSource;
 use App\Enums\AttendanceStatus;
 use App\Enums\LeaveApplicationStatus;
+use App\Enums\SmsEvent;
 use App\Models\Attendance;
 use App\Models\AttendanceDevice;
 use App\Models\AttendancePunch;
@@ -26,6 +28,8 @@ class MarkAbsentForDateAction
      * the last punches have had time to reach the server.
      */
     public const MINUTES_AFTER_EXIT = 60;
+
+    public function __construct(private SendAttendanceSmsAction $sendAttendanceSms) {}
 
     /**
      * Marks everyone who is enrolled on an active device but never punched on this
@@ -62,6 +66,7 @@ class MarkAbsentForDateAction
         $deviceIds = $devices->pluck('id');
         $onLeave = $this->approvedLeaveApplicantIds($day);
         $marked = 0;
+        $smsItems = [];
 
         foreach ([StudentProfile::class, TeacherProfile::class, StaffProfile::class] as $type) {
             $type::query()
@@ -71,12 +76,20 @@ class MarkAbsentForDateAction
                     ->whereNull('removed_at'))
                 ->whereDoesntHave('attendances', fn ($attendance) => $attendance->where('date', $day->toDateString()))
                 ->whereNotIn('id', $onLeave->get($type, []))
-                ->chunkById(200, function (Collection $people) use ($day, &$marked): void {
+                ->chunkById(200, function (Collection $people) use ($day, &$marked, &$smsItems): void {
                     foreach ($people as $person) {
-                        $this->markAbsent($person, $day);
+                        $attendance = $this->markAbsent($person, $day);
                         $marked++;
+
+                        if ($person instanceof StudentProfile && $day->isToday()) {
+                            $smsItems[] = ['student' => $person, 'attendance' => $attendance, 'event' => SmsEvent::AttendanceAbsent];
+                        }
                     }
                 });
+        }
+
+        if ($smsItems !== []) {
+            $this->sendAttendanceSms->handle($smsItems);
         }
 
         return $marked;
@@ -121,9 +134,9 @@ class MarkAbsentForDateAction
             ->map(fn (Collection $applications): Collection => $applications->pluck('applicant_id'));
     }
 
-    private function markAbsent(Model $person, Carbon $day): void
+    private function markAbsent(Model $person, Carbon $day): Attendance
     {
-        Attendance::create([
+        return Attendance::create([
             'attendable_type' => $person->getMorphClass(),
             'attendable_id' => $person->getKey(),
             'date' => $day->toDateString(),

@@ -11,6 +11,7 @@ use App\Enums\Permissions\FeePermission;
 use App\Enums\Permissions\HrPermission;
 use App\Enums\Permissions\ProfilePermission;
 use App\Enums\Permissions\SalaryPermission;
+use App\Enums\Permissions\SmsPermission;
 use App\Enums\Permissions\UserPermission;
 
 class PermissionRegistry
@@ -25,6 +26,7 @@ class PermissionRegistry
             'Fee & Finance' => FeePermission::cases(),
             'Salary Management' => SalaryPermission::cases(),
             'Communication' => CommunicationPermission::cases(),
+            'SMS' => SmsPermission::cases(),
             'Document Management' => DocumentPermission::cases(),
             'HR & Staff Management' => HrPermission::cases(),
             'Activity Log' => ActivityLogPermission::cases(),

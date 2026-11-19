@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\StudentFeeInvoices\Pages;
 
+use App\Actions\Sms\SendFeeInvoiceSmsAction;
 use App\Filament\Resources\StudentFeeInvoices\StudentFeeInvoiceResource;
 use App\Notifications\Concerns\NotifiesStudentFeeInvoice;
 use Filament\Actions\Action;
@@ -50,5 +51,7 @@ class CreateStudentFeeInvoice extends CreateRecord
     protected function afterCreate(): void
     {
         $this->notifyFeeInvoiceGenerated($this->getRecord());
+
+        app(SendFeeInvoiceSmsAction::class)->handle([$this->getRecord()]);
     }
 }

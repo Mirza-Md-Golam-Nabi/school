@@ -29,6 +29,14 @@ echo "✅ Maintenance mode ON"
 $PHP artisan migrate --force
 echo "✅ Migration done"
 
+# Add any new permissions (only creates missing ones — never removes a
+# permission or changes which role has it). --force is required in
+# production, otherwise the confirmation prompt fails and stops the deploy
+# while the site is still in maintenance mode.
+$PHP artisan db:seed --class=PermissionSeeder --force
+$PHP artisan permission:cache-reset
+echo "✅ Permissions synced"
+
 # Cache clear
 $PHP artisan optimize:clear
 $PHP artisan filament:optimize-clear

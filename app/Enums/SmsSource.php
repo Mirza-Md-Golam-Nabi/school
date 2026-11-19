@@ -8,6 +8,7 @@ enum SmsSource: string implements HasLabel
 {
     case Attendance = 'attendance';
     case Notice = 'notice';
+    case Fee = 'fee';
     case Other = 'other';
 
     public function getLabel(): string
@@ -15,6 +16,7 @@ enum SmsSource: string implements HasLabel
         return match ($this) {
             self::Attendance => 'Attendance',
             self::Notice => 'Notice',
+            self::Fee => 'Fee',
             self::Other => 'Other',
         };
     }

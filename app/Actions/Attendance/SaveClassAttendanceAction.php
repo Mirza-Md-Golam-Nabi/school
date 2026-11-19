@@ -2,8 +2,10 @@
 
 namespace App\Actions\Attendance;
 
+use App\Actions\Sms\SendAttendanceSmsAction;
 use App\Enums\AttendanceSource;
 use App\Enums\AttendanceStatus;
+use App\Enums\SmsEvent;
 use App\Filament\Pages\AttendanceModificationDetails;
 use App\Models\Attendance;
 use App\Models\AttendanceSetting;
@@ -20,6 +22,8 @@ use Illuminate\Support\Str;
 
 class SaveClassAttendanceAction
 {
+    public function __construct(private SendAttendanceSmsAction $sendAttendanceSms) {}
+
     /**
      * @param  Collection<int, StudentProfile>  $students
      * @param  array<string>  $presentIds
@@ -36,6 +40,7 @@ class SaveClassAttendanceAction
         $isBackdated = $date !== now()->toDateString();
         $batchId = (string) Str::uuid();
         $changes = collect();
+        $smsItems = [];
 
         $countsLate = AttendanceSetting::current()->countsLateFor(StudentProfile::class);
 
@@ -99,6 +104,16 @@ class SaveClassAttendanceAction
             // (e.g. a different teacher re-marking the same status).
             if (! $existing || $statusChanged) {
                 $student->user?->notify(new StudentAttendanceMarkedNotification($attendance));
+
+                // An SMS is a same-day alert for the guardian — correcting an old
+                // date must not text them about a day long gone.
+                if (! $isBackdated) {
+                    $smsItems[] = [
+                        'student' => $student,
+                        'attendance' => $attendance,
+                        'event' => $newStatus === AttendanceStatus::Absent ? SmsEvent::AttendanceAbsent : SmsEvent::AttendancePresent,
+                    ];
+                }
             }
 
             // Any new entry or real status change on a non-today date must be
@@ -119,6 +134,10 @@ class SaveClassAttendanceAction
 
         if ($changes->isNotEmpty()) {
             $this->notifyAdminsOfChanges($class, $date, $markedByName, $changes, $batchId);
+        }
+
+        if ($smsItems !== []) {
+            $this->sendAttendanceSms->handle($smsItems);
         }
 
         $this->notifyIfWrongTeacherMarkedAttendance($class, $date, $markedBy, $markedByName);

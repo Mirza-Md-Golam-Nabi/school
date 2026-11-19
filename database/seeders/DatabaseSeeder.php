@@ -22,6 +22,7 @@ class DatabaseSeeder extends Seeder
             ActingAdminRoleSeeder::class,
             UserSeeder::class,
             DocumentSettingsSeeder::class,
+            SmsVendorSeeder::class,
         ]);
     }
 }

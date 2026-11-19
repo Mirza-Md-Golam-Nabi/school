@@ -67,6 +67,7 @@ class AdminPanelProvider extends PanelProvider
                 'User Profile',
                 'Fee & Finance',
                 'Communication',
+                'SMS',
                 'Document Management',
                 'HR & Staff Management',
                 'Salary Management',

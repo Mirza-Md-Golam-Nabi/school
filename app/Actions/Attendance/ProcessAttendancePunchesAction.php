@@ -2,10 +2,12 @@
 
 namespace App\Actions\Attendance;
 
+use App\Actions\Sms\SendAttendanceSmsAction;
 use App\Enums\AttendanceMode;
 use App\Enums\AttendanceSource;
 use App\Enums\AttendanceStatus;
 use App\Enums\PunchDirection;
+use App\Enums\SmsEvent;
 use App\Models\Attendance;
 use App\Models\AttendanceDevice;
 use App\Models\AttendancePunch;
@@ -21,6 +23,15 @@ use Illuminate\Support\Collection;
 class ProcessAttendancePunchesAction
 {
     private ?AttendanceSetting $setting = null;
+
+    /**
+     * Guardian SMS collected while processing, sent together as one batch.
+     *
+     * @var list<array{student: StudentProfile, attendance: Attendance, event: SmsEvent, time: ?Carbon}>
+     */
+    private array $smsItems = [];
+
+    public function __construct(private SendAttendanceSmsAction $sendAttendanceSms) {}
 
     /**
      * Turns this device's not-yet-processed punches into daily attendance rows.
@@ -77,6 +88,11 @@ class ProcessAttendancePunchesAction
         AttendancePunch::query()
             ->whereIn('id', $mappedPunches->pluck('id'))
             ->update(['processed_at' => now()]);
+
+        if ($this->smsItems !== []) {
+            $this->sendAttendanceSms->handle($this->smsItems);
+            $this->smsItems = [];
+        }
 
         return $personDays->count();
     }
@@ -226,10 +242,12 @@ class ProcessAttendancePunchesAction
         if ($person instanceof StudentProfile && $day->isToday()) {
             if ($isNewEntry) {
                 $person->user?->notify(new StudentDevicePunchNotification($attendance, PunchDirection::Entry));
+                $this->smsItems[] = ['student' => $person, 'attendance' => $attendance, 'event' => SmsEvent::DeviceEntry, 'time' => $entry];
             }
 
             if ($isNewExit) {
                 $person->user?->notify(new StudentDevicePunchNotification($attendance, PunchDirection::Exit));
+                $this->smsItems[] = ['student' => $person, 'attendance' => $attendance, 'event' => SmsEvent::DeviceExit, 'time' => $exit];
             }
         }
     }

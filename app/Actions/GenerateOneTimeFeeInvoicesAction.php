@@ -3,6 +3,7 @@
 namespace App\Actions;
 
 use App\Actions\Concerns\ResolvesFeeDiscount;
+use App\Actions\Sms\SendFeeInvoiceSmsAction;
 use App\Enums\InvoiceStatus;
 use App\Models\FeeStructure;
 use App\Models\StudentFeeInvoice;
@@ -15,6 +16,8 @@ class GenerateOneTimeFeeInvoicesAction
     use NotifiesStudentFeeInvoice;
     use ResolvesFeeDiscount;
 
+    public function __construct(private SendFeeInvoiceSmsAction $sendFeeInvoiceSms) {}
+
     /**
      * Generate one-time (non-monthly) fee invoices for every active student in the
      * fee structure's class. Existing invoices for the same student/fee type/year
@@ -23,6 +26,21 @@ class GenerateOneTimeFeeInvoicesAction
      * @return array{generated: int, skipped: int}
      */
     public function handle(FeeStructure $structure): array
+    {
+        $result = $this->generateWithoutSms($structure);
+
+        $this->sendFeeInvoiceSms->handle($result['invoices']);
+
+        return ['generated' => $result['generated'], 'skipped' => $result['skipped']];
+    }
+
+    /**
+     * Same as handle() but leaves the guardian SMS to the caller, so a caller
+     * generating for many classes can send them all as one batch.
+     *
+     * @return array{generated: int, skipped: int, invoices: list<StudentFeeInvoice>}
+     */
+    public function generateWithoutSms(FeeStructure $structure): array
     {
         $feeType = $structure->feeType;
 
@@ -39,10 +57,10 @@ class GenerateOneTimeFeeInvoicesAction
         ])
             ->active()
             ->where('current_class_id', $structure->class_id)
-            ->get(['id', 'user_id']);
+            ->get(['id', 'user_id', 'name_bn', 'student_id_no', 'guardian_phone', 'current_class_id']);
 
         if ($students->isEmpty()) {
-            return ['generated' => 0, 'skipped' => 0];
+            return ['generated' => 0, 'skipped' => 0, 'invoices' => []];
         }
 
         $existingStudentIds = StudentFeeInvoice::where('fee_type_id', $structure->fee_type_id)
@@ -55,6 +73,7 @@ class GenerateOneTimeFeeInvoicesAction
 
         $generated = 0;
         $skipped = 0;
+        $newInvoices = [];
 
         foreach ($students as $student) {
             if (isset($existingStudentIds[$student->id])) {
@@ -82,11 +101,13 @@ class GenerateOneTimeFeeInvoicesAction
             $generated++;
 
             $this->notifyFeeInvoiceGenerated($invoice, $student->user);
+
+            $newInvoices[] = $invoice->setRelation('student', $student)->setRelation('feeType', $feeType);
         }
 
         $this->logGeneration($structure, $generated, $skipped);
 
-        return ['generated' => $generated, 'skipped' => $skipped];
+        return ['generated' => $generated, 'skipped' => $skipped, 'invoices' => $newInvoices];
     }
 
     private function logGeneration(FeeStructure $structure, int $generated, int $skipped): void

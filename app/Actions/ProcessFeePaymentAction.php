@@ -2,6 +2,7 @@
 
 namespace App\Actions;
 
+use App\Actions\Sms\SendFeePaymentSmsAction;
 use App\Enums\InvoiceStatus;
 use App\Models\FeePayment;
 use App\Models\StudentFeeInvoice;
@@ -13,6 +14,8 @@ use Illuminate\Validation\ValidationException;
 
 class ProcessFeePaymentAction
 {
+    public function __construct(private SendFeePaymentSmsAction $sendFeePaymentSms) {}
+
     /**
      * Distribute a payment across invoices oldest-first.
      * Creates one FeePayment record per invoice and updates invoice statuses.
@@ -101,6 +104,10 @@ class ProcessFeePaymentAction
             foreach ($payments as $payment) {
                 $student->user->notify(new FeePaymentReceivedNotification($payment));
             }
+        }
+
+        if ($student) {
+            $this->sendFeePaymentSms->handle($student, $payments, (string) $data['receipt_no']);
         }
 
         return $firstPayment;

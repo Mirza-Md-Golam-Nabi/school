@@ -2,6 +2,7 @@
 
 namespace App\Notifications\Concerns;
 
+use App\Actions\Sms\SendNoticeSmsAction;
 use App\Enums\NoticeTargetType;
 use App\Models\Classes;
 use App\Models\Notice;
@@ -10,6 +11,7 @@ use App\Models\StudentProfile;
 use App\Models\TeacherProfile;
 use App\Models\User;
 use App\Notifications\NoticeCreatedNotification;
+use App\Support\Sms\SmsBatchResult;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Notification;
 
@@ -21,15 +23,15 @@ use Illuminate\Support\Facades\Notification;
  */
 trait NotifiesNoticeCreated
 {
-    protected function notifyNoticeCreated(Notice $notice): void
+    protected function notifyNoticeCreated(Notice $notice): ?SmsBatchResult
     {
         $recipients = $this->resolveNoticeRecipients($notice);
 
-        if ($recipients->isEmpty()) {
-            return;
+        if ($recipients->isNotEmpty()) {
+            Notification::send($recipients, new NoticeCreatedNotification($notice));
         }
 
-        Notification::send($recipients, new NoticeCreatedNotification($notice));
+        return app(SendNoticeSmsAction::class)->handle($notice);
     }
 
     /**

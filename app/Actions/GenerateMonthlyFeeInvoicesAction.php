@@ -3,6 +3,7 @@
 namespace App\Actions;
 
 use App\Actions\Concerns\ResolvesFeeDiscount;
+use App\Actions\Sms\SendFeeInvoiceSmsAction;
 use App\Enums\InvoiceStatus;
 use App\Models\Classes;
 use App\Models\FeeStructure;
@@ -15,6 +16,8 @@ class GenerateMonthlyFeeInvoicesAction
 {
     use NotifiesStudentFeeInvoice;
     use ResolvesFeeDiscount;
+
+    public function __construct(private SendFeeInvoiceSmsAction $sendFeeInvoiceSms) {}
 
     /**
      * Generate monthly fee invoices for active students based on their class fee structures.
@@ -34,6 +37,7 @@ class GenerateMonthlyFeeInvoicesAction
 
         $generated = 0;
         $skipped = 0;
+        $newInvoices = [];
 
         foreach ($classes as $class) {
             $structures = FeeStructure::where('class_id', $class->id)
@@ -53,7 +57,7 @@ class GenerateMonthlyFeeInvoicesAction
             ])
                 ->active()
                 ->where('current_class_id', $class->id)
-                ->get(['id', 'user_id']);
+                ->get(['id', 'user_id', 'name_bn', 'student_id_no', 'guardian_phone', 'current_class_id']);
 
             if ($students->isEmpty()) {
                 continue;
@@ -95,6 +99,8 @@ class GenerateMonthlyFeeInvoicesAction
                     $generated++;
 
                     $this->notifyFeeInvoiceGenerated($invoice, $student->user);
+
+                    $newInvoices[] = $invoice->setRelation('student', $student);
                 }
             }
 
@@ -102,6 +108,8 @@ class GenerateMonthlyFeeInvoicesAction
         }
 
         $this->logGeneration($month, $year, $classId, $generated, $skipped);
+
+        $this->sendFeeInvoiceSms->handle($newInvoices);
 
         return ['generated' => $generated, 'skipped' => $skipped];
     }

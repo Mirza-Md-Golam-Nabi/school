@@ -2,9 +2,12 @@
 
 namespace App\Filament\Resources\Notices\Schemas;
 
+use App\Actions\Sms\SendNoticeSmsAction;
 use App\Enums\NoticeTargetType;
+use App\Enums\SmsEvent;
 use App\Enums\UserType;
 use App\Models\Classes;
+use App\Models\SmsSetting;
 use App\Models\StudentProfile;
 use App\Models\User;
 use Filament\Forms\Components\DateTimePicker;
@@ -28,6 +31,34 @@ class NoticeForm
         }
 
         return NoticeTargetType::tryFrom((string) ($value ?? ''));
+    }
+
+    /**
+     * When SMS is switched on, shows how many people it reaches, what it
+     * costs, and whether the school's SMS balance covers it.
+     */
+    private static function smsHelperText(Get $get): string
+    {
+        if (! $get('send_sms')) {
+            return 'নোটিশ প্রকাশের সময় প্রাপকদের SMS যাবে।';
+        }
+
+        $estimate = app(SendNoticeSmsAction::class)->estimate(
+            self::resolveTargetType($get),
+            (array) ($get('target_ids') ?? []),
+            $get('title'),
+            $get('body'),
+        );
+
+        $text = sprintf(
+            'প্রাপক %d জন · %d SMS পার্ট · খরচ ৳%s · ব্যালেন্স ৳%s',
+            $estimate['recipients'],
+            $estimate['parts'],
+            number_format($estimate['cost'], 2),
+            number_format($estimate['balance'], 2),
+        );
+
+        return $estimate['is_affordable'] ? $text : $text.' — ব্যালেন্স অপর্যাপ্ত, SMS যাবে না।';
     }
 
     public static function configure(Schema $schema): Schema
@@ -116,6 +147,7 @@ class NoticeForm
                             ->multiple()
                             ->searchable()
                             ->native(false)
+                            ->live()
                             ->dehydrated(false)
                             ->columnSpanFull()
                             ->visible(fn (Get $get): bool => self::resolveTargetType($get)?->requiresTargets() ?? false)
@@ -135,9 +167,11 @@ class NoticeForm
 
                         Toggle::make('send_sms')
                             ->label('Send SMS')
-                            ->helperText('SMS will be sent when notice is published.')
+                            ->helperText(fn (Get $get): string => self::smsHelperText($get))
                             ->default(false)
-                            ->inline(false),
+                            ->live()
+                            ->inline(false)
+                            ->visible(fn (): bool => SmsSetting::current()->isEventEnabled(SmsEvent::Notice)),
                     ]),
             ]);
     }

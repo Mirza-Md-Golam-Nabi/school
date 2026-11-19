@@ -2,6 +2,7 @@
 
 namespace App\Actions;
 
+use App\Actions\Sms\SendFeeInvoiceSmsAction;
 use App\Models\FeeStructure;
 use App\Models\FeeType;
 use InvalidArgumentException;
@@ -10,6 +11,7 @@ class GenerateOneTimeFeeInvoicesForAllClassesAction
 {
     public function __construct(
         private readonly GenerateOneTimeFeeInvoicesAction $generateOneTimeFeeInvoices,
+        private readonly SendFeeInvoiceSmsAction $sendFeeInvoiceSms,
     ) {}
 
     /**
@@ -36,13 +38,18 @@ class GenerateOneTimeFeeInvoicesForAllClassesAction
 
         $generated = 0;
         $skipped = 0;
+        $newInvoices = [];
 
         foreach ($structures as $structure) {
-            $result = $this->generateOneTimeFeeInvoices->handle($structure);
+            $result = $this->generateOneTimeFeeInvoices->generateWithoutSms($structure);
 
             $generated += $result['generated'];
             $skipped += $result['skipped'];
+            array_push($newInvoices, ...$result['invoices']);
         }
+
+        // One batch for every class, so the balance check covers the whole run.
+        $this->sendFeeInvoiceSms->handle($newInvoices);
 
         return ['generated' => $generated, 'skipped' => $skipped];
     }
