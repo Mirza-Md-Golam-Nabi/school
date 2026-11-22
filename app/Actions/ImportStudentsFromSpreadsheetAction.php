@@ -52,9 +52,9 @@ class ImportStudentsFromSpreadsheetAction
      * @var array<string, array{required: bool, note: string, example: string}>
      */
     public const COLUMNS = [
+        'roll_no' => ['required' => true, 'note' => 'শুধু সংখ্যা', 'example' => '1'],
         'name_bn' => ['required' => true, 'note' => 'Student-এর বাংলা নাম', 'example' => 'আব্দুর রহমান'],
         'name' => ['required' => false, 'note' => 'Student-এর ইংরেজি নাম। খালি রাখলে বাংলা নামটাই দেখানো হবে', 'example' => 'Abdur Rahman'],
-        'roll_no' => ['required' => true, 'note' => 'শুধু সংখ্যা', 'example' => '1'],
         'class' => ['required' => true, 'note' => 'সিস্টেমে থাকা ক্লাসের নাম হুবহু। ক্লাসের পেজ থেকে আপলোড করলে খালি রাখা যায়', 'example' => 'Class 6'],
         'section' => ['required' => false, 'note' => 'ওই ক্লাসের section-এর নাম', 'example' => 'A'],
         'group' => ['required' => false, 'note' => 'ওই ক্লাসের group-এর নাম (যেমন Science)', 'example' => ''],

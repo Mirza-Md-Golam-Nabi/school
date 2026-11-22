@@ -4,31 +4,29 @@ namespace App\Filament\Pages;
 
 use App\Actions\BuildClassStudentIdCardsPdfAction;
 use App\Enums\StudentIdCardField;
-use App\Enums\StudentIdCardTemplate;
 use App\Enums\StudentIdCardValidity;
 use App\Enums\StudentStatus;
+use App\Filament\Concerns\ConfiguresIdCardFields;
+use App\Filament\Concerns\PicksIdCardDesign;
 use App\Models\Classes;
-use App\Models\SchoolSetting;
 use App\Support\StudentIdCardLayout;
 use BackedEnum;
 use Filament\Actions\Action;
-use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Radio;
-use Filament\Forms\Components\Repeater;
-use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Schemas\Components\Utilities\Get;
-use Filament\Schemas\Components\Utilities\Set;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Str;
 use UnitEnum;
 
 class StudentIdCards extends Page
 {
+    use ConfiguresIdCardFields;
+    use PicksIdCardDesign;
+
     protected string $view = 'filament.pages.student-id-cards';
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedIdentification;
@@ -39,11 +37,15 @@ class StudentIdCards extends Page
 
     protected static ?string $title = 'Student ID Card';
 
-    public Collection $classes;
-
-    public function mount(): void
+    /**
+     * Active classes with their active student counts — read fresh on every
+     * render, since a Livewire round trip would drop the counted column.
+     *
+     * @return Collection<int, Classes>
+     */
+    public function classes(): Collection
     {
-        $this->classes = Classes::withCount([
+        return Classes::withCount([
             'studentProfiles as active_students_count' => fn ($q) => $q->where('status', StudentStatus::Active),
         ])
             ->active()
@@ -52,23 +54,11 @@ class StudentIdCards extends Page
     }
 
     /**
-     * Save the card design the school clicked in the design picker — every
-     * class's ID cards are printed in it from then on.
+     * @return class-string<StudentIdCardLayout>
      */
-    public function selectTemplate(string $template): void
+    protected function idCardLayout(): string
     {
-        $chosen = StudentIdCardTemplate::tryFrom($template);
-
-        if (! $chosen) {
-            return;
-        }
-
-        StudentIdCardLayout::saveTemplate($chosen);
-
-        Notification::make()
-            ->title("\"{$chosen->getLabel()}\" ডিজাইন সিলেক্ট হয়েছে।")
-            ->success()
-            ->send();
+        return StudentIdCardLayout::class;
     }
 
     /**
@@ -78,21 +68,12 @@ class StudentIdCards extends Page
      */
     protected function getViewData(): array
     {
-        $width = BuildClassStudentIdCardsPdfAction::CARD_WIDTH;
-        $height = BuildClassStudentIdCardsPdfAction::CARD_HEIGHT;
-
         return [
-            'selectedTemplate' => StudentIdCardLayout::template()->value,
-            'schoolName' => (string) SchoolSetting::get('school_name', 'School Name'),
-            'templates' => array_map(fn (StudentIdCardTemplate $template): array => [
-                'value' => $template->value,
-                'label' => $template->getLabel(),
-                'description' => $template->description(),
-                'theme' => $template->theme(),
-                'ring' => $template->photoRing(),
-                'front' => $template->backgroundDataUri('front', $width, $height),
-                'back' => $template->backgroundDataUri('back', $width, $height),
-            ], StudentIdCardTemplate::cases()),
+            'classes' => $this->classes(),
+            ...$this->designPickerViewData(
+                BuildClassStudentIdCardsPdfAction::CARD_WIDTH,
+                BuildClassStudentIdCardsPdfAction::CARD_HEIGHT,
+            ),
         ];
     }
 
@@ -114,10 +95,10 @@ class StudentIdCards extends Page
                     'issue_date' => StudentIdCardLayout::issueDate()->toDateString(),
                 ])
                 ->schema([
-                    $this->cardFieldsCheckboxList('front_fields', 'front_order', 'Front Side'),
-                    $this->cardFieldsOrderRepeater('front_order', 'Front Side Order'),
-                    $this->cardFieldsCheckboxList('back_fields', 'back_order', 'Back Side'),
-                    $this->cardFieldsOrderRepeater('back_order', 'Back Side Order'),
+                    $this->cardFieldsCheckboxList('front_fields', 'front_order', 'Front Side', StudentIdCardField::options(), StudentIdCardLayout::MAX_FIELDS_PER_SIDE, StudentIdCardField::descriptions()),
+                    $this->cardFieldsOrderRepeater('front_order', 'Front Side Order', StudentIdCardField::options()),
+                    $this->cardFieldsCheckboxList('back_fields', 'back_order', 'Back Side', StudentIdCardField::options(), StudentIdCardLayout::MAX_FIELDS_PER_SIDE, StudentIdCardField::descriptions()),
+                    $this->cardFieldsOrderRepeater('back_order', 'Back Side Order', StudentIdCardField::options()),
                     Radio::make('validity')
                         ->label('Validity')
                         ->options(StudentIdCardValidity::options())
@@ -146,83 +127,5 @@ class StudentIdCards extends Page
                         ->send();
                 }),
         ];
-    }
-
-    /**
-     * The checkboxes decide which fields a side prints. Ticking or unticking
-     * one keeps that side's order list in step: a newly ticked field joins the
-     * end, an unticked one drops out, and the rest keep their arranged order.
-     */
-    private function cardFieldsCheckboxList(string $name, string $orderName, string $label): CheckboxList
-    {
-        $limit = StudentIdCardLayout::MAX_FIELDS_PER_SIDE;
-
-        return CheckboxList::make($name)
-            ->label($label)
-            ->options(StudentIdCardField::options())
-            ->descriptions(StudentIdCardField::descriptions())
-            ->columns(['default' => 2, 'sm' => 3])
-            ->rules(['array', "max:{$limit}"])
-            ->validationMessages(['max' => "কার্ডের এক পাশে সর্বোচ্চ {$limit}টা তথ্য রাখা যায়।"])
-            ->live()
-            ->afterStateUpdated(function (Get $get, Set $set, ?array $state) use ($orderName): void {
-                $selected = $state ?? [];
-
-                $order = collect($get($orderName) ?? [])
-                    ->filter(fn (array $item): bool => in_array($item['field'] ?? null, $selected, true));
-
-                foreach (array_diff($selected, $order->pluck('field')->all()) as $newlySelected) {
-                    $order->put((string) Str::uuid(), ['field' => $newlySelected]);
-                }
-
-                $set($orderName, $order->all());
-            });
-    }
-
-    /**
-     * The selected fields of one side as a drag-to-reorder list — the card
-     * prints them top to bottom in this order.
-     */
-    private function cardFieldsOrderRepeater(string $name, string $label): Repeater
-    {
-        return Repeater::make($name)
-            ->label($label)
-            ->helperText('টেনে বা তীর চিহ্নে চেপে উপরে-নিচে সরান — কার্ডে এই সিরিয়ালেই ছাপা হবে।')
-            ->schema([
-                Select::make('field')
-                    ->hiddenLabel()
-                    ->options(StudentIdCardField::options())
-                    ->selectablePlaceholder(false)
-                    ->disabled()
-                    ->dehydrated(),
-            ])
-            ->addable(false)
-            ->deletable(false)
-            ->reorderableWithButtons()
-            ->hidden(fn (?array $state): bool => blank($state));
-    }
-
-    /**
-     * @param  array<int, StudentIdCardField>  $fields
-     * @return array<int, array{field: string}>
-     */
-    private function orderItems(array $fields): array
-    {
-        return array_map(fn (StudentIdCardField $field): array => ['field' => $field->value], $fields);
-    }
-
-    /**
-     * The ticked fields arranged as the order list has them. A ticked field
-     * the order list somehow lacks is appended rather than silently dropped.
-     *
-     * @param  array<int, string>  $selected
-     * @param  array<int|string, array{field?: string}>  $order
-     * @return array<int, string>
-     */
-    private function orderedSelection(array $selected, array $order): array
-    {
-        $arranged = array_intersect(array_column($order, 'field'), $selected);
-
-        return array_values(array_unique([...$arranged, ...$selected]));
     }
 }

@@ -9,18 +9,23 @@ use Illuminate\Support\Facades\Storage;
  * Turns a student's avatar into the round, ring-framed portrait printed on the
  * ID card. mpdf can neither clip an image to a circle nor layer one element
  * over another, so the gold ring, the white inner ring, and the circular crop
- * are all baked into a single transparent PNG here.
+ * are all baked into a single transparent PNG here. The photo is shrunk to fit
+ * inside both rings, so no part of it is hidden under them.
  */
 class IdCardPhotoRenderer
 {
     /**
      * Output edge in pixels — ~330dpi at the 23mm the card prints it at.
      */
-    private const SIZE = 300;
+    public const SIZE = 300;
 
-    private const GOLD_RING_WIDTH = 7.0;
+    /**
+     * Ring widths in pixels of SIZE — the browser previews draw the same rings
+     * at the same proportions.
+     */
+    public const GOLD_RING_WIDTH = 7.0;
 
-    private const WHITE_RING_WIDTH = 9.0;
+    public const WHITE_RING_WIDTH = 2.5;
 
     /** @var array{0: int, 1: int, 2: int} */
     private const GOLD = [245, 185, 66];
@@ -47,10 +52,11 @@ class IdCardPhotoRenderer
      * back to a silhouette when there is no avatar or it cannot be decoded.
      *
      * @param  array{0: int, 1: int, 2: int}  $ringColour  RGB of the outer ring — each card design has its own
+     * @param  IdCardPhotoPosition|null  $position  where the photo sits in the frame — the default position when null
      */
-    public function render(?string $avatarPath, string $disk = 'public', array $ringColour = self::GOLD): string
+    public function render(?string $avatarPath, string $disk = 'public', array $ringColour = self::GOLD, ?IdCardPhotoPosition $position = null): string
     {
-        $photo = $this->loadSquarePhoto($avatarPath, $disk);
+        $photo = $this->loadSquarePhoto($avatarPath, $disk, $position ?? new IdCardPhotoPosition);
 
         if ($photo === null) {
             return $this->placeholderDataUris[implode(',', $ringColour)] ??= $this->frame($this->drawPlaceholder(), $ringColour);
@@ -60,9 +66,9 @@ class IdCardPhotoRenderer
     }
 
     /**
-     * Load the avatar and cover-crop it to a SIZE x SIZE square.
+     * Load the avatar and cut the square the position asks for, scaled to SIZE x SIZE.
      */
-    private function loadSquarePhoto(?string $avatarPath, string $disk): ?GdImage
+    private function loadSquarePhoto(?string $avatarPath, string $disk, IdCardPhotoPosition $position): ?GdImage
     {
         if (blank($avatarPath)) {
             return null;
@@ -80,25 +86,21 @@ class IdCardPhotoRenderer
             return null;
         }
 
-        $sourceWidth = imagesx($source);
-        $sourceHeight = imagesy($source);
-        $cropEdge = min($sourceWidth, $sourceHeight);
+        $crop = $position->cropFor(imagesx($source), imagesy($source));
 
         $square = imagecreatetruecolor(self::SIZE, self::SIZE);
 
-        // Portraits are cropped from the top third rather than dead centre, so
-        // a tall photo keeps the face instead of the chest.
         imagecopyresampled(
             $square,
             $source,
             0,
             0,
-            intdiv($sourceWidth - $cropEdge, 2),
-            intdiv($sourceHeight - $cropEdge, 3),
+            $crop['x'],
+            $crop['y'],
             self::SIZE,
             self::SIZE,
-            $cropEdge,
-            $cropEdge,
+            $crop['edge'],
+            $crop['edge'],
         );
 
         return $square;
@@ -129,22 +131,30 @@ class IdCardPhotoRenderer
     }
 
     /**
-     * Clip the square photo to a circle and wrap it in the white and coloured
-     * rings, returning the result as a PNG data URI. Only the pixels outside
-     * the photo's safe inner disc are visited — the interior is left untouched.
+     * Shrink the square photo into the disc inside the rings, clip it to that
+     * circle and wrap it in the white and coloured rings, returning the result
+     * as a PNG data URI. Only the pixels outside the photo's safe inner disc
+     * are visited — the interior is left untouched.
      *
      * @param  array{0: int, 1: int, 2: int}  $ringColour
      */
-    private function frame(GdImage $photo, array $ringColour): string
+    private function frame(GdImage $square, array $ringColour): string
     {
-        imagealphablending($photo, false);
-        imagesavealpha($photo, true);
-
         $centre = (self::SIZE - 1) / 2;
         $outerRadius = self::SIZE / 2;
         $whiteRadius = $outerRadius - self::GOLD_RING_WIDTH;
         $photoRadius = $whiteRadius - self::WHITE_RING_WIDTH;
         $untouchedRadius = $photoRadius - 1;
+
+        $photoEdge = (int) round($photoRadius * 2);
+        $photoOffset = intdiv(self::SIZE - $photoEdge, 2);
+
+        $photo = imagecreatetruecolor(self::SIZE, self::SIZE);
+        imagefill($photo, 0, 0, imagecolorallocate($photo, ...self::WHITE));
+        imagecopyresampled($photo, $square, $photoOffset, $photoOffset, 0, 0, $photoEdge, $photoEdge, imagesx($square), imagesy($square));
+
+        imagealphablending($photo, false);
+        imagesavealpha($photo, true);
 
         for ($y = 0; $y < self::SIZE; $y++) {
             $dy = $y - $centre;

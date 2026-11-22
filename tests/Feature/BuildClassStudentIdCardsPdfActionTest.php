@@ -16,6 +16,7 @@ use App\Models\SchoolSetting;
 use App\Models\Section;
 use App\Models\StudentProfile;
 use App\Models\User;
+use App\Support\IdCardLogo;
 use App\Support\IdCardPhotoRenderer;
 use App\Support\StudentIdCardLayout;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -170,6 +171,7 @@ it('renders the student id card page listing active classes with view and downlo
     $emptyClass = Classes::create(['name' => 'ID Card Empty Page Class', 'order' => 2, 'is_active' => true]);
 
     makeIdCardTestStudent($class->id, 1);
+    StudentIdCardLayout::submitDesign(StudentIdCardTemplate::Royal, null);
 
     $this->actingAs($admin)->get(StudentIdCards::getUrl())
         ->assertOk()
@@ -444,7 +446,7 @@ it('gives every design its own artwork for both sides and its own palette', func
         ->and(array_unique($themes))->toHaveCount(5);
 });
 
-it('shows all five designs on the id card page and saves the one that is clicked', function () {
+it('shows all five designs and saves the clicked one only when it is submitted', function () {
     $this->actingAs(grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true])));
 
     $component = Livewire::test(StudentIdCards::class);
@@ -454,11 +456,62 @@ it('shows all five designs on the id card page and saves the one that is clicked
             ->assertSeeHtml("selectTemplate('{$template->value}')");
     }
 
-    $component->call('selectTemplate', 'sunset')->assertNotified();
+    $component->call('selectTemplate', 'sunset')
+        ->assertSet('draftTemplate', 'sunset')
+        ->assertNotNotified();
+
+    expect(StudentIdCardLayout::hasSubmittedDesign())->toBeFalse();
+
+    $component->call('submitDesign')->assertNotified();
+
+    expect(StudentIdCardLayout::template())->toBe(StudentIdCardTemplate::Sunset)
+        ->and(StudentIdCardLayout::hasSubmittedDesign())->toBeTrue();
+
+    $component->call('selectTemplate', 'not-a-design')->call('submitDesign');
 
     expect(StudentIdCardLayout::template())->toBe(StudentIdCardTemplate::Sunset);
+});
 
-    $component->call('selectTemplate', 'not-a-design');
+it('hides the class card links until a design is submitted', function () {
+    $this->actingAs(grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true])));
+    $class = Classes::create(['name' => 'Unsubmitted Design Class', 'order' => 1, 'is_active' => true]);
+    makeIdCardTestStudent($class->id, 1);
 
-    expect(StudentIdCardLayout::template())->toBe(StudentIdCardTemplate::Sunset);
+    Livewire::test(StudentIdCards::class)
+        ->assertDontSee(route('student-id-cards.class.view', ['class' => $class->id]), false)
+        ->call('submitDesign')
+        ->assertSee(route('student-id-cards.class.view', ['class' => $class->id]), false);
+});
+
+it('saves the logo colour with the design and prints the logo recoloured', function () {
+    Storage::fake('public');
+    Storage::fake('local');
+
+    $logo = imagecreatetruecolor(20, 20);
+    imagefill($logo, 0, 0, imagecolorallocate($logo, 255, 255, 255));
+    imagefilledrectangle($logo, 5, 5, 14, 14, imagecolorallocate($logo, 0, 0, 0));
+    ob_start();
+    imagepng($logo);
+    Storage::disk('public')->put('logo.png', (string) ob_get_clean());
+    SchoolSetting::set('school_logo', 'logo.png');
+
+    $this->actingAs(grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true])));
+
+    Livewire::test(StudentIdCards::class)
+        ->set('recolourLogo', true)
+        ->set('draftLogoColour', 'not-a-colour')
+        ->call('submitDesign')
+        ->assertHasErrors(['draftLogoColour' => 'regex'])
+        ->set('draftLogoColour', '#DC2626')
+        ->call('submitDesign')
+        ->assertHasNoErrors();
+
+    expect(StudentIdCardLayout::logoColour())->toBe('#dc2626');
+
+    $recoloured = imagecreatefrompng(IdCardLogo::path('#dc2626'));
+    $ink = imagecolorsforindex($recoloured, imagecolorat($recoloured, 10, 10));
+    $background = imagecolorsforindex($recoloured, imagecolorat($recoloured, 0, 0));
+
+    expect([$ink['red'], $ink['green'], $ink['blue'], $ink['alpha']])->toBe([220, 38, 38, 0])
+        ->and($background['alpha'])->toBe(127);
 });

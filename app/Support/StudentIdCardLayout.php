@@ -30,6 +30,8 @@ class StudentIdCardLayout
 
     private const TEMPLATE_KEY = 'student_id_card_template';
 
+    private const LOGO_COLOUR_KEY = 'student_id_card_logo_colour';
+
     /**
      * @return array<int, StudentIdCardField>
      */
@@ -74,6 +76,35 @@ class StudentIdCardLayout
     public static function saveTemplate(StudentIdCardTemplate $template): void
     {
         SchoolSetting::set(self::TEMPLATE_KEY, $template->value);
+    }
+
+    /**
+     * Whether the school has submitted a design yet — cards are made only after it has.
+     */
+    public static function hasSubmittedDesign(): bool
+    {
+        return StudentIdCardTemplate::tryFrom((string) SchoolSetting::get(self::TEMPLATE_KEY)) !== null;
+    }
+
+    /**
+     * The single #rrggbb colour the school logo is printed in, or null to
+     * print the logo exactly as uploaded.
+     */
+    public static function logoColour(): ?string
+    {
+        $stored = SchoolSetting::get(self::LOGO_COLOUR_KEY);
+
+        return IdCardLogo::isValidColour($stored) ? strtolower($stored) : null;
+    }
+
+    /**
+     * Save the finalised design and logo colour — cards are printed in them from now on.
+     */
+    public static function submitDesign(StudentIdCardTemplate $template, ?string $logoColour): void
+    {
+        self::saveTemplate($template);
+
+        SchoolSetting::set(self::LOGO_COLOUR_KEY, IdCardLogo::isValidColour($logoColour) ? strtolower($logoColour) : '');
     }
 
     /**

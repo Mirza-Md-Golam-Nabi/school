@@ -4,36 +4,16 @@ namespace App\Actions;
 
 use App\Enums\StudentIdCardTemplate;
 use App\Models\Classes;
-use App\Models\SchoolSetting;
 use App\Models\StudentProfile;
 use App\Support\Concerns\BuildsMpdfDocuments;
+use App\Support\Concerns\LaysOutIdCardSheets;
 use App\Support\IdCardPhotoRenderer;
-use App\Support\PdfImage;
 use App\Support\StudentIdCardLayout;
 
 class BuildClassStudentIdCardsPdfAction
 {
     use BuildsMpdfDocuments;
-
-    /**
-     * Standard CR80 ID card, portrait, in millimetres.
-     */
-    public const CARD_WIDTH = 54.0;
-
-    public const CARD_HEIGHT = 85.6;
-
-    /**
-     * Gap between neighbouring students' cards, both across and down the sheet.
-     */
-    private const CARD_GAP = 12.0;
-
-    private const COLUMNS_PER_PAGE = 2;
-
-    private const ROWS_PER_PAGE = 2;
-
-    private const PAGE_WIDTH = 297.0;
-
-    private const PAGE_HEIGHT = 210.0;
+    use LaysOutIdCardSheets;
 
     public function __construct(private IdCardPhotoRenderer $photoRenderer) {}
 
@@ -58,7 +38,7 @@ class BuildClassStudentIdCardsPdfAction
         $mpdf = $this->makeMpdf('A4', 'L');
 
         $sharedViewData = [
-            'school' => $this->schoolBranding(),
+            'school' => $this->schoolBranding(StudentIdCardLayout::logoColour()),
             'theme' => $template->theme(),
             'frontBackground' => $template->backgroundDataUri('front', self::CARD_WIDTH, self::CARD_HEIGHT),
             'backBackground' => $template->backgroundDataUri('back', self::CARD_WIDTH, self::CARD_HEIGHT),
@@ -72,7 +52,7 @@ class BuildClassStudentIdCardsPdfAction
 
         // Every card embeds a base64 portrait, so mpdf is fed one page of cards
         // per WriteHTML() call to keep each call's HTML small.
-        foreach ($students->chunk(self::COLUMNS_PER_PAGE * self::ROWS_PER_PAGE) as $pageIndex => $pageStudents) {
+        foreach ($students->chunk(self::CARDS_PER_PAGE) as $pageIndex => $pageStudents) {
             if ($pageIndex > 0) {
                 $mpdf->AddPage();
             }
@@ -87,42 +67,5 @@ class BuildClassStudentIdCardsPdfAction
         }
 
         return $this->outputMpdfString($mpdf);
-    }
-
-    /**
-     * Top-left corner, in millimetres from the page edge, of the front card in
-     * the given slot. The block of cards is centred on the page.
-     *
-     * @return array{x: float, y: float}
-     */
-    private function slotOrigin(int $slot): array
-    {
-        $pairWidth = self::CARD_WIDTH * 2;
-
-        $blockWidth = $pairWidth * self::COLUMNS_PER_PAGE + self::CARD_GAP * (self::COLUMNS_PER_PAGE - 1);
-        $blockHeight = self::CARD_HEIGHT * self::ROWS_PER_PAGE + self::CARD_GAP * (self::ROWS_PER_PAGE - 1);
-
-        $column = $slot % self::COLUMNS_PER_PAGE;
-        $row = intdiv($slot, self::COLUMNS_PER_PAGE);
-
-        return [
-            'x' => (self::PAGE_WIDTH - $blockWidth) / 2 + $column * ($pairWidth + self::CARD_GAP),
-            'y' => (self::PAGE_HEIGHT - $blockHeight) / 2 + $row * (self::CARD_HEIGHT + self::CARD_GAP),
-        ];
-    }
-
-    /**
-     * School details shared by every card, resolved once per PDF.
-     *
-     * @return array{name: string, address: string, logo: ?string, signature: ?string}
-     */
-    private function schoolBranding(): array
-    {
-        return [
-            'name' => (string) SchoolSetting::get('school_name', ''),
-            'address' => (string) SchoolSetting::get('school_address', ''),
-            'logo' => PdfImage::path(SchoolSetting::get('school_logo')),
-            'signature' => PdfImage::path(SchoolSetting::get('principal_signature')),
-        ];
     }
 }

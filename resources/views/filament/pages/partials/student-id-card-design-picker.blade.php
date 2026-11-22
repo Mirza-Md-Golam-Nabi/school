@@ -1,111 +1,171 @@
 @php
-    // Previews are drawn at this many pixels per millimetre of the real card,
-    // using the same positions the printed sheet uses.
-    $u = 2.6;
-    $px = fn (float $mm): string => round($mm * $u, 1).'px';
-    $pt = fn (float $points): string => round($points * 0.3528 * $u, 1).'px';
-    $box = fn (float $left, float $top, float $width, ?float $height = null): string => sprintf(
-        'position:absolute; left:%s; top:%s; width:%s;%s',
-        $px($left),
-        $px($top),
-        $px($width),
-        $height === null ? '' : ' height:'.$px($height).';',
-    );
+    // The student ID card page uses the defaults; the teacher page passes its own wording.
+    $sample = [
+        'cardRole' => $cardRole ?? 'STUDENT',
+        'sampleName' => $sampleName ?? 'Student Name',
+        'sampleFrontRows' => $sampleFrontRows ?? ['ID NO' => '20260001', 'CLASS' => 'Six', 'ROLL' => '12'],
+        'sampleBackRows' => $sampleBackRows ?? ['GUARDIAN' => 'Guardian Name', 'PHONE' => '01700-000000', 'BLOOD GROUP' => 'B+'],
+        'sampleFooter' => $sampleFooter ?? 'ADMISSION',
+        'schoolName' => $schoolName,
+        'schoolAddress' => $schoolAddress,
+        'logo' => $previewLogo,
+    ];
+    $pickerDescription ??= 'ডিজাইন বেছে নিন, লোগোর রং ঠিক করুন, প্রিভিউ দেখে Submit চাপুন — সাবমিট করা ডিজাইনেই সব ক্লাসের ID card তৈরি হবে।';
+
+    $draft = collect($templates)->firstWhere('value', $draftTemplate) ?? $templates[0];
+    $logoSwatches = ['#ffffff', '#000000', $draft['theme']['schoolName'], $draft['theme']['roleBackground'], $draft['theme']['footerAccent']];
 @endphp
 
 <x-filament::section
     icon="heroicon-o-swatch"
     heading="Card Design"
-    description="যে ডিজাইনটা বেছে নেবেন, সব ক্লাসের ID card সেই ডিজাইনে তৈরি হবে। ডিজাইনের ওপর ক্লিক করুন।"
+    :description="$pickerDescription"
 >
-    <div class="flex flex-wrap justify-center gap-4 sm:justify-start">
-        @foreach ($templates as $template)
-            @php
-                $theme = $template['theme'];
-                $isSelected = $template['value'] === $selectedTemplate;
-                $ring = 'rgb('.implode(',', $template['ring']).')';
-            @endphp
+    <div class="flex flex-col gap-6">
+        {{-- ================= Step 1: designs ================= --}}
+        <div>
+            <p class="mb-2 text-xs font-semibold text-gray-700 sm:text-sm dark:text-gray-200">১. ডিজাইন বেছে নিন</p>
 
-            <button
-                type="button"
-                wire:click="selectTemplate('{{ $template['value'] }}')"
-                wire:loading.attr="disabled"
-                wire:key="id-card-template-{{ $template['value'] }}"
-                aria-pressed="{{ $isSelected ? 'true' : 'false' }}"
-                class="rounded-xl bg-white p-2 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg dark:bg-gray-900"
-                style="border: 2px solid {{ $isSelected ? '#16a34a' : 'rgba(148,163,184,0.35)' }}; {{ $isSelected ? 'box-shadow: 0 0 0 3px rgba(22,163,74,0.2);' : '' }}"
-            >
-                <div class="flex gap-1" style="font-family: ui-sans-serif, system-ui, sans-serif; line-height: 1.15;">
-                    {{-- Front --}}
-                    <div style="position:relative; overflow:hidden; border-radius:4px; width:{{ $px(54) }}; height:{{ $px(85.6) }};">
-                        <img src="{{ $template['front'] }}" alt="" style="position:absolute; inset:0; width:100%; height:100%;">
+            <div class="flex flex-wrap justify-center gap-3 sm:justify-start">
+                @foreach ($templates as $template)
+                    @php
+                        $isDraft = $template['value'] === $draftTemplate;
+                        $isSubmitted = $hasSubmittedDesign && $template['value'] === $selectedTemplate;
+                    @endphp
 
-                        <div style="{{ $box(3, 4.5, 48) }} text-align:center;">
-                            <div style="font-size:{{ $pt(8.5) }}; font-weight:700; color:{{ $theme['schoolName'] }}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ $schoolName }}</div>
-                            <div style="font-size:{{ $pt(5.2) }}; color:{{ $theme['schoolAddress'] }};">School Address</div>
+                    <button
+                        type="button"
+                        wire:click="selectTemplate('{{ $template['value'] }}')"
+                        wire:loading.attr="disabled"
+                        wire:key="id-card-template-{{ $template['value'] }}"
+                        aria-pressed="{{ $isDraft ? 'true' : 'false' }}"
+                        class="rounded-xl bg-white p-1.5 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg dark:bg-gray-900"
+                        style="border: 2px solid {{ $isDraft ? '#2563eb' : 'rgba(148,163,184,0.35)' }}; {{ $isDraft ? 'box-shadow: 0 0 0 3px rgba(37,99,235,0.2);' : '' }}"
+                    >
+                        @include('filament.pages.partials.id-card-design-sample', [...$sample, 'template' => $template, 'u' => 1.6])
+
+                        <div class="mt-1.5 flex items-center justify-between gap-1 px-0.5">
+                            <p class="truncate text-xs font-bold text-gray-900 dark:text-white">{{ $template['label'] }}</p>
+
+                            @if ($isSubmitted)
+                                <x-filament::badge color="success" icon="heroicon-m-check-circle" size="sm">Active</x-filament::badge>
+                            @endif
                         </div>
+                    </button>
+                @endforeach
+            </div>
+        </div>
 
-                        <div style="{{ $box(15.5, 15.5, 23, 23) }} border-radius:9999px; background:#e0e7ff; border:{{ $px(0.55) }} solid {{ $ring }}; box-shadow: inset 0 0 0 {{ $px(0.7) }} #ffffff; overflow:hidden;">
-                            <div style="position:absolute; left:35%; top:22%; width:30%; height:30%; border-radius:9999px; background:#a5b4fc;"></div>
-                            <div style="position:absolute; left:19%; top:60%; width:62%; height:62%; border-radius:9999px; background:#a5b4fc;"></div>
-                        </div>
+        {{-- ================= Step 2: preview, logo colour and submit ================= --}}
+        <div class="flex flex-col gap-4 rounded-xl bg-gray-50 p-3 ring-1 ring-gray-950/5 sm:p-4 lg:flex-row lg:items-start dark:bg-white/5 dark:ring-white/10">
+            <div class="min-w-0 lg:flex-1">
+                <p class="mb-2 text-xs font-semibold text-gray-700 sm:text-sm dark:text-gray-200">
+                    ২. প্রিভিউ — {{ $draft['label'] }}
+                    <span class="font-normal text-gray-500 dark:text-gray-400">· {{ $draft['description'] }}</span>
+                </p>
 
-                        <div style="{{ $box(2, 40, 50) }} text-align:center;">
-                            <div style="font-size:{{ $pt(10) }}; font-weight:700; color:{{ $theme['studentName'] }};">Student Name</div>
-                            <div style="display:inline-block; margin-top:{{ $px(1) }}; padding:{{ $px(0.5) }} {{ $px(3.5) }}; border-radius:9999px; background:{{ $theme['roleBackground'] }}; color:{{ $theme['roleText'] }}; font-size:{{ $pt(5.2) }}; font-weight:700; letter-spacing:{{ $px(0.5) }};">STUDENT</div>
-                        </div>
-
-                        <div style="{{ $box(6, 52, 42) }}">
-                            @foreach (['ID NO' => '20260001', 'CLASS' => 'Six', 'ROLL' => '12'] as $label => $value)
-                                <div style="display:flex; align-items:center; padding:{{ $px(0.9) }} 0; border-bottom:1px solid {{ $theme['rowBorder'] }};">
-                                    <span style="width:{{ $px(16) }}; font-size:{{ $pt(5.2) }}; font-weight:700; color:{{ $theme['label'] }};">{{ $label }}</span>
-                                    <span style="font-size:{{ $pt(6.8) }}; font-weight:700; color:{{ $theme['value'] }};">{{ $value }}</span>
-                                </div>
-                            @endforeach
-                        </div>
-
-                        <div style="{{ $box(0, 80.6, 54) }} text-align:center; font-size:{{ $pt(6) }}; font-weight:700; letter-spacing:{{ $px(0.4) }}; color:{{ $theme['footer'] }};">
-                            ADMISSION <span style="color:{{ $theme['footerAccent'] }};">{{ now()->year }}</span>
-                        </div>
-                    </div>
-
-                    {{-- Back --}}
-                    <div style="position:relative; overflow:hidden; border-radius:4px; width:{{ $px(54) }}; height:{{ $px(85.6) }};">
-                        <img src="{{ $template['back'] }}" alt="" style="position:absolute; inset:0; width:100%; height:100%;">
-
-                        <div style="{{ $box(0, 3.9, 54) }} text-align:center; font-size:{{ $pt(7) }}; font-weight:700; letter-spacing:{{ $px(0.5) }}; color:{{ $theme['backTitle'] }};">STUDENT ID CARD</div>
-
-                        <div style="{{ $box(5, 17, 44) }}">
-                            @foreach (['GUARDIAN' => 'Guardian Name', 'PHONE' => '01700-000000', 'BLOOD GROUP' => 'B+'] as $label => $value)
-                                <div style="margin-bottom:{{ $px(1.4) }};">
-                                    <div style="font-size:{{ $pt(4.8) }}; font-weight:700; color:{{ $theme['fieldLabel'] }};">{{ $label }}</div>
-                                    <div style="font-size:{{ $pt(6.8) }}; font-weight:700; color:{{ $label === 'BLOOD GROUP' ? $theme['backHighlight'] : $theme['fieldValue'] }};">{{ $value }}</div>
-                                </div>
-                            @endforeach
-                        </div>
-
-                        <div style="{{ $box(9, 50.5, 36, 6.5) }} background: repeating-linear-gradient(90deg, #111827 0, #111827 1.5px, #ffffff 1.5px, #ffffff 3px, #111827 3px, #111827 4px, #ffffff 4px, #ffffff 6.5px);"></div>
-                        <div style="{{ $box(5, 57.6, 44) }} text-align:center; font-size:{{ $pt(6) }}; font-weight:700; letter-spacing:{{ $px(0.6) }}; color:{{ $theme['fieldValue'] }};">20260001</div>
-
-                        <div style="{{ $box(5, 65, 22) }} font-size:{{ $pt(5) }}; color:{{ $theme['muted'] }};">
-                            ISSUE DATE
-                            <div style="font-size:{{ $pt(6.4) }}; font-weight:700; color:{{ $theme['fieldValue'] }};">01 JAN {{ now()->year }}</div>
-                        </div>
-                        <div style="{{ $box(29, 68.2, 20) }} border-top:1px solid {{ $theme['fieldValue'] }}; text-align:center; font-size:{{ $pt(5) }}; font-weight:700; color:{{ $theme['fieldValue'] }};">{{ mb_strtoupper(\App\Models\SchoolSetting::headSignatoryTitle()) }}</div>
-                    </div>
+                <div class="overflow-x-auto" wire:loading.class="opacity-60">
+                    @include('filament.pages.partials.id-card-design-sample', [...$sample, 'template' => $draft, 'u' => 3.8])
                 </div>
+            </div>
 
-                <div class="mt-2 flex items-center justify-between gap-2 px-1">
-                    <div class="min-w-0">
-                        <p class="truncate text-xs font-bold text-gray-900 sm:text-sm dark:text-white">{{ $template['label'] }}</p>
-                        <p class="truncate text-xs text-gray-500 dark:text-gray-400">{{ $template['description'] }}</p>
-                    </div>
+            <div class="flex flex-col gap-4 lg:w-72 lg:shrink-0">
+                <div>
+                    <p class="mb-2 text-xs font-semibold text-gray-700 sm:text-sm dark:text-gray-200">৩. লোগোর রং</p>
 
-                    @if ($isSelected)
-                        <x-filament::badge color="success" icon="heroicon-m-check-circle" size="sm">Selected</x-filament::badge>
+                    @if (! $hasSchoolLogo)
+                        <p class="text-xs text-warning-600 dark:text-warning-400">
+                            এখনো কোনো স্কুল লোগো নেই — School Settings থেকে লোগো আপলোড করুন।
+                        </p>
+                    @else
+                        <div class="grid grid-cols-2 gap-1 rounded-lg bg-white p-1 ring-1 ring-gray-950/10 dark:bg-gray-900 dark:ring-white/10">
+                            <button
+                                type="button"
+                                wire:click="$set('recolourLogo', false)"
+                                @class([
+                                    'rounded-md px-2 py-1.5 text-xs font-semibold transition',
+                                    'bg-primary-600 text-white' => ! $recolourLogo,
+                                    'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5' => $recolourLogo,
+                                ])
+                            >
+                                আসল রং
+                            </button>
+                            <button
+                                type="button"
+                                wire:click="$set('recolourLogo', true)"
+                                @class([
+                                    'rounded-md px-2 py-1.5 text-xs font-semibold transition',
+                                    'bg-primary-600 text-white' => $recolourLogo,
+                                    'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5' => ! $recolourLogo,
+                                ])
+                            >
+                                নিজের রং
+                            </button>
+                        </div>
+
+                        @if ($recolourLogo)
+                            <div class="mt-3 flex items-center gap-2">
+                                <input
+                                    type="color"
+                                    wire:model.live.debounce.300ms="draftLogoColour"
+                                    class="h-9 w-12 shrink-0 cursor-pointer rounded border border-gray-300 bg-white p-0.5 dark:border-white/10 dark:bg-gray-900"
+                                    aria-label="Logo colour"
+                                >
+                                <x-filament::input.wrapper class="min-w-0 flex-1" :valid="! $errors->has('draftLogoColour')">
+                                    <x-filament::input
+                                        type="text"
+                                        wire:model.live.debounce.500ms="draftLogoColour"
+                                        maxlength="7"
+                                        placeholder="#ffffff"
+                                        class="text-xs uppercase sm:text-sm"
+                                    />
+                                </x-filament::input.wrapper>
+                            </div>
+
+                            <div class="mt-2 flex flex-wrap gap-1.5">
+                                @foreach (array_unique(array_map('strtolower', $logoSwatches)) as $swatch)
+                                    <button
+                                        type="button"
+                                        wire:click="$set('draftLogoColour', '{{ $swatch }}')"
+                                        title="{{ $swatch }}"
+                                        class="h-6 w-6 rounded-full ring-1 ring-gray-950/20 transition hover:scale-110 dark:ring-white/20"
+                                        style="background: {{ $swatch }}; {{ strtolower($draftLogoColour) === $swatch ? 'outline: 2px solid #2563eb; outline-offset: 2px;' : '' }}"
+                                    ></button>
+                                @endforeach
+                            </div>
+
+                            @error('draftLogoColour')
+                                <p class="mt-1 text-xs text-danger-600 dark:text-danger-400">{{ $message }}</p>
+                            @enderror
+                        @endif
                     @endif
                 </div>
-            </button>
-        @endforeach
+
+                <div class="flex flex-col gap-2 border-t border-gray-200 pt-3 dark:border-white/10">
+                    @if (! $hasSubmittedDesign)
+                        <p class="text-xs text-warning-600 dark:text-warning-400">
+                            ডিজাইন এখনো সাবমিট হয়নি — সাবমিট করার পরেই ID card তৈরি করা যাবে।
+                        </p>
+                    @elseif ($hasUnsubmittedChanges)
+                        <p class="text-xs text-warning-600 dark:text-warning-400">
+                            প্রিভিউতে পরিবর্তন সাবমিট হয়নি — এখন কার্ড আগের ডিজাইনেই তৈরি হবে।
+                        </p>
+                    @else
+                        <p class="text-xs text-success-600 dark:text-success-400">
+                            এই ডিজাইনটাই সাবমিট করা আছে — ID card এই ডিজাইনে তৈরি হচ্ছে।
+                        </p>
+                    @endif
+
+                    <x-filament::button
+                        wire:click="submitDesign"
+                        icon="heroicon-o-check-badge"
+                        :disabled="! $hasUnsubmittedChanges"
+                        class="w-full"
+                    >
+                        Submit Design
+                    </x-filament::button>
+                </div>
+            </div>
+        </div>
     </div>
 </x-filament::section>

@@ -6,6 +6,7 @@ use App\Enums\BloodGroup;
 use App\Enums\EmploymentStatus;
 use App\Enums\Gender;
 use App\Enums\Religion;
+use App\Support\IdCardPhotoPosition;
 use App\Traits\LogsRelationLabels;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
@@ -15,6 +16,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Storage;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
@@ -36,6 +38,7 @@ class TeacherProfile extends Model
         'department',
         'qualification',
         'signature',
+        'id_card_photo_position',
         'joining_date',
         'status',
         'default_school_account_id',
@@ -48,6 +51,7 @@ class TeacherProfile extends Model
         'status' => EmploymentStatus::class,
         'date_of_birth' => 'date',
         'joining_date' => 'date',
+        'id_card_photo_position' => 'array',
     ];
 
     protected static function booted(): void
@@ -122,6 +126,35 @@ class TeacherProfile extends Model
         return $this->morphMany(SalaryInvoice::class, 'profileable');
     }
 
+    /**
+     * The number printed and barcoded on the teacher's ID card. The "T" prefix
+     * keeps it from ever colliding with a student's ID number.
+     */
+    public function idCardNumber(): string
+    {
+        return sprintf('T%03d%04d', SchoolSetting::schoolCode(), (int) $this->id);
+    }
+
+    /**
+     * Where the teacher placed their photo inside the ID card frame.
+     */
+    public function idCardPhotoPosition(): IdCardPhotoPosition
+    {
+        return IdCardPhotoPosition::fromArray($this->id_card_photo_position);
+    }
+
+    /**
+     * Public URL of the teacher's signature image, or null when none is uploaded.
+     */
+    public function signatureUrl(): ?string
+    {
+        $storage = Storage::disk('public');
+
+        return ($this->signature && $storage->exists($this->signature))
+            ? $storage->url($this->signature)
+            : null;
+    }
+
     #[Scope]
     protected function active(Builder $query): void
     {
@@ -143,6 +176,7 @@ class TeacherProfile extends Model
     {
         return LogOptions::defaults()
             ->logFillable()
+            ->logExcept(['id_card_photo_position'])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs()
             ->useLogName('teacher_profile')

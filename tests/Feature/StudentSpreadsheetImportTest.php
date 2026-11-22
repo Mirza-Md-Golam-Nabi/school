@@ -90,6 +90,7 @@ it('builds a demo file whose header row lists every import column and whose exam
     expect($sheets['Students'])->toHaveCount(2)
         ->and($firstRow)->toEqual(['session_year' => now()->year, 'nationality' => 'Bangladeshi'])
         ->and($headers)->toBe(array_keys(ImportStudentsFromSpreadsheetAction::COLUMNS))
+        ->and(array_slice($headers, 0, 3))->toBe(['roll_no', 'name_bn', 'name'])
         ->and($sheets['Students'][0])->toContain('name_bn*', 'name', 'roll_no*', 'gender*', 'section')
         ->and(collect($sheets['Instructions'])->firstWhere(0, 'class')[2])->toBe('Import Class 6');
 });

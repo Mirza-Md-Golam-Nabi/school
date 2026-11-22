@@ -19,6 +19,8 @@ use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\MarksheetPdfController;
 use App\Http\Controllers\PushNotificationDeliveryController;
 use App\Http\Controllers\PushSubscriptionController;
+use App\Http\Controllers\TeacherIdCardsPdfController;
+use App\Http\Controllers\TeacherListPdfController;
 use App\Models\SchoolSetting;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
@@ -77,6 +79,22 @@ Route::get('/classes/{class}/student-id-cards/download', [ClassStudentIdCardsPdf
 Route::get('/classes/{class}/student-list/download', ClassStudentListPdfController::class)
     ->middleware('auth')
     ->name('student-list.class.download');
+
+Route::get('/teacher-list/download', TeacherListPdfController::class)
+    ->middleware('auth')
+    ->name('teacher-list.download');
+
+Route::get('/teacher-id-cards/view', [TeacherIdCardsPdfController::class, 'view'])
+    ->middleware('auth')
+    ->name('teacher-id-cards.view');
+
+Route::get('/teacher-id-cards/download', [TeacherIdCardsPdfController::class, 'download'])
+    ->middleware('auth')
+    ->name('teacher-id-cards.download');
+
+Route::get('/teacher-id-cards/{teacher}/view', [TeacherIdCardsPdfController::class, 'show'])
+    ->middleware('auth')
+    ->name('teacher-id-cards.teacher.view');
 
 Route::get('/classes/{class}/attendance-report/{year}/{month}/download', ClassAttendanceReportPdfController::class)
     ->middleware('auth')

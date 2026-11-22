@@ -1,7 +1,13 @@
 <x-filament-panels::page>
     @include('filament.pages.partials.student-id-card-design-picker')
 
-    @if ($classes->isEmpty())
+    @if (! $hasSubmittedDesign)
+        <x-filament::empty-state
+            icon="heroicon-o-swatch"
+            heading="আগে কার্ডের ডিজাইন সাবমিট করুন"
+            description="ওপর থেকে ডিজাইন বেছে প্রিভিউ দেখে Submit Design চাপুন — তারপর প্রতিটা ক্লাসের ID card তৈরি করা যাবে।"
+        />
+    @elseif ($classes->isEmpty())
         <x-filament::empty-state
             icon="heroicon-o-identification"
             heading="No active classes found"
