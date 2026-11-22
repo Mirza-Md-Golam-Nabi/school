@@ -21,3 +21,12 @@ it('shows the school name from config and links to every panel on the home page'
         ->assertSee('Teacher Panel')
         ->assertSee('Student Panel');
 });
+
+it('offers a light and dark theme toggle with a static flag on the home page', function () {
+    $this->get(route('home'))
+        ->assertOk()
+        ->assertSee('id="theme-toggle"', false)
+        ->assertSee(':root[data-theme="light"]', false)
+        ->assertSee("localStorage.getItem('home-theme')", false)
+        ->assertDontSee('@keyframes wave', false);
+});
