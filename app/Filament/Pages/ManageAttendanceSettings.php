@@ -106,6 +106,17 @@ class ManageAttendanceSettings extends Page
                                     ->required(),
                             ]),
                         ]),
+
+                    Section::make(__('Teacher Late Time'))
+                        ->description(__('A teacher who arrives after this time is marked Late Present (LP). Leave it empty to use the same rule as students: Entry Time plus the Late Threshold.'))
+                        ->icon('heroicon-o-academic-cap')
+                        ->schema([
+                            Grid::make(['default' => 1, 'md' => 2])->schema([
+                                TimePicker::make('teacher_late_after')
+                                    ->label(__('Teachers Are Late After'))
+                                    ->seconds(false),
+                            ]),
+                        ]),
                 ])->livewireSubmitHandler('save')
                     ->footer([
                         Actions::make([

@@ -39,7 +39,7 @@ class BuildEmployeeAttendanceReportData
         $monthStart = Carbon::create($year, $month, 1)->startOfDay();
         $monthEnd = $monthStart->copy()->endOfMonth()->startOfDay();
         $setting = AttendanceSetting::current();
-        $scheduledEntry = $setting->entry_time;
+        $scheduledEntry = $setting->lateMeasuredFromFor($person::class);
 
         $records = Attendance::query()
             ->where('attendable_type', $person->getMorphClass())
@@ -89,7 +89,8 @@ class BuildEmployeeAttendanceReportData
     }
 
     /**
-     * Minutes after the scheduled school start, the same way the Late Arrivals page counts them.
+     * Minutes after the time lateness is measured from (school start, or the
+     * teachers' own late cut-off), the same way the Late Arrivals page counts them.
      */
     private function minutesLate(?string $entryTime, string $scheduledEntry): ?int
     {

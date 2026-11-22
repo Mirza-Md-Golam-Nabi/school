@@ -13,7 +13,7 @@
             const prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
             const theme = stored === 'light' || stored === 'dark' ? stored : (prefersLight ? 'light' : 'dark');
             document.documentElement.dataset.theme = theme;
-            document.querySelector('meta[name="theme-color"]').content = theme === 'light' ? '#f8fafc' : '#060818';
+            document.querySelector('meta[name="theme-color"]').content = theme === 'light' ? '#fbfaff' : '#060818';
         })();
     </script>
     <link rel="preconnect" href="https://fonts.bunny.net">
@@ -55,37 +55,101 @@
         }
 
         :root[data-theme="light"] {
-            --bg: #f8fafc;
-            --bg-2: #e0e7ff;
-            --ink: #0f172a;
-            --muted: #475569;
-            --line: rgb(15 23 42 / 0.1);
-            --glass: rgb(15 23 42 / 0.04);
+            --bg: #fbfaff;
+            --bg-2: #e8e6ff;
+            --ink: #1e1b4b;
+            --muted: #5b5779;
+            --line: rgb(79 70 229 / 0.12);
+            --glass: rgb(255 255 255 / 0.75);
             --gold: #d97706;
             --indigo: #4f46e5;
             --cyan: #0891b2;
             --pink: #db2777;
             --emerald: #059669;
-            --nav-bg: rgb(248 250 252 / .75);
-            --surface: rgb(255 255 255 / .85);
-            --card-from: rgb(255 255 255 / .95);
-            --card-to: rgb(255 255 255 / .65);
-            --glass-hover: rgb(15 23 42 / .07);
-            --soft: #334155;
-            --strong: #0f172a;
-            --footer-strong: #0f172a;
-            --meta: #64748b;
-            --mix: #0f172a;
-            --band-border: rgb(15 23 42 / .08);
-            --marquee-bg: rgb(255 255 255 / .55);
-            --drop: rgb(15 23 42 / .18);
+            --nav-bg: rgb(255 255 255 / .72);
+            --surface: #fff;
+            --card-from: #fff;
+            --card-to: #fff;
+            --glass-hover: #fff;
+            --soft: #3b3766;
+            --strong: #1e1b4b;
+            --footer-strong: #1e1b4b;
+            --meta: #7c7896;
+            --mix: #1e1b4b;
+            --band-border: transparent;
+            --marquee-bg: rgb(255 255 255 / .7);
+            --drop: rgb(67 56 202 / .22);
             --title-edge: #1e1b4b;
-            --title-mid: #4338ca;
+            --title-mid: #6d28d9;
             --title-end: #db2777;
-            --orb-opacity: .45;
+            --orb-opacity: 1;
+            --shadow-sm: 0 1px 2px rgb(30 27 75 / .05), 0 4px 14px -6px rgb(67 56 202 / .14);
             color-scheme: light;
         }
         :root[data-theme="light"] .star { display: none; }
+
+        /* ---------- Light theme: pearl + aurora ---------- */
+        :root[data-theme="light"] .sky {
+            background:
+                radial-gradient(900px 520px at 8% -8%, #dfe3ff, transparent 62%),
+                radial-gradient(800px 480px at 100% 6%, #ffe1f0, transparent 58%),
+                radial-gradient(900px 520px at 50% 108%, #fff1d6, transparent 62%),
+                var(--bg);
+        }
+        :root[data-theme="light"] .orb { filter: blur(110px); }
+        :root[data-theme="light"] .orb--indigo { background: #a5b4fc; opacity: .45; }
+        :root[data-theme="light"] .orb--gold { background: #fcd34d; opacity: .35; }
+        :root[data-theme="light"] .orb--pink { background: #f9a8d4; opacity: .38; }
+        :root[data-theme="light"] .nav { box-shadow: 0 6px 24px -18px rgb(67 56 202 / .45); }
+
+        :root[data-theme="light"] .btn--primary { color: #fff; background: linear-gradient(135deg, #4f46e5, #7c3aed 50%, #db2777); box-shadow: 0 10px 28px -10px rgb(124 58 237 / .7); }
+        :root[data-theme="light"] .btn--primary:hover { box-shadow: 0 16px 36px -10px rgb(124 58 237 / .85); }
+        :root[data-theme="light"] .btn--ghost,
+        :root[data-theme="light"] .theme-toggle,
+        :root[data-theme="light"] .pill { box-shadow: var(--shadow-sm); }
+        :root[data-theme="light"] .theme-toggle { color: #6d28d9; }
+        :root[data-theme="light"] .pill__dot { background: #d1fae5; }
+
+        :root[data-theme="light"] .eyebrow { color: #7c3aed; }
+        :root[data-theme="light"] .stats { background: var(--line); box-shadow: 0 20px 50px -28px rgb(67 56 202 / .45); }
+        :root[data-theme="light"] .stat:nth-child(2) .stat__value { color: #7c3aed; }
+
+        :root[data-theme="light"] .card {
+            --k: var(--cd, var(--c));
+            background: linear-gradient(165deg, #fff 55%, color-mix(in srgb, var(--c) 10%, #fff));
+            border-color: color-mix(in srgb, var(--k) 16%, transparent);
+            box-shadow: 0 1px 2px rgb(30 27 75 / .04), 0 14px 34px -18px color-mix(in srgb, var(--k) 45%, transparent);
+        }
+        :root[data-theme="light"] .card::after {
+            content: ''; position: absolute; inset: 0 0 auto; height: 3px;
+            background: linear-gradient(90deg, var(--k), color-mix(in srgb, var(--c) 40%, transparent) 70%, transparent);
+        }
+        :root[data-theme="light"] .card::before { opacity: .22; }
+        :root[data-theme="light"] .card:hover { border-color: color-mix(in srgb, var(--k) 35%, transparent); box-shadow: 0 2px 4px rgb(30 27 75 / .04), 0 26px 50px -20px color-mix(in srgb, var(--k) 55%, transparent); }
+        :root[data-theme="light"] .card:hover::before { opacity: .4; }
+        :root[data-theme="light"] .card__badge { color: var(--k); background: color-mix(in srgb, var(--k) 10%, #fff); border-color: color-mix(in srgb, var(--k) 28%, transparent); }
+        :root[data-theme="light"] .card__alt,
+        :root[data-theme="light"] .card__go { color: var(--k); }
+        :root[data-theme="light"] .card__list li::before { background: var(--k); box-shadow: 0 0 0 3px color-mix(in srgb, var(--k) 16%, transparent); }
+        :root[data-theme="light"] .card__go span.arrow { color: #fff; border-color: transparent; background: linear-gradient(135deg, var(--k), color-mix(in srgb, var(--k) 70%, var(--c))); box-shadow: 0 8px 18px -8px var(--k); }
+
+        :root[data-theme="light"] .band { color: #fff; background: linear-gradient(135deg, #4338ca, #7c3aed 45%, #db2777 80%, #f97316); box-shadow: 0 30px 60px -30px rgb(124 58 237 / .7); }
+        :root[data-theme="light"] .band::after { background: radial-gradient(circle at 15% 0%, rgb(255 255 255 / .28), transparent 45%), radial-gradient(circle at 90% 100%, rgb(253 230 138 / .35), transparent 50%); }
+        :root[data-theme="light"] .band .eyebrow { color: #fde68a; }
+        :root[data-theme="light"] .band .section__note { color: rgb(255 255 255 / .85); }
+        :root[data-theme="light"] .band .btn--primary { color: #4c1d95; background: #fff; box-shadow: 0 12px 30px -12px rgb(30 27 75 / .6); }
+        :root[data-theme="light"] .band .btn--ghost { color: #fff; background: rgb(255 255 255 / .14); border-color: rgb(255 255 255 / .4); box-shadow: none; }
+        :root[data-theme="light"] .band .btn--ghost:hover { background: rgb(255 255 255 / .24); }
+
+        :root[data-theme="light"] .campus .wall-top { stop-color: #c7d2fe; }
+        :root[data-theme="light"] .campus .wall-bottom { stop-color: #a5b4fc; }
+        :root[data-theme="light"] .campus .wing-top { stop-color: #e0e7ff; }
+        :root[data-theme="light"] .campus .wing-bottom { stop-color: #c7d2fe; }
+        :root[data-theme="light"] .campus .edge { stroke: rgb(67 56 202 / .18); }
+        :root[data-theme="light"] .campus .pillar { fill: rgb(255 255 255 / .55); }
+        :root[data-theme="light"] .campus .door { fill: #4338ca; }
+        :root[data-theme="light"] .campus .win { fill: #f59e0b; }
+        :root[data-theme="light"] .ground { background: linear-gradient(180deg, rgb(124 58 237 / .14), transparent); }
 
         *, *::before, *::after { box-sizing: border-box; }
         html { scroll-behavior: smooth; }
@@ -252,6 +316,21 @@
         .card--portal { padding: 1.5rem; min-height: 100%; }
         .card--portal .card__icon { font-size: 3rem; }
 
+        /* ---------- Install strip ---------- */
+        .install-strip {
+            display: flex; flex-wrap: wrap; align-items: center; gap: .9rem 1.1rem; margin-top: 1.25rem; padding: 1rem 1.15rem; border-radius: 1.4rem;
+            background: linear-gradient(135deg, rgb(129 140 248 / .14), rgb(244 114 182 / .1) 60%, rgb(251 191 36 / .12));
+            border: 1px solid var(--band-border);
+        }
+        :root[data-theme="light"] .install-strip { background: linear-gradient(135deg, #eef0ff, #fdf0f7 60%, #fff7e6); border-color: rgb(124 58 237 / .16); box-shadow: 0 16px 40px -26px rgb(124 58 237 / .5); }
+        .install-strip__icon { flex: none; display: grid; place-items: center; width: 3rem; height: 3rem; border-radius: 1rem; font-size: 1.6rem; background: var(--glass); border: 1px solid var(--line); }
+        :root[data-theme="light"] .install-strip__icon { background: #fff; }
+        .install-strip__body { flex: 1 1 260px; min-width: 0; }
+        .install-strip__title { margin: 0; font-size: .95rem; font-weight: 700; }
+        .install-strip__text { margin: .2rem 0 0; font-size: .75rem; color: var(--muted); line-height: 1.6; }
+        .install-strip__actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+        @media (min-width: 640px) { .install-strip__title { font-size: 1.1rem; } .install-strip__text { font-size: .88rem; } }
+
         /* ---------- Features (compact) ---------- */
         .feature { --c: #818cf8; padding: 1.1rem; }
         .feature .card__icon { font-size: 1.9rem; }
@@ -289,21 +368,21 @@
 
         $portals = [
             [
-                'badge' => 'ADMIN', 'icon' => '🛡️', 'color' => '#fbbf24',
+                'badge' => 'ADMIN', 'icon' => '🛡️', 'color' => '#fbbf24', 'deep' => '#d97706',
                 'name' => 'অ্যাডমিন প্যানেল', 'alt' => 'Admin Panel',
                 'text' => 'স্কুলের সম্পূর্ণ ব্যবস্থাপনা ও নিয়ন্ত্রণ — এক ড্যাশবোর্ডে সবকিছু।',
                 'items' => ['শিক্ষার্থী, শিক্ষক ও স্টাফ', 'ফি, হিসাব ও বেতন', 'পরীক্ষা, রেজাল্ট ও ডকুমেন্ট'],
                 'url' => $panelUrl('admin'),
             ],
             [
-                'badge' => 'TEACHER', 'icon' => '👩‍🏫', 'color' => '#818cf8',
+                'badge' => 'TEACHER', 'icon' => '👩‍🏫', 'color' => '#818cf8', 'deep' => '#4f46e5',
                 'name' => 'শিক্ষক প্যানেল', 'alt' => 'Teacher Panel',
                 'text' => 'নিজের ক্লাস, মার্কস এন্ট্রি ও উপস্থিতি — দ্রুত ও সহজে।',
                 'items' => ['ক্লাসভিত্তিক মার্কস এন্ট্রি', 'দৈনিক উপস্থিতি', 'ছুটির আবেদন ও নোটিশ'],
                 'url' => $panelUrl('teacher'),
             ],
             [
-                'badge' => 'STUDENT', 'icon' => '🎓', 'color' => '#f472b6',
+                'badge' => 'STUDENT', 'icon' => '🎓', 'color' => '#f472b6', 'deep' => '#db2777',
                 'name' => 'শিক্ষার্থী প্যানেল', 'alt' => 'Student Panel',
                 'text' => 'রেজাল্ট, উপস্থিতি ও নোটিশ — যেকোনো সময়, যেকোনো জায়গা থেকে।',
                 'items' => ['মার্কশিট ও মেধাক্রম', 'উপস্থিতির রিপোর্ট', 'ফি ইনভয়েস ও নোটিশ'],
@@ -312,14 +391,14 @@
         ];
 
         $features = [
-            ['icon' => '🕒', 'color' => '#34d399', 'name' => 'স্মার্ট উপস্থিতি', 'alt' => 'Attendance', 'text' => 'বায়োমেট্রিক ডিভাইস সংযোগ, লেট পেনাল্টি ও অভিভাবককে স্বয়ংক্রিয় নোটিফিকেশন।'],
-            ['icon' => '📊', 'color' => '#818cf8', 'name' => 'পরীক্ষা ও রেজাল্ট', 'alt' => 'Exams & Results', 'text' => 'GPA গ্রেডিং, সাবজেক্ট মার্জ, টেবুলেশন শিট ও মেধাক্রম — এক ক্লিকে।'],
-            ['icon' => '💳', 'color' => '#fbbf24', 'name' => 'ফি ও হিসাব', 'alt' => 'Fees & Finance', 'text' => 'ইনভয়েস, ছাড়, লেট ফি, পেমেন্ট স্লিপ ও স্কুলের আয়-ব্যয়ের পূর্ণ হিসাব।'],
-            ['icon' => '📄', 'color' => '#f472b6', 'name' => 'ডকুমেন্ট জেনারেশন', 'alt' => 'Documents', 'text' => 'অ্যাডমিট কার্ড, মার্কশিট, আইডি কার্ড, সিট প্ল্যান ও টিসি — PDF-এ প্রস্তুত।'],
-            ['icon' => '📢', 'color' => '#22d3ee', 'name' => 'নোটিশ ও SMS', 'alt' => 'Communication', 'text' => 'নির্দিষ্ট ক্লাস বা গ্রুপে নোটিশ, পুশ নোটিফিকেশন ও SMS পাঠানো।'],
-            ['icon' => '💼', 'color' => '#a78bfa', 'name' => 'বেতন ও HR', 'alt' => 'Salary & Leave', 'text' => 'বেতন কাঠামো, বাল্ক পেমেন্ট, কর্তন ও ছুটির আবেদন ব্যবস্থাপনা।'],
-            ['icon' => '🚀', 'color' => '#fb923c', 'name' => 'প্রমোশন', 'alt' => 'Promotion', 'text' => 'রেজাল্টের ভিত্তিতে পরবর্তী ক্লাসে বাল্ক প্রমোশন ও ক্লাস ইতিহাস।'],
-            ['icon' => '📅', 'color' => '#2dd4bf', 'name' => 'ইভেন্ট ক্যালেন্ডার', 'alt' => 'Events', 'text' => 'ছুটি, পরীক্ষা ও অনুষ্ঠানের সময়সূচি — সবার জন্য এক ক্যালেন্ডারে।'],
+            ['icon' => '🕒', 'color' => '#34d399', 'deep' => '#059669', 'name' => 'স্মার্ট উপস্থিতি', 'alt' => 'Attendance', 'text' => 'বায়োমেট্রিক ডিভাইস সংযোগ, লেট পেনাল্টি ও অভিভাবককে স্বয়ংক্রিয় নোটিফিকেশন।'],
+            ['icon' => '📊', 'color' => '#818cf8', 'deep' => '#4f46e5', 'name' => 'পরীক্ষা ও রেজাল্ট', 'alt' => 'Exams & Results', 'text' => 'GPA গ্রেডিং, সাবজেক্ট মার্জ, টেবুলেশন শিট ও মেধাক্রম — এক ক্লিকে।'],
+            ['icon' => '💳', 'color' => '#fbbf24', 'deep' => '#d97706', 'name' => 'ফি ও হিসাব', 'alt' => 'Fees & Finance', 'text' => 'ইনভয়েস, ছাড়, লেট ফি, পেমেন্ট স্লিপ ও স্কুলের আয়-ব্যয়ের পূর্ণ হিসাব।'],
+            ['icon' => '📄', 'color' => '#f472b6', 'deep' => '#db2777', 'name' => 'ডকুমেন্ট জেনারেশন', 'alt' => 'Documents', 'text' => 'অ্যাডমিট কার্ড, মার্কশিট, আইডি কার্ড, সিট প্ল্যান ও টিসি — PDF-এ প্রস্তুত।'],
+            ['icon' => '📢', 'color' => '#22d3ee', 'deep' => '#0891b2', 'name' => 'নোটিশ ও SMS', 'alt' => 'Communication', 'text' => 'নির্দিষ্ট ক্লাস বা গ্রুপে নোটিশ, পুশ নোটিফিকেশন ও SMS পাঠানো।'],
+            ['icon' => '💼', 'color' => '#a78bfa', 'deep' => '#7c3aed', 'name' => 'বেতন ও HR', 'alt' => 'Salary & Leave', 'text' => 'বেতন কাঠামো, বাল্ক পেমেন্ট, কর্তন ও ছুটির আবেদন ব্যবস্থাপনা।'],
+            ['icon' => '🚀', 'color' => '#fb923c', 'deep' => '#ea580c', 'name' => 'প্রমোশন', 'alt' => 'Promotion', 'text' => 'রেজাল্টের ভিত্তিতে পরবর্তী ক্লাসে বাল্ক প্রমোশন ও ক্লাস ইতিহাস।'],
+            ['icon' => '📅', 'color' => '#2dd4bf', 'deep' => '#0d9488', 'name' => 'ইভেন্ট ক্যালেন্ডার', 'alt' => 'Events', 'text' => 'ছুটি, পরীক্ষা ও অনুষ্ঠানের সময়সূচি — সবার জন্য এক ক্যালেন্ডারে।'],
         ];
     @endphp
 
@@ -401,8 +480,8 @@
                     <svg class="campus" viewBox="0 0 1000 280" preserveAspectRatio="xMidYMax meet">
                         <defs>
                             <linearGradient id="wallGrad" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0" stop-color="#312e81"/>
-                                <stop offset="1" stop-color="#151643"/>
+                                <stop class="wall-top" offset="0" stop-color="#312e81"/>
+                                <stop class="wall-bottom" offset="1" stop-color="#151643"/>
                             </linearGradient>
                             <linearGradient id="roofGrad" x1="0" y1="0" x2="1" y2="0">
                                 <stop offset="0" stop-color="#fbbf24"/>
@@ -410,14 +489,14 @@
                                 <stop offset="1" stop-color="#818cf8"/>
                             </linearGradient>
                             <linearGradient id="wingGrad" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0" stop-color="#1e1b4b"/>
-                                <stop offset="1" stop-color="#0f1033"/>
+                                <stop class="wing-top" offset="0" stop-color="#1e1b4b"/>
+                                <stop class="wing-bottom" offset="1" stop-color="#0f1033"/>
                             </linearGradient>
                         </defs>
 
                         {{-- Side wings --}}
-                        <rect x="150" y="140" width="240" height="130" rx="6" fill="url(#wingGrad)" stroke="rgb(255 255 255 / .08)"/>
-                        <rect x="610" y="140" width="240" height="130" rx="6" fill="url(#wingGrad)" stroke="rgb(255 255 255 / .08)"/>
+                        <rect x="150" y="140" width="240" height="130" rx="6" class="edge" fill="url(#wingGrad)" stroke="rgb(255 255 255 / .08)"/>
+                        <rect x="610" y="140" width="240" height="130" rx="6" class="edge" fill="url(#wingGrad)" stroke="rgb(255 255 255 / .08)"/>
                         @foreach ([175, 225, 275, 325] as $x)
                             <rect class="win" x="{{ $x }}" y="165" width="28" height="22" rx="3"/>
                             <rect class="win" x="{{ $x }}" y="210" width="28" height="22" rx="3" opacity=".7"/>
@@ -426,16 +505,16 @@
                         @endforeach
 
                         {{-- Main hall --}}
-                        <rect x="380" y="95" width="240" height="175" rx="6" fill="url(#wallGrad)" stroke="rgb(255 255 255 / .12)"/>
+                        <rect x="380" y="95" width="240" height="175" rx="6" class="edge" fill="url(#wallGrad)" stroke="rgb(255 255 255 / .12)"/>
                         <path d="M365 100 500 30 635 100Z" fill="url(#roofGrad)" opacity=".9"/>
-                        <circle cx="500" cy="72" r="14" fill="#060818" stroke="#fde68a" stroke-width="2"/>
+                        <circle class="door" cx="500" cy="72" r="14" fill="#060818" stroke="#fde68a" stroke-width="2"/>
                         <path d="M500 64v8l5 4" stroke="#fde68a" stroke-width="2" fill="none" stroke-linecap="round"/>
                         @foreach ([410, 455, 520, 565] as $x)
-                            <rect x="{{ $x }}" y="120" width="10" height="150" fill="rgb(255 255 255 / .08)"/>
+                            <rect class="pillar" x="{{ $x }}" y="120" width="10" height="150" fill="rgb(255 255 255 / .08)"/>
                         @endforeach
                         <rect class="win" x="425" y="130" width="24" height="30" rx="12"/>
                         <rect class="win" x="551" y="130" width="24" height="30" rx="12"/>
-                        <path d="M470 270v-60a30 30 0 0 1 60 0v60Z" fill="#0b0c26" stroke="#fbbf24" stroke-opacity=".6" stroke-width="2"/>
+                        <path class="door" d="M470 270v-60a30 30 0 0 1 60 0v60Z" fill="#0b0c26" stroke="#fbbf24" stroke-opacity=".6" stroke-width="2"/>
                         <rect x="360" y="262" width="280" height="8" rx="2" fill="rgb(255 255 255 / .1)"/>
 
                         {{-- Flag --}}
@@ -486,7 +565,7 @@
                 </div>
                 <div class="grid grid--portals">
                     @foreach ($portals as $portal)
-                        <a href="{{ $portal['url'] }}" class="card card--portal reveal" style="--c: {{ $portal['color'] }}">
+                        <a href="{{ $portal['url'] }}" class="card card--portal reveal" style="--c: {{ $portal['color'] }}; --cd: {{ $portal['deep'] }}">
                             <div class="card__top">
                                 <span class="card__badge">{{ $portal['badge'] }}</span>
                                 <span class="card__icon">{{ $portal['icon'] }}</span>
@@ -506,6 +585,18 @@
                         </a>
                     @endforeach
                 </div>
+
+                <div class="install-strip reveal">
+                    <span class="install-strip__icon" aria-hidden="true">📲</span>
+                    <div class="install-strip__body">
+                        <h3 class="install-strip__title">মোবাইলে অ্যাপ হিসেবে ব্যবহার করুন</h3>
+                        <p class="install-strip__text">Play Store ছাড়াই ফোনের হোম স্ক্রিনে অ্যাপ রাখুন — এক ট্যাপে লগইন, নোটিশ ও রেজাল্টের নোটিফিকেশন।</p>
+                    </div>
+                    <div class="install-strip__actions">
+                        <a href="{{ route('install-guide', ['panel' => 'student']) }}" class="btn btn--primary btn--sm">🎓 শিক্ষার্থী অ্যাপ</a>
+                        <a href="{{ route('install-guide', ['panel' => 'teacher']) }}" class="btn btn--ghost btn--sm">👩‍🏫 শিক্ষক অ্যাপ</a>
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -519,7 +610,7 @@
                 </div>
                 <div class="grid">
                     @foreach ($features as $feature)
-                        <div class="card feature reveal" style="--c: {{ $feature['color'] }}">
+                        <div class="card feature reveal" style="--c: {{ $feature['color'] }}; --cd: {{ $feature['deep'] }}">
                             <span class="card__icon">{{ $feature['icon'] }}</span>
                             <h3 class="card__name">{{ $feature['name'] }}</h3>
                             <div class="card__alt">{{ $feature['alt'] }}</div>
@@ -579,7 +670,7 @@
             const themeMeta = document.querySelector('meta[name="theme-color"]');
             const applyTheme = (theme) => {
                 root.dataset.theme = theme;
-                themeMeta.content = theme === 'light' ? '#f8fafc' : '#060818';
+                themeMeta.content = theme === 'light' ? '#fbfaff' : '#060818';
             };
             const storedTheme = () => {
                 try { return localStorage.getItem('home-theme'); } catch (e) { return null; }

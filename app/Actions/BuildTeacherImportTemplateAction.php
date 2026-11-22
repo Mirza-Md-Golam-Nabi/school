@@ -33,11 +33,12 @@ class BuildTeacherImportTemplateAction
     ];
 
     /**
-     * যে কলামগুলোতে শুরুতে 0 থাকে — Text ফরম্যাট না দিলে Excel সেগুলো বদলে ফেলে।
+     * যে কলামগুলো Excel নিজে থেকে বদলে ফেলে — phone-এর শুরুর 0 হারায়, আর তারিখ কম্পিউটারের
+     * region অনুযায়ী দিন-মাস উল্টে যেতে পারে। Text ফরম্যাটে রাখলে যা লেখা হয় তা-ই থাকে।
      *
      * @var array<int, string>
      */
-    private const TEXT_COLUMNS = ['phone'];
+    private const TEXT_COLUMNS = ['phone', 'joining_date', 'date_of_birth'];
 
     /**
      * Teacher import-এর ডেমো Excel ফাইল তৈরি করে। প্রথম sheet-এ শুধু কলামের নাম থাকে
@@ -116,9 +117,11 @@ class BuildTeacherImportTemplateAction
             }
 
             if (in_array($name, self::TEXT_COLUMNS, true)) {
-                $teachers->getStyle("{$teacherColumn}2:{$teacherColumn}{$lastRow}")
-                    ->getNumberFormat()
-                    ->setFormatCode(NumberFormat::FORMAT_TEXT);
+                foreach (["{$teacherColumn}:{$teacherColumn}", "{$teacherColumn}2:{$teacherColumn}{$lastRow}"] as $range) {
+                    $teachers->getStyle($range)
+                        ->getNumberFormat()
+                        ->setFormatCode(NumberFormat::FORMAT_TEXT);
+                }
             }
 
             $enumClass = self::DROPDOWN_COLUMNS[$name] ?? null;

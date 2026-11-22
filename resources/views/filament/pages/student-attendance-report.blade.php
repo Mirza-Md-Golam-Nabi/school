@@ -22,6 +22,10 @@
         {{ $this->form }}
 
         <div class="mt-6">
+            {{ $this->teacherSheetForm }}
+        </div>
+
+        <div class="mt-6">
             {{ $this->employeeForm }}
         </div>
     </div>

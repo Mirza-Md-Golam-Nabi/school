@@ -15,10 +15,12 @@ use App\Http\Controllers\ExamSchedulePdfController;
 use App\Http\Controllers\ExamTabulationSheetPdfController;
 use App\Http\Controllers\FeePaymentSlipPdfController;
 use App\Http\Controllers\FundTransactionAttachmentController;
+use App\Http\Controllers\InstallGuideController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\MarksheetPdfController;
 use App\Http\Controllers\PushNotificationDeliveryController;
 use App\Http\Controllers\PushSubscriptionController;
+use App\Http\Controllers\TeacherAttendanceSheetPdfController;
 use App\Http\Controllers\TeacherIdCardsPdfController;
 use App\Http\Controllers\TeacherListPdfController;
 use App\Models\SchoolSetting;
@@ -36,6 +38,12 @@ Route::get('/', function () {
         'eiinLine' => SchoolSetting::eiinLine(),
     ]);
 })->name('home');
+
+// Kept inside each panel's path (= the PWA manifest scope) so the browser
+// can offer its native install prompt on the guide page as well.
+Route::get('/{panel}/install', InstallGuideController::class)
+    ->whereIn('panel', ['student', 'teacher'])
+    ->name('install-guide');
 
 Route::get('/email/verify/{id}/{hash}', [EmailVerificationController::class, 'verify'])
     ->middleware('signed')
@@ -105,6 +113,11 @@ Route::get('/attendance-report/employees/{year}/{month}/download', EmployeeAtten
     ->middleware('auth')
     ->whereNumber(['year', 'month'])
     ->name('attendance-report.employees.download');
+
+Route::get('/attendance-report/teachers/{year}/{month}/download', TeacherAttendanceSheetPdfController::class)
+    ->middleware('auth')
+    ->whereNumber(['year', 'month'])
+    ->name('attendance-report.teachers.download');
 
 Route::get('/exams/{exam}/schedule/download', ExamSchedulePdfController::class)
     ->middleware('auth')

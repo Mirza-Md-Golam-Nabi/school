@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Plugins\PwaInstallPlugin;
 use App\Filament\Teacher\Pages\Auth\EditProfile;
 use App\Filament\Teacher\Pages\Auth\Login;
 use App\Filament\Teacher\Pages\Auth\Register;
@@ -49,6 +50,7 @@ class TeacherPanelProvider extends PanelProvider
                 PanelsRenderHook::HEAD_END,
                 fn (): string => '<link rel="manifest" href="/manifest/teacher.json">',
             )
+            ->plugin(PwaInstallPlugin::make())
             ->renderHook(
                 PanelsRenderHook::BODY_END,
                 fn (): string => auth()->check() ? view('filament.shared.webpush-subscribe')->render() : '',

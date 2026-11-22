@@ -88,6 +88,14 @@ it('offers a text-formatted phone column in the demo file and imports the phone 
 
     $nationalityColumn = Coordinate::stringFromColumnIndex(array_search('nationality', $headers, true) + 1);
 
+    foreach (['phone', 'joining_date', 'date_of_birth'] as $textColumnName) {
+        $textColumn = Coordinate::stringFromColumnIndex(array_search($textColumnName, $headers, true) + 1);
+        $textColumnStyle = $sheet->getParent()->getCellXfByIndex($sheet->getColumnDimension($textColumn)->getXfIndex() ?? 0);
+
+        expect($sheet->getStyle("{$textColumn}2")->getNumberFormat()->getFormatCode())->toBe(NumberFormat::FORMAT_TEXT)
+            ->and($textColumnStyle->getNumberFormat()->getFormatCode())->toBe(NumberFormat::FORMAT_TEXT);
+    }
+
     expect($sheet->getStyle("{$phoneColumn}2")->getNumberFormat()->getFormatCode())->toBe(NumberFormat::FORMAT_TEXT)
         ->and($sheet->getCell("{$nationalityColumn}2")->getValue())->toBe('Bangladeshi')
         ->and($sheet->getCell("{$nationalityColumn}3")->getValue())->toBeNull();

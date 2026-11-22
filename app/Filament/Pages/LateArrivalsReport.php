@@ -52,7 +52,7 @@ class LateArrivalsReport extends Page implements HasTable
 
     public function table(Table $table): Table
     {
-        $scheduledEntry = AttendanceSetting::current()->entry_time;
+        $setting = AttendanceSetting::current();
 
         return $table
             ->query(
@@ -98,7 +98,7 @@ class LateArrivalsReport extends Page implements HasTable
 
                 TextColumn::make('minutes_late')
                     ->label('Late By')
-                    ->state(fn (Attendance $record): string => $this->formatLateBy($record->entry_time, $scheduledEntry))
+                    ->state(fn (Attendance $record): string => $this->formatLateBy($record->entry_time, $setting->lateMeasuredFromFor($record->attendable_type)))
                     ->badge()
                     ->color('warning'),
             ])

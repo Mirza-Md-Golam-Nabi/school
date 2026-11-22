@@ -6,6 +6,7 @@ use App\Enums\AttendanceMode;
 use App\Enums\AttendanceStatus;
 use App\Traits\LogsRelationLabels;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
@@ -22,6 +23,7 @@ class AttendanceSetting extends Model
         'count_late_staff',
         'entry_time',
         'exit_time',
+        'teacher_late_after',
     ];
 
     protected $casts = [
@@ -62,6 +64,37 @@ class AttendanceSetting extends Model
             'entry_time' => '08:00:00',
             'exit_time' => '14:00:00',
         ]);
+    }
+
+    /**
+     * The time of day ("H:i:s") after which an arrival of this kind of person is a
+     * Late Present. Teachers use their own cut-off when one is set; everyone else
+     * (and teachers without one) gets the school start plus the grace period.
+     *
+     * @param  class-string  $attendableType
+     */
+    public function lateAfterFor(string $attendableType): string
+    {
+        if ($attendableType === TeacherProfile::class && filled($this->teacher_late_after)) {
+            return Carbon::parse($this->teacher_late_after)->format('H:i:s');
+        }
+
+        return Carbon::parse($this->entry_time)->addMinutes($this->late_threshold_minutes)->format('H:i:s');
+    }
+
+    /**
+     * The time "late by" minutes are measured from for this kind of person: the
+     * teachers' own late cut-off when set, otherwise the school start time.
+     *
+     * @param  class-string  $attendableType
+     */
+    public function lateMeasuredFromFor(string $attendableType): string
+    {
+        if ($attendableType === TeacherProfile::class && filled($this->teacher_late_after)) {
+            return Carbon::parse($this->teacher_late_after)->format('H:i:s');
+        }
+
+        return $this->entry_time;
     }
 
     /**

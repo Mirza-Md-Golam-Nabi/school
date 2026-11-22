@@ -19,6 +19,7 @@ use UnitEnum;
 /**
  * @property-read Schema $form
  * @property-read Schema $employeeForm
+ * @property-read Schema $teacherSheetForm
  */
 class StudentAttendanceReport extends Page
 {
@@ -29,6 +30,9 @@ class StudentAttendanceReport extends Page
 
     /** @var array<string, mixed>|null */
     public ?array $employeeData = [];
+
+    /** @var array<string, mixed>|null */
+    public ?array $teacherSheetData = [];
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedClipboardDocumentList;
 
@@ -46,6 +50,11 @@ class StudentAttendanceReport extends Page
         ]);
 
         $this->employeeForm->fill([
+            'year' => now()->year,
+            'month' => now()->month,
+        ]);
+
+        $this->teacherSheetForm->fill([
             'year' => now()->year,
             'month' => now()->month,
         ]);
@@ -119,6 +128,54 @@ class StudentAttendanceReport extends Page
                     ]),
             ])
             ->statePath('employeeData');
+    }
+
+    public function teacherSheetForm(Schema $schema): Schema
+    {
+        return $schema
+            ->components([
+                Section::make(__('All Teachers Attendance Sheet'))
+                    ->description(__('One PDF for all active teachers: names down the left, the month\'s dates across the top, each day marked P (Present), LP (Late Present), A (Absent) or L (Leave).'))
+                    ->schema([
+                        Select::make('month')
+                            ->label('Month')
+                            ->options(self::monthOptions())
+                            ->native(false)
+                            ->required(),
+                        TextInput::make('year')
+                            ->label('Year')
+                            ->numeric()
+                            ->minValue(2000)
+                            ->maxValue((int) now()->format('Y') + 1)
+                            ->required(),
+                        Actions::make([
+                            Action::make('downloadTeacherSheet')
+                                ->label(__('Download All Teachers Sheet (PDF)'))
+                                ->icon(Heroicon::OutlinedArrowDownTray)
+                                ->action(fn () => $this->downloadTeacherSheet()),
+                        ])->columnSpanFull(),
+                    ])
+                    ->columns([
+                        'default' => 1,
+                        'sm' => 2,
+                    ]),
+            ])
+            ->statePath('teacherSheetData');
+    }
+
+    /**
+     * Sends the browser to the month's attendance sheet of all active teachers.
+     */
+    public function downloadTeacherSheet(): void
+    {
+        $data = $this->teacherSheetForm->getState();
+
+        $this->dispatch('download-attendance-reports', urls: [
+            route('attendance-report.teachers.download', [
+                'year' => $data['year'],
+                'month' => $data['month'],
+            ]),
+        ]);
     }
 
     /**

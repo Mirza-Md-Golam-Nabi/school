@@ -226,7 +226,7 @@ class ProcessAttendancePunchesAction
             }
         } else {
             $attendance->fill([
-                'status' => $this->resolveStatus($entry),
+                'status' => $this->resolveStatus($person, $entry),
                 'source' => AttendanceSource::Device,
                 'entry_time' => $entry->format('H:i:s'),
                 'exit_time' => $exit?->format('H:i:s'),
@@ -252,13 +252,14 @@ class ProcessAttendancePunchesAction
         }
     }
 
-    private function resolveStatus(Carbon $entry): AttendanceStatus
+    /**
+     * Late Present when the entry is after this kind of person's late cut-off.
+     */
+    private function resolveStatus(Model $person, Carbon $entry): AttendanceStatus
     {
         $setting = $this->setting ??= AttendanceSetting::current();
 
-        $lateAfter = $entry->copy()
-            ->setTimeFromTimeString($setting->entry_time)
-            ->addMinutes($setting->late_threshold_minutes);
+        $lateAfter = $entry->copy()->setTimeFromTimeString($setting->lateAfterFor($person::class));
 
         return $entry->greaterThan($lateAfter) ? AttendanceStatus::Late : AttendanceStatus::Present;
     }
