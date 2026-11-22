@@ -51,6 +51,7 @@ class ImportTeachersFromSpreadsheetAction
     public const COLUMNS = [
         'name' => ['required' => true, 'note' => 'Teacher-এর পুরো নাম', 'example' => 'Abdul Karim'],
         'email' => ['required' => true, 'note' => 'Login-এর ইমেইল — প্রত্যেকের আলাদা হতে হবে, আগে থেকে সিস্টেমে থাকা ইমেইল চলবে না', 'example' => 'karim@school.com'],
+        'phone' => ['required' => false, 'note' => 'মোবাইল নম্বর, সর্বোচ্চ ১৫ সংখ্যা। কলামটা Text ফরম্যাটে রাখুন, নইলে শুরুর 0 হারিয়ে যায়', 'example' => '01712345678'],
         'gender' => ['required' => true, 'note' => 'male / female / other', 'example' => 'male'],
         'designation' => ['required' => false, 'note' => '', 'example' => 'Assistant Teacher'],
         'department' => ['required' => false, 'note' => '', 'example' => 'Science'],
@@ -233,6 +234,7 @@ class ImportTeachersFromSpreadsheetAction
         $validator = Validator::make($row, [
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255'],
+            'phone' => ['nullable', 'max:15'],
             'gender' => ['required'],
             'designation' => ['nullable', 'string', 'max:255'],
             'department' => ['nullable', 'string', 'max:255'],
@@ -246,9 +248,17 @@ class ImportTeachersFromSpreadsheetAction
 
         $errors = [...$errors, ...$validator->errors()->all()];
 
+        $phone = $row['phone'];
+
+        // Excel সংখ্যা হিসেবে রাখলে মোবাইল নম্বরের শুরুর 0 ফেলে দেয় (1712345678)।
+        if ($phone !== null && preg_match('/^1\d{9}$/', $phone)) {
+            $phone = '0'.$phone;
+        }
+
         return [
             'name' => $row['name'],
             'email' => $row['email'] !== null ? Str::lower($row['email']) : null,
+            'phone' => $phone,
             'password' => self::DEFAULT_PASSWORD,
             'gender' => $this->resolveEnum(Gender::class, $row['gender'], 'gender', $errors),
             'designation' => $row['designation'],

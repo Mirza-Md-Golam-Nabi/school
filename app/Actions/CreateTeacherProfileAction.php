@@ -23,6 +23,10 @@ class CreateTeacherProfileAction
             // Case 2: user exists but has no teacher profile → update user + create profile
             $userUpdate = ['name' => $data['name']];
 
+            if (filled($data['phone'] ?? null)) {
+                $userUpdate['phone'] = $data['phone'];
+            }
+
             if (filled($data['password'] ?? null)) {
                 $userUpdate['password'] = $data['password'];
             }
@@ -43,6 +47,7 @@ class CreateTeacherProfileAction
         $user = User::create([
             'name' => $data['name'],
             'email' => $data['email'],
+            'phone' => filled($data['phone'] ?? null) ? $data['phone'] : null,
             'password' => $data['password'],
             'user_type' => UserType::Teacher,
             'is_active' => true,

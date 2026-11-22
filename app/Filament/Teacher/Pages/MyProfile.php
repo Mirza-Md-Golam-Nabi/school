@@ -2,9 +2,11 @@
 
 namespace App\Filament\Teacher\Pages;
 
+use App\Filament\Teacher\Pages\Auth\EditProfile;
 use App\Models\TeacherProfile;
 use App\Models\User;
 use BackedEnum;
+use Filament\Actions\Action;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Components\ViewEntry;
 use Filament\Pages\Page;
@@ -26,6 +28,19 @@ class MyProfile extends Page
     public function getTitle(): string
     {
         return 'My Profile';
+    }
+
+    /**
+     * @return array<int, Action>
+     */
+    protected function getHeaderActions(): array
+    {
+        return [
+            Action::make('editProfile')
+                ->label('Edit Profile')
+                ->icon(Heroicon::OutlinedPencilSquare)
+                ->url(fn (): string => EditProfile::getUrl()),
+        ];
     }
 
     public function content(Schema $schema): Schema
@@ -70,8 +85,9 @@ class MyProfile extends Page
                 ->schema([
                     TextEntry::make('user.name')->label('Name'),
                     TextEntry::make('user.email')->label('Email'),
+                    TextEntry::make('user.phone')->label('Phone')->placeholder('—'),
                 ])
-                ->columns(2),
+                ->columns(3),
 
             Section::make('Personal')
                 ->schema([

@@ -12,6 +12,7 @@ class UpdateTeacherProfileAction
         $userData = [
             'name' => $data['name'],
             'email' => $data['email'],
+            'phone' => filled($data['phone'] ?? null) ? $data['phone'] : null,
         ];
 
         if (filled($data['password'] ?? null)) {
@@ -34,6 +35,18 @@ class UpdateTeacherProfileAction
             'status' => $data['status'] ?? null,
         ]);
 
+        $this->syncAddresses($profile, $data);
+
+        return $profile;
+    }
+
+    /**
+     * পুরোনো ঠিকানা মুছে present (আর আলাদা হলে permanent) ঠিকানা নতুন করে সেভ করে।
+     *
+     * @param  array<string, mixed>  $data
+     */
+    public function syncAddresses(TeacherProfile $profile, array $data): void
+    {
         $isSame = (bool) ($data['same_address'] ?? false);
 
         $profile->addresses()->delete();
@@ -51,7 +64,5 @@ class UpdateTeacherProfileAction
                 'is_same' => false,
             ]);
         }
-
-        return $profile;
     }
 }

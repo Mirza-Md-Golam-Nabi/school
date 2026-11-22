@@ -10,6 +10,7 @@ use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Cell\DataValidation;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
@@ -30,6 +31,13 @@ class BuildTeacherImportTemplateAction
         'blood_group' => BloodGroup::class,
         'religion' => Religion::class,
     ];
+
+    /**
+     * যে কলামগুলোতে শুরুতে 0 থাকে — Text ফরম্যাট না দিলে Excel সেগুলো বদলে ফেলে।
+     *
+     * @var array<int, string>
+     */
+    private const TEXT_COLUMNS = ['phone'];
 
     /**
      * Teacher import-এর ডেমো Excel ফাইল তৈরি করে। প্রথম sheet-এ শুধু কলামের নাম থাকে
@@ -105,6 +113,12 @@ class BuildTeacherImportTemplateAction
 
             if (array_key_exists($name, ImportTeachersFromSpreadsheetAction::PREFILLED_VALUES)) {
                 $teachers->setCellValue("{$teacherColumn}2", ImportTeachersFromSpreadsheetAction::PREFILLED_VALUES[$name]);
+            }
+
+            if (in_array($name, self::TEXT_COLUMNS, true)) {
+                $teachers->getStyle("{$teacherColumn}2:{$teacherColumn}{$lastRow}")
+                    ->getNumberFormat()
+                    ->setFormatCode(NumberFormat::FORMAT_TEXT);
             }
 
             $enumClass = self::DROPDOWN_COLUMNS[$name] ?? null;

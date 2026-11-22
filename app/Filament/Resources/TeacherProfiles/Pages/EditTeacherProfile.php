@@ -34,6 +34,7 @@ class EditTeacherProfile extends EditRecord
 
         $data['name'] = $profile->user?->name;
         $data['email'] = $profile->user?->email;
+        $data['phone'] = $profile->user?->phone;
 
         $present = $profile->addresses->firstWhere('type', 'present');
         $permanent = $profile->addresses->firstWhere('type', 'permanent');

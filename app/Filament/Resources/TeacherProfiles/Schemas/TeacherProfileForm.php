@@ -77,6 +77,8 @@ class TeacherProfileForm
                                 ->label('Full Name')
                                 ->required(),
 
+                            static::phoneField(),
+
                             TextInput::make('password')
                                 ->label('Password')
                                 ->password()
@@ -96,17 +98,7 @@ class TeacherProfileForm
                     ->columnSpanFull()
                     ->schema([
                         Grid::make(3)->schema([
-                            TextInput::make('designation')
-                                ->label('Designation'),
-
-                            TextInput::make('department')
-                                ->label('Department'),
-
-                            TextInput::make('qualification')
-                                ->label('Qualification'),
-
-                            DatePicker::make('joining_date')
-                                ->label('Joining Date'),
+                            ...static::professionalDetailFields(),
 
                             Select::make('status')
                                 ->label('Status')
@@ -134,55 +126,99 @@ class TeacherProfileForm
                             ->helperText('সাদা ব্যাকগ্রাউন্ডে স্বাক্ষরের ছবি (PNG/JPG, সর্বোচ্চ 1MB) — মার্কশিট ইত্যাদি ডকুমেন্টে ব্যবহার হবে।'),
                     ]),
 
-                Section::make('Personal Information')
-                    ->icon('heroicon-o-identification')
-                    ->columnSpanFull()
-                    ->schema([
-                        Grid::make(3)->schema([
-                            Select::make('gender')
-                                ->label('Gender')
-                                ->options(Gender::class)
-                                ->default(Gender::Male)
-                                ->required(),
+                static::personalInformationSection(),
 
-                            DatePicker::make('date_of_birth')
-                                ->label('Date of Birth'),
+                static::addressSection(),
+            ]);
+    }
 
-                            Select::make('blood_group')
-                                ->label('Blood Group')
-                                ->options(BloodGroup::class),
+    public static function phoneField(): TextInput
+    {
+        return TextInput::make('phone')
+            ->label('Phone')
+            ->tel()
+            ->maxLength(15)
+            ->placeholder('01XXXXXXXXX');
+    }
 
-                            Select::make('religion')
-                                ->label('Religion')
-                                ->options(Religion::class),
+    /**
+     * যে পেশাগত তথ্য teacher নিজেও প্রোফাইল থেকে বদলাতে পারে (status ও salary account বাদে)।
+     *
+     * @return array<int, TextInput|DatePicker>
+     */
+    public static function professionalDetailFields(): array
+    {
+        return [
+            TextInput::make('designation')
+                ->label('Designation')
+                ->maxLength(255),
 
-                            TextInput::make('nationality')
-                                ->label('Nationality')
-                                ->default('Bangladeshi')
-                                ->required(),
-                        ]),
-                    ]),
+            TextInput::make('department')
+                ->label('Department')
+                ->maxLength(255),
 
-                Section::make('Address')
-                    ->icon('heroicon-o-map-pin')
-                    ->columnSpanFull()
-                    ->schema([
-                        Textarea::make('present_address')
-                            ->label('Present Address')
-                            ->rows(3)
-                            ->columnSpanFull(),
+            TextInput::make('qualification')
+                ->label('Qualification')
+                ->maxLength(255),
 
-                        Toggle::make('same_address')
-                            ->label('Permanent address is same as present address')
-                            ->live()
-                            ->columnSpanFull(),
+            DatePicker::make('joining_date')
+                ->label('Joining Date'),
+        ];
+    }
 
-                        Textarea::make('permanent_address')
-                            ->label('Permanent Address')
-                            ->rows(3)
-                            ->hidden(fn (Get $get): bool => (bool) $get('same_address'))
-                            ->columnSpanFull(),
-                    ]),
+    public static function personalInformationSection(): Section
+    {
+        return Section::make('Personal Information')
+            ->icon('heroicon-o-identification')
+            ->columnSpanFull()
+            ->schema([
+                Grid::make(3)->schema([
+                    Select::make('gender')
+                        ->label('Gender')
+                        ->options(Gender::class)
+                        ->default(Gender::Male)
+                        ->required(),
+
+                    DatePicker::make('date_of_birth')
+                        ->label('Date of Birth'),
+
+                    Select::make('blood_group')
+                        ->label('Blood Group')
+                        ->options(BloodGroup::class),
+
+                    Select::make('religion')
+                        ->label('Religion')
+                        ->options(Religion::class),
+
+                    TextInput::make('nationality')
+                        ->label('Nationality')
+                        ->default('Bangladeshi')
+                        ->required(),
+                ]),
+            ]);
+    }
+
+    public static function addressSection(): Section
+    {
+        return Section::make('Address')
+            ->icon('heroicon-o-map-pin')
+            ->columnSpanFull()
+            ->schema([
+                Textarea::make('present_address')
+                    ->label('Present Address')
+                    ->rows(3)
+                    ->columnSpanFull(),
+
+                Toggle::make('same_address')
+                    ->label('Permanent address is same as present address')
+                    ->live()
+                    ->columnSpanFull(),
+
+                Textarea::make('permanent_address')
+                    ->label('Permanent Address')
+                    ->rows(3)
+                    ->hidden(fn (Get $get): bool => (bool) $get('same_address'))
+                    ->columnSpanFull(),
             ]);
     }
 }
