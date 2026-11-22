@@ -51,12 +51,11 @@ if [ ! -f .env ]; then
     read -r -p "APP_URL [$DEFAULT_APP_URL]: " APP_URL
     APP_URL="${APP_URL:-$DEFAULT_APP_URL}"
     read -r -p "DB_DATABASE: " DB_DATABASE
-    read -r -p "DB_USERNAME: " DB_USERNAME
     read -r -p "DB_PASSWORD: " DB_PASSWORD
     echo
 
-    if [ -z "$DB_DATABASE" ] || [ -z "$DB_USERNAME" ]; then
-        echo "❌ DB_DATABASE and DB_USERNAME are required"
+    if [ -z "$DB_DATABASE" ]; then
+        echo "❌ DB_DATABASE is required"
         exit 1
     fi
 
