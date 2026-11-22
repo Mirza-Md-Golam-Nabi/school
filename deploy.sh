@@ -64,7 +64,7 @@ if [ ! -f .env ]; then
     set_env APP_DEBUG "false"
     set_env APP_URL "$APP_URL"
     set_env DB_DATABASE "$DB_DATABASE"
-    set_env DB_USERNAME "$DB_USERNAME"
+    set_env DB_USERNAME "nextfusi_mirza"
     set_env DB_PASSWORD "$DB_PASSWORD"
 
     "$PHP" artisan key:generate --force
