@@ -24,7 +24,7 @@ class ExamSchedulePdfController extends Controller
 
         $pdf = $action->handle($exam, $pageSize, $subjectLanguage);
 
-        $filename = "exam-schedule-{$this->sanitizeFilenameSegment($exam->class?->name ?? 'Class')}-{$this->sanitizeFilenameSegment($exam->examType?->name ?? 'Exam')}-{$exam->session_year}.pdf";
+        $filename = "exam-schedule-{$this->sanitizeFilenameSegment($exam->class?->name ?? 'Class')}-{$this->sanitizeFilenameSegment($exam->examType?->name ?? 'Exam')}-{$exam->session_label}.pdf";
 
         return response($pdf, 200, [
             'Content-Type' => 'application/pdf',

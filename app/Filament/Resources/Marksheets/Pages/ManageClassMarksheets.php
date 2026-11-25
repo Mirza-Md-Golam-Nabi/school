@@ -304,7 +304,7 @@ class ManageClassMarksheets extends ListRecords
             ->where('class_id', $this->classId)
             ->orderByDesc('start_date')
             ->get()
-            ->mapWithKeys(fn (Exam $exam) => [$exam->id => "{$exam->examType?->name} — {$exam->session_year}"]);
+            ->mapWithKeys(fn (Exam $exam) => [$exam->id => "{$exam->examType?->name} — {$exam->session_label}"]);
     }
 
     private function examSelect(): Select

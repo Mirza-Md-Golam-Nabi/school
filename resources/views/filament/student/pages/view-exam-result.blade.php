@@ -23,7 +23,7 @@
                         </span>
                         <span class="hidden sm:inline">
                             <span class="font-medium text-gray-700 dark:text-gray-300">Session:</span>
-                            {{ $record->session_year }}
+                            {{ $record->session_label }}
                         </span>
                         @if ($record->start_date)
                             <span>

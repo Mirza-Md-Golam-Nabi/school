@@ -205,7 +205,7 @@
     </div>
     <div class="exam-info">
         <div class="title">Tabulation Sheet</div>
-        <div class="subtitle">{{ $exam->examType?->name }} - {{ $exam->class?->display_name }} ({{ $exam->session_year }})</div>
+        <div class="subtitle">{{ $exam->examType?->name }} - {{ $exam->class?->display_name }} ({{ $exam->session_label }})</div>
     </div>
 
     <table class="tabulation">

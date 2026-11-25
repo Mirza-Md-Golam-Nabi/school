@@ -119,7 +119,7 @@ class Exam extends Model
 
     public function displayLabel(): string
     {
-        return "{$this->examType?->name} - {$this->class?->name} ({$this->session_year})";
+        return "{$this->examType?->name} - {$this->class?->name} ({$this->session_label})";
     }
 
     /**

@@ -32,7 +32,7 @@
         'className' => $student->class?->display_name,
         'rollNo' => BengaliNumber::localize(sprintf('%02d', $student->roll_no)),
         'groupName' => $student->group?->display_name,
-        'exam' => $exam->examType?->name.' - '.BengaliNumber::localize((string) $exam->session_year),
+        'exam' => $exam->examType?->name.' - '.BengaliNumber::localize($exam->session_label),
         'period' => __(':start to :end', [
             'start' => BengaliNumber::localize((string) $exam->start_date?->translatedFormat('d M Y')),
             'end' => BengaliNumber::localize((string) $exam->end_date?->translatedFormat('d M Y')),

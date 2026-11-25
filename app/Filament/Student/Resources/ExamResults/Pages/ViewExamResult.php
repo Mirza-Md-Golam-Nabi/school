@@ -29,13 +29,13 @@ class ViewExamResult extends Page
     {
         return [
             ExamResultResource::getUrl() => 'Exam Results',
-            '#' => $this->record->examType?->name.' — '.$this->record->session_year,
+            '#' => $this->record->examType?->name.' — '.$this->record->session_label,
         ];
     }
 
     public function getTitle(): string
     {
-        return ($this->record->examType?->name ?? 'Exam').' — '.$this->record->session_year;
+        return ($this->record->examType?->name ?? 'Exam').' — '.$this->record->session_label;
     }
 
     public function getRankings(): Collection

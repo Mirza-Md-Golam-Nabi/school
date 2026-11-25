@@ -214,7 +214,7 @@
         </div>
         <div class="exam-info">
             <div class="title">Exam Result Report</div>
-            <div class="subtitle">{{ $exam->examType?->name }} - {{ $exam->class?->display_name }} ({{ $exam->session_year }})</div>
+            <div class="subtitle">{{ $exam->examType?->name }} - {{ $exam->class?->display_name }} ({{ $exam->session_label }})</div>
         </div>
 
         @foreach ($page['blocks'] as $block)

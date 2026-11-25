@@ -12,6 +12,7 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 
 class ExamsTable
 {
@@ -32,6 +33,7 @@ class ExamsTable
 
                 TextColumn::make('session_year')
                     ->label('Session')
+                    ->formatStateUsing(fn (Model $record): string => $record->session_label)
                     ->sortable()
                     ->alignCenter(),
 

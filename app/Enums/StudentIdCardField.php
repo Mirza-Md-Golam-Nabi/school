@@ -91,7 +91,7 @@ enum StudentIdCardField: string implements HasLabel
             self::RollNo => sprintf('%02d', $student->roll_no),
             self::Section => $student->section?->name,
             self::Group => $student->group?->name,
-            self::Session => (string) $student->session_year,
+            self::Session => $student->session_label,
             self::BloodGroup => $student->blood_group?->value,
             self::DateOfBirth => $student->date_of_birth?->format('d M Y'),
             self::Gender => $student->gender?->getLabel(),

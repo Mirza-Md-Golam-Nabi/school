@@ -14,6 +14,7 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use UnitEnum;
 
 class ExamResultResource extends Resource
@@ -41,6 +42,7 @@ class ExamResultResource extends Resource
 
                 TextColumn::make('session_year')
                     ->label('Session')
+                    ->formatStateUsing(fn (Model $record): string => $record->session_label)
                     ->alignCenter()
                     ->sortable(),
 

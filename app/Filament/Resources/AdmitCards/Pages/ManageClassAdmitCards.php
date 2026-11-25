@@ -68,7 +68,7 @@ class ManageClassAdmitCards extends ListRecords
                             ->where('class_id', $this->classId)
                             ->orderByDesc('start_date')
                             ->get()
-                            ->mapWithKeys(fn (Exam $exam) => [$exam->id => "{$exam->examType?->name} — {$exam->session_year}"]))
+                            ->mapWithKeys(fn (Exam $exam) => [$exam->id => "{$exam->examType?->name} — {$exam->session_label}"]))
                         ->searchable()
                         ->native(false)
                         ->required(),
@@ -126,7 +126,7 @@ class ManageClassAdmitCards extends ListRecords
                             ->where('class_id', $this->classId)
                             ->orderByDesc('start_date')
                             ->get()
-                            ->mapWithKeys(fn (Exam $exam) => [$exam->id => "{$exam->examType?->name} — {$exam->session_year}"]))
+                            ->mapWithKeys(fn (Exam $exam) => [$exam->id => "{$exam->examType?->name} — {$exam->session_label}"]))
                         ->searchable()
                         ->native(false)
                         ->live()

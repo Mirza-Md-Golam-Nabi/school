@@ -34,7 +34,7 @@
                             <option value="0">—</option>
                         @endif
                         @foreach ($exams as $examOption)
-                            <option value="{{ $examOption->id }}">{{ $examOption->examType?->name }} ({{ $examOption->session_year }})</option>
+                            <option value="{{ $examOption->id }}">{{ $examOption->examType?->name }} ({{ $examOption->session_label }})</option>
                         @endforeach
                     </select>
                 </label>

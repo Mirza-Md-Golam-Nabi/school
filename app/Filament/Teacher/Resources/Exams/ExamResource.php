@@ -20,6 +20,7 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use UnitEnum;
 
 class ExamResource extends Resource
@@ -52,7 +53,8 @@ class ExamResource extends Resource
                             ->label('Class'),
 
                         TextEntry::make('session_year')
-                            ->label('Session Year'),
+                            ->label('Session Year')
+                            ->formatStateUsing(fn (Model $record): string => $record->session_label),
 
                         TextEntry::make('is_published')
                             ->label('Status')
@@ -88,6 +90,7 @@ class ExamResource extends Resource
 
                 TextColumn::make('session_year')
                     ->label('Session')
+                    ->formatStateUsing(fn (Model $record): string => $record->session_label)
                     ->sortable()
                     ->alignCenter(),
 

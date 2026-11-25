@@ -56,7 +56,7 @@
                     <x-filament::badge class="!bg-white/20 !text-white">{{ $student->group->name }}</x-filament::badge>
                 @endif
 
-                <x-filament::badge class="!bg-white/20 !text-white">Session: {{ $student->session_year }}</x-filament::badge>
+                <x-filament::badge class="!bg-white/20 !text-white">Session: {{ $student->session_label }}</x-filament::badge>
 
                 <x-filament::badge :color="$student->status->getColor()">{{ $student->status->getLabel() }}</x-filament::badge>
             </div>

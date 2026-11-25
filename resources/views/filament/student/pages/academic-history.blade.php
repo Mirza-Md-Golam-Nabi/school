@@ -21,7 +21,7 @@
                             <h3 class="truncate text-xs font-semibold text-gray-900 dark:text-white">
                                 {{ $history->class?->name ?? '—' }}
                             </h3>
-                            <p class="text-xs text-gray-500 dark:text-gray-400">{{ $history->session_year }}</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">{{ $history->session_label }}</p>
                         </div>
                     </div>
 

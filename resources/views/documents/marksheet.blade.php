@@ -299,7 +299,7 @@
             @endif
         </div>
 
-        <div class="title">{{ __('Marksheet') }} - {{ $exam->examType?->name }} {{ BengaliNumber::localize((string) $exam->session_year) }}</div>
+        <div class="title">{{ __('Marksheet') }} - {{ $exam->examType?->name }} {{ BengaliNumber::localize($exam->session_label) }}</div>
 
         <table class="top-section">
             <tr>
@@ -335,7 +335,7 @@
                         @endif
                         <tr>
                             <td class="label">{{ __('Session') }}</td>
-                            <td colspan="3">{{ BengaliNumber::localize((string) $student->session_year) }}</td>
+                            <td colspan="3">{{ BengaliNumber::localize($student->session_label) }}</td>
                         </tr>
                     </table>
                 </td>

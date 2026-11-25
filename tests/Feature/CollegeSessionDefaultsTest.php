@@ -4,15 +4,18 @@ use App\Actions\ImportStudentsFromSpreadsheetAction;
 use App\Enums\ClassLevel;
 use App\Enums\EmploymentStatus;
 use App\Enums\Gender;
+use App\Enums\StudentIdCardField;
 use App\Enums\StudentStatus;
 use App\Enums\UserType;
 use App\Filament\Resources\Classes\Pages\EditClasses;
 use App\Filament\Resources\Classes\RelationManagers\TeacherSubjectsRelationManager;
 use App\Filament\Resources\Exams\Pages\CreateExam;
+use App\Filament\Resources\Exams\Pages\ExamsByClass;
 use App\Filament\Resources\StudentProfiles\Pages\StudentsByClass;
 use App\Filament\Teacher\Pages\MySubjects;
 use App\Filament\Teacher\Widgets\TeacherSubjectsOverview;
 use App\Models\Classes;
+use App\Models\Exam;
 use App\Models\ExamType;
 use App\Models\StudentProfile;
 use App\Models\Subject;
@@ -157,4 +160,22 @@ it('prefills the import template with the class\'s running session', function ()
     expect(ImportStudentsFromSpreadsheetAction::prefilledValues($this->college)['session_year'])->toBe(2026)
         ->and(ImportStudentsFromSpreadsheetAction::prefilledValues($this->school)['session_year'])->toBe(2027)
         ->and(ImportStudentsFromSpreadsheetAction::prefilledValues()['session_year'])->toBe(2027);
+});
+
+it('labels college sessions across two years wherever a session is shown', function () {
+    $this->actingAs(grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true])));
+
+    $examType = ExamType::create(['name' => 'Half Yearly', 'is_active' => true]);
+    $collegeExam = Exam::create(['exam_type_id' => $examType->id, 'class_id' => $this->college->id, 'session_year' => 2026, 'start_date' => '2026-12-01', 'end_date' => '2026-12-10']);
+    $schoolExam = Exam::create(['exam_type_id' => $examType->id, 'class_id' => $this->school->id, 'session_year' => 2026, 'start_date' => '2026-12-01', 'end_date' => '2026-12-10']);
+    $collegeStudent = makeCollegeSessionStudent($this->college, 1, 2026);
+
+    expect($collegeExam->session_label)->toBe('2026-27')
+        ->and($collegeExam->displayLabel())->toBe('Half Yearly - Class 11 (2026-27)')
+        ->and($schoolExam->session_label)->toBe('2026')
+        ->and($collegeStudent->session_label)->toBe('2026-27')
+        ->and(StudentIdCardField::Session->valueFor($collegeStudent))->toBe('2026-27');
+
+    Livewire::test(ExamsByClass::class, ['classId' => $this->college->id])
+        ->assertTableColumnFormattedStateSet('session_year', '2026-27', $collegeExam);
 });

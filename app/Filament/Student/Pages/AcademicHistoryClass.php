@@ -43,7 +43,7 @@ class AcademicHistoryClass extends Page
 
     public function getTitle(): string|Htmlable
     {
-        return ($this->record->class?->name ?? 'Class').' — '.$this->record->session_year;
+        return ($this->record->class?->name ?? 'Class').' — '.$this->record->session_label;
     }
 
     public function getBreadcrumbs(): array

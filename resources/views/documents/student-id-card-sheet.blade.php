@@ -141,7 +141,7 @@
                     <td>
                         @if ($validity === StudentIdCardValidity::SessionEnd)
                             VALID TILL
-                            <div class="validity">DEC {{ $student->session_year }}</div>
+                            <div class="validity">{{ mb_strtoupper(\App\Support\AcademicSession::periodFor($student->session_year, $student->class)['end']->format('M Y')) }}</div>
                         @else
                             ISSUE DATE
                             <div class="validity">{{ mb_strtoupper($issueDate->format('d M Y')) }}</div>

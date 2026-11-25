@@ -21,7 +21,7 @@
 
     $info = DocumentLocale::using($admitCard->student_info_language, fn (): array => [
         'title' => Str::upper(__('Admit Card')),
-        'examName' => $exam->examType?->name.' ('.BengaliNumber::localize((string) $exam->session_year).')',
+        'examName' => $exam->examType?->name.' ('.BengaliNumber::localize($exam->session_label).')',
         'details' => collect([
             [__('Student Name'), $student->user?->name],
             [__('Student ID'), BengaliNumber::localize((string) $student->idCardNumber())],
@@ -30,7 +30,7 @@
             [__('Section'), $student->section?->name],
             [__('Group'), $student->group?->display_name],
             [__('Reg. No'), BengaliNumber::localize((string) $student->registration_no)],
-            [__('Academic Year'), BengaliNumber::localize((string) $exam->session_year)],
+            [__('Academic Year'), BengaliNumber::localize($exam->session_label)],
         ])->filter(fn (array $detail): bool => filled($detail[1]))->values(),
     ]);
     $details = $info['details'];

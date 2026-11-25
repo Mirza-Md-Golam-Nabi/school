@@ -7,6 +7,7 @@ use App\Models\Classes;
 use App\Support\AcademicSession;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 
 /**
  * For models with a `session_year` and a class column: filters rows to the
@@ -21,6 +22,17 @@ trait HasAcademicSession
     public function academicSessionClassColumn(): string
     {
         return 'class_id';
+    }
+
+    /**
+     * The row's session as shown — "2026" for school classes, "2026-27" for
+     * college classes. Eager load `class` when labelling many rows.
+     */
+    protected function sessionLabel(): Attribute
+    {
+        return Attribute::get(fn (): string => $this->session_year === null
+            ? ''
+            : AcademicSession::label((int) $this->session_year, $this->class));
     }
 
     #[Scope]

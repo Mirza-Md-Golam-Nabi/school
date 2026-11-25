@@ -20,7 +20,7 @@ class ExamResultReportPdfController extends Controller
 
         $pdf = $action->handle($exam);
 
-        $filename = "exam-report-{$this->sanitizeFilenameSegment($exam->class?->name ?? 'Class')}-{$this->sanitizeFilenameSegment($exam->examType?->name ?? 'Exam')}-{$exam->session_year}.pdf";
+        $filename = "exam-report-{$this->sanitizeFilenameSegment($exam->class?->name ?? 'Class')}-{$this->sanitizeFilenameSegment($exam->examType?->name ?? 'Exam')}-{$exam->session_label}.pdf";
 
         return response($pdf, 200, [
             'Content-Type' => 'application/pdf',

@@ -4,6 +4,8 @@ namespace App\Filament\Resources\StudentFeeDiscounts\Tables;
 
 use App\Models\FeeDiscount;
 use App\Models\FeeType;
+use App\Models\StudentFeeDiscount;
+use App\Support\AcademicSession;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -36,7 +38,8 @@ class StudentFeeDiscountsTable
                     ->label('Type')
                     ->badge(),
                 TextColumn::make('session_year')
-                    ->label('Year')
+                    ->label('Session')
+                    ->formatStateUsing(fn (StudentFeeDiscount $record): string => AcademicSession::label($record->session_year, $record->student?->class))
                     ->alignCenter()
                     ->sortable(),
                 TextColumn::make('approvedBy.name')

@@ -16,7 +16,7 @@
                     <x-filament::icon-button icon="heroicon-o-arrow-left" color="gray" size="sm" label="Back" />
                 </a>
                 <x-filament::badge color="gray" icon="heroicon-o-calendar-days">
-                    Session {{ $year }} &rarr; {{ $year + 1 }}
+                    Session {{ $this->resolveClass()?->sessionLabel($year) ?? $year }} &rarr; {{ $this->resolveClass()?->sessionLabel($year + 1) ?? $year + 1 }}
                 </x-filament::badge>
                 <div class="ml-auto flex flex-wrap items-center gap-2">
                     @foreach (\App\Enums\PromotionStatus::cases() as $status)

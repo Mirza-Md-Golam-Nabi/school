@@ -1,6 +1,6 @@
 # কলেজ সেশন (জুলাই–জুন) পরিকল্পনা
 
-> অবস্থা: **ধাপ ১–৫ সম্পন্ন।** পরের কাজ শুরু করতে বলুন: "docs/college-session-plan.md অনুযায়ী ধাপ ৬ শুরু করো"।
+> অবস্থা: **ধাপ ১–৬ সম্পন্ন।** প্রতিটা ধাপের সাথে টেস্ট লেখা হয়েছে (ধাপ ৭)।
 
 ## সমস্যা
 
@@ -91,7 +91,13 @@
 - ClassAttendanceRanking, StudentAttendanceRanking, MyAttendanceRanking, StudentAttendanceRankOverview, StudentAttendanceRankingWidget, StudentAttendanceReport — প্রতি ক্লাস নিজের সেশনের সময়সীমা
 - `WorkingDaysCalculator` — recurring ছুটি সময়সীমার প্রতিটা বছরে বসানো
 
-## ধাপ ৬ — সেশন দেখানো
+## ধাপ ৬ — সেশন দেখানো ✅
+
+বাস্তবায়নের সিদ্ধান্ত:
+- `HasAcademicSession` trait-এ `session_label` accessor (Exam, StudentProfile, TeacherSubject, FeeStructure, StudentClassHistory) — অনেক row-এ দেখালে `class` eager load করতে হবে।
+- মার্কশিট, অ্যাডমিট কার্ড, পরীক্ষার রুটিন, টেবুলেশন শিট, রেজাল্ট রিপোর্ট, ছাত্র তালিকা PDF; Filament টেবিল/infolist/ড্রপডাউন; PDF ফাইলের নাম — সব জায়গায় লেবেল।
+- ID কার্ডের "VALID TILL": সেশনের শেষ মাস (স্কুলে DEC 2026, কলেজে JUN 2027)।
+- স্টোরেজ পাথ আর activity log-এর লেখা সংখ্যাতেই রাখা হয়েছে (অভ্যন্তরীণ)।
 
 - সব টেবিল/infolist/AcademicHistory/মার্কশিট ও অ্যাডমিট কার্ড PDF/ID card-এ `AcademicSession::label()`
 - `sessionYear()` helper লেবেলসহ অপশন

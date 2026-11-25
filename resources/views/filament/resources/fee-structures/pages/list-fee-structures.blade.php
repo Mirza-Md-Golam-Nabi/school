@@ -51,7 +51,7 @@
                             </x-filament::badge>
                             @if ($sessionYear)
                                 <x-filament::badge size="sm" color="gray">
-                                    {{ $sessionYear }}
+                                    {{ $class->sessionLabel($sessionYear) }}
                                 </x-filament::badge>
                             @endif
                         </div>

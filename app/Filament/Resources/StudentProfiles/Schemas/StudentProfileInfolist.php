@@ -11,6 +11,7 @@ use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Database\Eloquent\Model;
 
 class StudentProfileInfolist
 {
@@ -66,7 +67,7 @@ class StudentProfileInfolist
                     TextEntry::make('student_id_no')->label('Student ID')->placeholder('—')->copyable(),
                     TextEntry::make('roll_no')->label('Roll No'),
                     TextEntry::make('registration_no')->label('Registration No')->placeholder('—'),
-                    TextEntry::make('session_year')->label('Session Year'),
+                    TextEntry::make('session_year')->label('Session Year')->formatStateUsing(fn (Model $record): string => $record->session_label),
                     TextEntry::make('class.name')->label('Class')->placeholder('—'),
                     TextEntry::make('section.name')->label('Section')->placeholder('—'),
                     TextEntry::make('group.name')->label('Group')->placeholder('—'),

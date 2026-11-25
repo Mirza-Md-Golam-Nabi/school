@@ -129,7 +129,7 @@
     </div>
     <div class="exam-info">
         <div class="title">{{ __('Exam Schedule') }}</div>
-        <div class="subtitle">{{ $exam->examType?->name }} - {{ $exam->class?->display_name }} ({{ BengaliNumber::localize((string) $exam->session_year) }})</div>
+        <div class="subtitle">{{ $exam->examType?->name }} - {{ $exam->class?->display_name }} ({{ BengaliNumber::localize($exam->session_label) }})</div>
     </div>
 
     <table class="schedule">

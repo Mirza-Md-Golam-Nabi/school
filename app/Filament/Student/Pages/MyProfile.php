@@ -18,6 +18,7 @@ use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 
 class MyProfile extends Page
@@ -93,7 +94,7 @@ class MyProfile extends Page
                 ->schema([
                     TextEntry::make('roll_no')->label('Roll No'),
                     TextEntry::make('registration_no')->label('Registration No')->placeholder('—'),
-                    TextEntry::make('session_year')->label('Session Year'),
+                    TextEntry::make('session_year')->label('Session Year')->formatStateUsing(fn (Model $record): string => $record->session_label),
                     TextEntry::make('class.name')->label('Class')->placeholder('—'),
                     TextEntry::make('section.name')->label('Section')->placeholder('—'),
                     TextEntry::make('group.name')->label('Group')->placeholder('—'),
@@ -194,7 +195,7 @@ class MyProfile extends Page
 
         return [
             Section::make('Current Fee Structure')
-                ->description('Session '.$profile->session_year.' — '.($profile->class?->name ?? 'N/A'))
+                ->description('Session '.$profile->session_label.' — '.($profile->class?->name ?? 'N/A'))
                 ->schema([
                     ViewEntry::make('fee_structures')
                         ->hiddenLabel()
