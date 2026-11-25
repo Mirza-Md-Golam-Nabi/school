@@ -28,7 +28,7 @@ class SubjectForm
 
                         TextInput::make('code')
                             ->label('Subject Code')
-                            ->placeholder('e.g. MAT')
+                            ->placeholder('e.g. 101')
                             ->unique(ignoreRecord: true)
                             ->maxLength(20)
                             ->extraInputAttributes(['style' => 'text-transform: uppercase'])

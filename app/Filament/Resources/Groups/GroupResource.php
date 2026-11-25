@@ -49,7 +49,7 @@ class GroupResource extends Resource
                     ->required()
                     ->maxLength(50)
                     ->placeholder('Enter Group Name')
-                    ->helperText('উদাহরণ: Science, Arts, Commerce, General'),
+                    ->helperText('উদাহরণ: Science, Humanities, Commerce, General'),
                 TextInput::make('name_bn')
                     ->label('Group Name (Bengali)')
                     ->maxLength(50)

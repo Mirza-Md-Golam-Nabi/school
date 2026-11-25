@@ -20,6 +20,7 @@ use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\MarksheetPdfController;
 use App\Http\Controllers\PushNotificationDeliveryController;
 use App\Http\Controllers\PushSubscriptionController;
+use App\Http\Controllers\SubjectListPdfController;
 use App\Http\Controllers\TeacherAttendanceSheetPdfController;
 use App\Http\Controllers\TeacherIdCardsPdfController;
 use App\Http\Controllers\TeacherListPdfController;
@@ -87,6 +88,10 @@ Route::get('/classes/{class}/student-id-cards/download', [ClassStudentIdCardsPdf
 Route::get('/classes/{class}/student-list/download', ClassStudentListPdfController::class)
     ->middleware('auth')
     ->name('student-list.class.download');
+
+Route::get('/subject-list/download', SubjectListPdfController::class)
+    ->middleware('auth')
+    ->name('subject-list.download');
 
 Route::get('/teacher-list/download', TeacherListPdfController::class)
     ->middleware('auth')
