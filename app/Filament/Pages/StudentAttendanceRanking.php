@@ -37,10 +37,8 @@ class StudentAttendanceRanking extends Page
      */
     public function getTopStudents(int $limit = 5): Collection
     {
-        $year = (int) now()->year;
-
         $counts = app(ResolveStudentAttendanceTotals::class)
-            ->presentCountsForYear($year)
+            ->presentCountsForYear(null)
             ->sortDesc()
             ->take($limit);
 
@@ -62,8 +60,6 @@ class StudentAttendanceRanking extends Page
      */
     public function getClassWiseTopStudents(): Collection
     {
-        $year = (int) now()->year;
-
         $resolver = app(ResolveStudentAttendanceTotals::class);
 
         $classes = Classes::active()
@@ -71,7 +67,7 @@ class StudentAttendanceRanking extends Page
             ->get();
 
         $counts = $classes->mapWithKeys(fn (Classes $class): array => [
-            $class->id => $resolver->presentCountsForYear($year, $class->id)->sortDesc()->take(3),
+            $class->id => $resolver->presentCountsForYear(null, $class->id)->sortDesc()->take(3),
         ]);
 
         $students = StudentProfile::with('user')

@@ -5,6 +5,7 @@ namespace App\Filament\Widgets;
 use App\Actions\Attendance\ResolveStudentAttendanceTotals;
 use App\Filament\Pages\StudentAttendanceRanking;
 use App\Models\StudentProfile;
+use App\Support\AcademicSession;
 use Filament\Widgets\Widget;
 
 class StudentAttendanceRankingWidget extends Widget
@@ -23,13 +24,13 @@ class StudentAttendanceRankingWidget extends Widget
 
     public function getViewData(): array
     {
-        $year = (int) now()->year;
+        $year = AcademicSession::currentYearFor();
 
         $resolver = app(ResolveStudentAttendanceTotals::class);
 
-        $workingDays = $resolver->workingDaysForYear($year);
+        $workingDays = $resolver->workingDaysForYear(null);
 
-        $counts = $resolver->presentCountsForYear($year)
+        $counts = $resolver->presentCountsForYear(null)
             ->sortDesc()
             ->take(2);
 

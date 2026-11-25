@@ -12,7 +12,7 @@ class WorkingDaysCalculator
     /** @var array<int> Carbon day-of-week integers (0=Sun … 6=Sat) */
     private array $weekendDays;
 
-    /** @var Collection<int, string> Holiday dates as 'Y-m-d' strings */
+    /** @var Collection<int, string> One-off holidays as 'Y-m-d', recurring ones as 'm-d' */
     private Collection $holidayDates;
 
     public function __construct()
@@ -67,7 +67,8 @@ class WorkingDaysCalculator
             return false;
         }
 
-        return ! $this->holidayDates->contains($date->format('Y-m-d'));
+        return ! $this->holidayDates->contains($date->format('Y-m-d'))
+            && ! $this->holidayDates->contains($date->format('m-d'));
     }
 
     /** @return array<int> */
@@ -92,28 +93,27 @@ class WorkingDaysCalculator
         ));
     }
 
+    /**
+     * One-off holidays as 'Y-m-d', recurring ones as 'm-d' — so a recurring
+     * holiday falls on its day in every year, not only the current one (date
+     * ranges and sessions can span two calendar years).
+     *
+     * @return Collection<int, string>
+     */
     private function resolveHolidayDates(): Collection
     {
-        $currentYear = now()->year;
-
-        return PublicHoliday::query()->get(['id', 'start_date', 'end_date', 'is_recurring'])->flatMap(function (PublicHoliday $holiday) use ($currentYear) {
-            $start = $holiday->start_date;
+        return PublicHoliday::query()->get(['id', 'start_date', 'end_date', 'is_recurring'])->flatMap(function (PublicHoliday $holiday): array {
+            $format = $holiday->is_recurring ? 'm-d' : 'Y-m-d';
+            $current = $holiday->start_date->copy();
             $end = $holiday->end_date ?? $holiday->start_date;
-
-            if ($holiday->is_recurring) {
-                $start = $start->copy()->setYear($currentYear);
-                $end = $end->copy()->setYear($currentYear);
-            }
-
             $dates = [];
-            $current = $start->copy();
 
             while ($current->lte($end)) {
-                $dates[] = $current->format('Y-m-d');
+                $dates[] = $current->format($format);
                 $current->addDay();
             }
 
             return $dates;
-        });
+        })->unique()->values();
     }
 }

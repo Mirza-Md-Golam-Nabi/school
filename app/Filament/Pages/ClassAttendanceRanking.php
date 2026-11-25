@@ -53,9 +53,7 @@ class ClassAttendanceRanking extends Page
      */
     public function getStudents(): Collection
     {
-        $year = (int) now()->year;
-
-        $counts = app(ResolveStudentAttendanceTotals::class)->presentCountsForYear($year, $this->classId);
+        $counts = app(ResolveStudentAttendanceTotals::class)->presentCountsForYear(null, $this->classId);
 
         return StudentProfile::with('user')
             ->where('current_class_id', $this->classId)

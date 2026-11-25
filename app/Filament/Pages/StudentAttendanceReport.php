@@ -77,7 +77,7 @@ class StudentAttendanceReport extends Page
                     ->native(false)
                     ->required(),
                 TextInput::make('session_year')
-                    ->label('Session Year')
+                    ->label('Year')
                     ->numeric()
                     ->minValue(2000)
                     ->maxValue((int) now()->format('Y') + 1)

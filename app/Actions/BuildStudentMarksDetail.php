@@ -76,7 +76,7 @@ class BuildStudentMarksDetail
                 ->where('attendable_id', $ranking->student_id)
                 ->where('class_id', $ranking->class_id)
                 ->countedPresent(StudentProfile::class)
-                ->inYear($sessionYear)
+                ->inSession($sessionYear)
                 ->count();
         }
 
@@ -441,7 +441,7 @@ class BuildStudentMarksDetail
                 'sessionYear' => $sessionYear,
                 'workingDays' => Attendance::where('attendable_type', StudentProfile::class)
                     ->where('class_id', $ranking->class_id)
-                    ->inYear($sessionYear)
+                    ->inSession($sessionYear)
                     ->distinct('date')
                     ->count('date'),
                 'attendanceSummaries' => StudentAttendanceSummary::where('exam_id', $ranking->exam_id)

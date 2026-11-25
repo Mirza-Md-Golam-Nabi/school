@@ -76,3 +76,20 @@ test('getWorkingDays returns correct dates', function () {
         ->and($days->first()->format('Y-m-d'))->toBe('2026-06-01')
         ->and($days->last()->format('Y-m-d'))->toBe('2026-06-04');
 });
+
+test('excludes a recurring holiday in every year, not only the current one', function () {
+    $this->travelTo(Carbon::parse('2026-11-25'));
+
+    PublicHoliday::factory()->create([
+        'start_date' => '2020-12-16',
+        'end_date' => null,
+        'is_recurring' => true,
+    ]);
+
+    $calculator = new WorkingDaysCalculator;
+
+    expect($calculator->isWorkingDay(Carbon::parse('2026-12-16')))->toBeFalse()
+        ->and($calculator->isWorkingDay(Carbon::parse('2027-12-16')))->toBeFalse()
+        ->and($calculator->isWorkingDay(Carbon::parse('2025-12-16')))->toBeFalse()
+        ->and($calculator->isWorkingDay(Carbon::parse('2027-12-15')))->toBeTrue();
+});

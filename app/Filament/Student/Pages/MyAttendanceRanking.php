@@ -38,10 +38,9 @@ class MyAttendanceRanking extends Page
             return collect();
         }
 
-        $year = (int) now()->year;
         $classId = $profile->current_class_id;
 
-        $counts = app(ResolveStudentAttendanceTotals::class)->presentCountsForYear($year, $classId);
+        $counts = app(ResolveStudentAttendanceTotals::class)->presentCountsForYear(null, $classId);
 
         return StudentProfile::with('user')
             ->where('current_class_id', $classId)

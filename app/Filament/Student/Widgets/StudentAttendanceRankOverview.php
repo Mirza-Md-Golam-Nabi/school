@@ -35,14 +35,13 @@ class StudentAttendanceRankOverview extends Widget
             ];
         }
 
-        $year = (int) now()->year;
         $classId = $profile->current_class_id;
 
         $resolver = app(ResolveStudentAttendanceTotals::class);
 
-        $workingDays = $resolver->workingDaysForYear($year, $classId);
+        $workingDays = $resolver->workingDaysForYear(null, $classId);
 
-        $counts = $resolver->presentCountsForYear($year, $classId);
+        $counts = $resolver->presentCountsForYear(null, $classId);
 
         $ranking = StudentProfile::where('current_class_id', $classId)
             ->active()

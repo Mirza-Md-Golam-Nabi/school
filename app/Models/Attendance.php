@@ -4,7 +4,10 @@ namespace App\Models;
 
 use App\Enums\AttendanceSource;
 use App\Enums\AttendanceStatus;
+use App\Enums\ClassLevel;
+use App\Support\AcademicSession;
 use App\Traits\LogsRelationLabels;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -53,11 +56,13 @@ class Attendance extends Model
     }
 
     /**
-     * Rows dated within a calendar year. Written as a date range (instead of
-     * whereYear()) so the indexes on `date` can be used.
+     * Rows dated within session $year of their own class: Jan–Dec for school
+     * classes, Jul–Jun (the configured start month) for college classes.
+     * Written as a date range (instead of whereYear()) so the indexes on
+     * `date` can be used.
      */
     #[Scope]
-    protected function inYear(Builder $query, int|string|null $year): void
+    protected function inSession(Builder $query, int|string|null $year): void
     {
         if ($year === null) {
             $query->whereRaw('1 = 0');
@@ -65,10 +70,53 @@ class Attendance extends Model
             return;
         }
 
-        $start = Carbon::create((int) $year, 1, 1);
+        $this->whereInSessionPeriods(
+            $query,
+            AcademicSession::periodFor((int) $year),
+            AcademicSession::periodFor((int) $year, ClassLevel::College),
+        );
+    }
 
-        $query->where($query->qualifyColumn('date'), '>=', $start->toDateString())
-            ->where($query->qualifyColumn('date'), '<', $start->copy()->addYear()->toDateString());
+    /**
+     * Rows dated within the session that is running today for their own class
+     * — between January and June college classes are still on last July's.
+     */
+    #[Scope]
+    protected function inCurrentSession(Builder $query): void
+    {
+        $this->whereInSessionPeriods(
+            $query,
+            AcademicSession::periodFor(AcademicSession::currentYearFor()),
+            AcademicSession::periodFor(AcademicSession::currentYearFor(ClassLevel::College), ClassLevel::College),
+        );
+    }
+
+    /**
+     * @param  array{start: CarbonImmutable, end: CarbonImmutable}  $schoolPeriod
+     * @param  array{start: CarbonImmutable, end: CarbonImmutable}  $collegePeriod
+     */
+    private function whereInSessionPeriods(Builder $query, array $schoolPeriod, array $collegePeriod): void
+    {
+        $dateColumn = $query->qualifyColumn('date');
+        $inPeriod = fn (Builder $query, array $period): Builder => $query
+            ->where($dateColumn, '>=', $period['start']->toDateString())
+            ->where($dateColumn, '<=', $period['end']->toDateString());
+
+        if ($schoolPeriod['start']->equalTo($collegePeriod['start'])) {
+            $inPeriod($query, $schoolPeriod);
+
+            return;
+        }
+
+        $classColumn = $query->qualifyColumn('class_id');
+        $collegeClassIds = Classes::withTrashed()->select('id')->where('level', ClassLevel::College);
+
+        $query->where(fn (Builder $query) => $query
+            ->where(fn (Builder $query) => $inPeriod($query->whereIn($classColumn, $collegeClassIds), $collegePeriod))
+            ->orWhere(fn (Builder $query) => $inPeriod(
+                $query->where(fn (Builder $query) => $query->whereNotIn($classColumn, $collegeClassIds)->orWhereNull($classColumn)),
+                $schoolPeriod,
+            )));
     }
 
     /**

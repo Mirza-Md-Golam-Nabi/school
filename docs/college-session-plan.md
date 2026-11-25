@@ -1,6 +1,6 @@
 # কলেজ সেশন (জুলাই–জুন) পরিকল্পনা
 
-> অবস্থা: **ধাপ ১–৪ সম্পন্ন।** পরের কাজ শুরু করতে বলুন: "docs/college-session-plan.md অনুযায়ী ধাপ ৫ শুরু করো"।
+> অবস্থা: **ধাপ ১–৫ সম্পন্ন।** পরের কাজ শুরু করতে বলুন: "docs/college-session-plan.md অনুযায়ী ধাপ ৬ শুরু করো"।
 
 ## সমস্যা
 
@@ -78,7 +78,14 @@
 - `PromoteStudentsAction`-এর `year → year+1` কলেজেও ঠিক — অপরিবর্তিত
 - `PromoteStudents` / `PromoteStudentsForClass` — "থেকে" সেশনের ডিফল্ট ক্লাস অনুযায়ী; কলেজ কার্ডে "2026-27 → 2027-28"
 
-## ধাপ ৫ — উপস্থিতি
+## ধাপ ৫ — উপস্থিতি ✅
+
+বাস্তবায়নের সিদ্ধান্ত:
+- `Attendance::inYear()` সরিয়ে `inSession($year)` (প্রতি row নিজের ক্লাসের সেশনের সময়সীমা) আর `inCurrentSession()` (প্রতি ক্লাসের চলতি সেশন)।
+- `ResolveStudentAttendanceTotals`-এ `$year` এখন সেশন বছর; `null` = প্রতি ক্লাসের চলতি সেশন। Ranking পেজ/widget-গুলো `null` পাঠায়।
+- পরীক্ষার attendance totals আর মার্কশিট আগে থেকেই exam-এর `session_year` পাঠাত — scope বদলানোয় কলেজে নিজে থেকেই জুলাই–জুন হয়ে গেছে।
+- মাসিক attendance রিপোর্টের "Session Year" ঘরটা আসলে ক্যালেন্ডার বছর — লেবেল "Year" করা হয়েছে।
+- `WorkingDaysCalculator`: recurring ছুটি এখন মাস-দিন (`m-d`) দিয়ে মেলে, তাই যেকোনো বছরে কাজ করে (আগে শুধু চলতি বছরে)।
 
 - `ResolveStudentAttendanceTotals` — `inYear($year)` → সেশনের সময়সীমা (`periodFor()`)
 - ClassAttendanceRanking, StudentAttendanceRanking, MyAttendanceRanking, StudentAttendanceRankOverview, StudentAttendanceRankingWidget, StudentAttendanceReport — প্রতি ক্লাস নিজের সেশনের সময়সীমা
