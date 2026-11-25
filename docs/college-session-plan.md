@@ -1,6 +1,6 @@
 # কলেজ সেশন (জুলাই–জুন) পরিকল্পনা
 
-> অবস্থা: **ধাপ ১ ও ২ সম্পন্ন।** পরের কাজ শুরু করতে বলুন: "docs/college-session-plan.md অনুযায়ী ধাপ ৩ শুরু করো"।
+> অবস্থা: **ধাপ ১, ২ ও ৩ সম্পন্ন।** পরের কাজ শুরু করতে বলুন: "docs/college-session-plan.md অনুযায়ী ধাপ ৪ শুরু করো"।
 
 ## সমস্যা
 
@@ -58,7 +58,10 @@
 **Student**
 - `StudentUpcomingExamWidget` ইত্যাদি — ছাত্রের ক্লাসের `currentSessionYear()`
 
-## ধাপ ৩ — ফি
+## ধাপ ৩ — ফি ✅
+
+বাস্তবায়নের সিদ্ধান্ত:
+- One-time ফি আগে থেকেই structure-এর `session_year` ধরে চলে, আর ইনভয়েসের `year`-এ সেশন বছরই রাখে — বদলানো হয়নি। জেনারেট মডালের "Year" ঘরে helper text দিয়ে বোঝানো হয়েছে (মাসিক = ক্যালেন্ডার বছর, one-time = সেশন বছর)।
 
 - `GenerateMonthlyFeeInvoicesAction` — প্রতি ক্লাসে `AcademicSession::yearForDate(Carbon::create($year, $month, 1), $class)` দিয়ে fee structure ও discount খোঁজা
 - ইনভয়েসের `month`/`year` ক্যালেন্ডারই থাকবে (unique key অপরিবর্তিত)

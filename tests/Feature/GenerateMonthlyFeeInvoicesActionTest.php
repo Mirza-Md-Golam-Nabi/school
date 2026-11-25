@@ -1,6 +1,7 @@
 <?php
 
 use App\Actions\GenerateMonthlyFeeInvoicesAction;
+use App\Enums\ClassLevel;
 use App\Enums\FeeDiscountType;
 use App\Enums\Gender;
 use App\Enums\InvoiceStatus;
@@ -171,4 +172,38 @@ it('applies an active student fee discount when generating invoices', function (
     expect((float) $invoice->discount_amount)->toBe(100.0)
         ->and((float) $invoice->net_amount)->toBe(900.0)
         ->and($invoice->status)->toBe(InvoiceStatus::Unpaid);
+});
+
+it('bills a college class from the fee structure and discount of the session the month falls in', function () {
+    Notification::fake();
+
+    $college = Classes::create(['name' => 'Class Eleven', 'order' => 11, 'level' => ClassLevel::College]);
+    $school = Classes::create(['name' => 'Class Nine', 'order' => 9, 'level' => ClassLevel::Secondary]);
+    $tuition = FeeType::create(['name' => 'Tuition Fee', 'is_monthly' => true, 'is_active' => true]);
+
+    foreach ([[$college, 2026, 1000], [$college, 2027, 1200], [$school, 2026, 500], [$school, 2027, 600]] as [$class, $sessionYear, $amount]) {
+        FeeStructure::create(['class_id' => $class->id, 'fee_type_id' => $tuition->id, 'amount' => $amount, 'session_year' => $sessionYear, 'is_active' => true]);
+    }
+
+    $collegeStudent = createMonthlyInvoiceTestStudent($college->id);
+    $schoolStudent = createMonthlyInvoiceTestStudent($school->id);
+
+    $discount = FeeDiscount::create(['name' => '10% Scholarship', 'discount_type' => FeeDiscountType::Percent, 'discount_value' => 10]);
+    StudentFeeDiscount::create(['student_id' => $collegeStudent->id, 'fee_type_id' => $tuition->id, 'discount_id' => $discount->id, 'session_year' => 2026]);
+
+    app(GenerateMonthlyFeeInvoicesAction::class)->handle(3, 2027);
+
+    $collegeInvoice = StudentFeeInvoice::where('student_id', $collegeStudent->id)->sole();
+    $schoolInvoice = StudentFeeInvoice::where('student_id', $schoolStudent->id)->sole();
+
+    expect($collegeInvoice->month)->toBe(3)
+        ->and($collegeInvoice->year)->toBe(2027)
+        ->and((float) $collegeInvoice->original_amount)->toBe(1000.0)
+        ->and((float) $collegeInvoice->discount_amount)->toBe(100.0)
+        ->and((float) $schoolInvoice->original_amount)->toBe(600.0);
+
+    app(GenerateMonthlyFeeInvoicesAction::class)->handle(7, 2027);
+
+    expect((float) StudentFeeInvoice::where('student_id', $collegeStudent->id)->where('month', 7)->sole()->original_amount)->toBe(1200.0)
+        ->and((float) StudentFeeInvoice::where('student_id', $collegeStudent->id)->where('month', 7)->sole()->discount_amount)->toBe(0.0);
 });

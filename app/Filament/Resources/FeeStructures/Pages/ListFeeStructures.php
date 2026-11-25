@@ -92,6 +92,9 @@ class ListFeeStructures extends Page
                             ->mapWithKeys(fn (int $y) => [$y => $y]))
                         ->native(false)
                         ->default(now()->year)
+                        ->helperText(fn (Get $get): ?string => $get('invoice_type') === 'one_time'
+                            ? 'One-time ফি-তে এটা সেশন বছর — কলেজে (একাদশ-দ্বাদশ) 2026 মানে 2026-27 সেশন।'
+                            : 'মাসিক ফি-তে ক্যালেন্ডার বছর — কলেজের ক্লাসে মাসটা যে সেশনে পড়ে সেই সেশনের fee structure ধরা হয়।')
                         ->required(),
                 ])
                 ->modalHeading('Generate Invoices — All Classes')

@@ -10,6 +10,7 @@ use App\Models\FeeStructure;
 use App\Models\StudentFeeInvoice;
 use App\Models\StudentProfile;
 use App\Notifications\Concerns\NotifiesStudentFeeInvoice;
+use App\Support\AcademicSession;
 use Carbon\Carbon;
 
 class GenerateMonthlyFeeInvoicesAction
@@ -23,6 +24,10 @@ class GenerateMonthlyFeeInvoicesAction
      * Generate monthly fee invoices for active students based on their class fee structures.
      * Existing invoices for the same student/fee type/month/year are skipped.
      *
+     * The month/year is a calendar month; the fee structure and discounts are
+     * looked up by the session that month falls in for each class — e.g.
+     * March 2027 is session 2026 (2026-27) for a college class.
+     *
      * @return array{generated: int, skipped: int}
      */
     public function handle(int $month, int $year, ?int $classId = null): array
@@ -33,15 +38,18 @@ class GenerateMonthlyFeeInvoicesAction
             $classesQuery->where('id', $classId);
         }
 
-        $classes = $classesQuery->get(['id']);
+        $classes = $classesQuery->get(['id', 'level']);
+        $firstDayOfMonth = Carbon::create($year, $month, 1);
 
         $generated = 0;
         $skipped = 0;
         $newInvoices = [];
 
         foreach ($classes as $class) {
+            $sessionYear = AcademicSession::yearForDate($firstDayOfMonth, $class);
+
             $structures = FeeStructure::where('class_id', $class->id)
-                ->where('session_year', $year)
+                ->where('session_year', $sessionYear)
                 ->where('is_active', true)
                 ->whereHas('feeType', fn ($q) => $q->where('is_monthly', true)->where('is_active', true))
                 ->get(['fee_type_id', 'amount']);
@@ -80,7 +88,7 @@ class GenerateMonthlyFeeInvoicesAction
                         continue;
                     }
 
-                    $discountAmount = $this->resolveDiscount($student, $structure->fee_type_id, (float) $structure->amount, $year);
+                    $discountAmount = $this->resolveDiscount($student, $structure->fee_type_id, (float) $structure->amount, $sessionYear);
                     $netAmount = max(0, $structure->amount - $discountAmount);
 
                     $invoice = StudentFeeInvoice::create([
