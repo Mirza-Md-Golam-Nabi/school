@@ -47,7 +47,10 @@
                             <p class="text-xl font-bold tracking-tight text-gray-950 dark:text-white">
                                 {{ $class->active_students_count }}
                             </p>
-                            <p class="text-xs text-gray-500 dark:text-gray-400">Students ({{ $year }})</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Students ({{ $class->sessionLabel($year) }})</p>
+                            @if ($year >= $class->currentSessionYear())
+                                <p class="text-xs font-medium text-warning-600 dark:text-warning-400">সেশন চলছে</p>
+                            @endif
                         </div>
 
                         <x-heroicon-o-arrow-right

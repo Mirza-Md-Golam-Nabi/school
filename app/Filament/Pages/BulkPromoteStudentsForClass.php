@@ -6,6 +6,7 @@ use App\Actions\PromoteStudentsAction;
 use App\Actions\ResolveDefaultPromotionOptionalSubjects;
 use App\Enums\ExamConfigType;
 use App\Enums\PromotionStatus;
+use App\Filament\Concerns\DescribesPromotionSession;
 use App\Models\Classes;
 use App\Models\ClassGroupSubject;
 use App\Models\Exam;
@@ -27,6 +28,8 @@ use Livewire\Attributes\Url;
 
 class BulkPromoteStudentsForClass extends Page
 {
+    use DescribesPromotionSession;
+
     protected static bool $shouldRegisterNavigation = false;
 
     protected string $view = 'filament.pages.bulk-promote-students-for-class';

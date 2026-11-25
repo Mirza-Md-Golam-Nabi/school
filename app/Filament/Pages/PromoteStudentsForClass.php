@@ -8,6 +8,7 @@ use App\Actions\ResolveDefaultPromotionOptionalSubjects;
 use App\Enums\ExamConfigType;
 use App\Enums\PaymentMethod;
 use App\Enums\PromotionStatus;
+use App\Filament\Concerns\DescribesPromotionSession;
 use App\Filament\Resources\StudentFeeInvoices\Actions\FeeDefaultActions;
 use App\Models\Classes;
 use App\Models\ClassGroupSubject;
@@ -41,6 +42,7 @@ use Livewire\Attributes\Url;
 
 class PromoteStudentsForClass extends Page implements HasTable
 {
+    use DescribesPromotionSession;
     use InteractsWithTable;
 
     private const LEAVING_STATUSES = [PromotionStatus::Graduated->value, PromotionStatus::Transferred->value, PromotionStatus::Dropped->value];

@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\ClassLevel;
 use App\Enums\Gender;
 use App\Enums\StudentStatus;
 use App\Enums\UserType;
@@ -10,6 +11,7 @@ use App\Models\Classes;
 use App\Models\StudentProfile;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
@@ -89,4 +91,31 @@ it('keeps the Promote nav item active on both of its hidden sub-pages', function
         ->and($patterns)->toContain(PromoteStudents::getRouteName())
         ->and($patterns)->toContain(PromoteStudentsForClass::getRouteName())
         ->and($patterns)->toContain(BulkPromoteStudentsForClass::getRouteName());
+});
+
+it('labels college sessions and flags the ones still running', function () {
+    $this->travelTo(Carbon::parse('2027-02-10'));
+    $this->actingAs(grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true])));
+
+    $college = Classes::create(['name' => 'Class 11', 'order' => 11, 'level' => ClassLevel::College, 'is_active' => true]);
+    $school = Classes::create(['name' => 'Class 9', 'order' => 9, 'level' => ClassLevel::Secondary, 'is_active' => true]);
+    makePromoteLandingTestStudent($college, 1, 2026);
+    makePromoteLandingTestStudent($school, 1, 2026);
+
+    Livewire::test(PromoteStudents::class)
+        ->assertSet('year', 2026)
+        ->assertSee('Students (2026-27)')
+        ->assertSee('Students (2026)')
+        ->assertSeeTextInOrder(['Class 9', 'Class 11', 'সেশন চলছে']);
+
+    Livewire::test(PromoteStudentsForClass::class, ['classId' => $college->id, 'year' => 2026])
+        ->assertSee('Session 2026-27 → 2027-28')
+        ->assertSee('Jun 2027 পর্যন্ত');
+
+    Livewire::test(BulkPromoteStudentsForClass::class, ['classId' => $college->id, 'year' => 2026])
+        ->assertSee('Jun 2027 পর্যন্ত');
+
+    Livewire::test(PromoteStudentsForClass::class, ['classId' => $school->id, 'year' => 2026])
+        ->assertSee('Session 2026 → 2027')
+        ->assertDontSee('পর্যন্ত');
 });
