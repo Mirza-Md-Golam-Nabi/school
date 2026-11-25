@@ -8,6 +8,7 @@ use App\Models\Classes;
 use App\Models\FeeDiscount;
 use App\Models\FeeType;
 use App\Models\StudentProfile;
+use App\Support\AcademicSession;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -55,7 +56,13 @@ class StudentFeeDiscountForm
                             )
                             ->searchable()
                             ->required()
-                            ->native(false),
+                            ->native(false)
+                            ->live()
+                            ->afterStateUpdated(function (Set $set, mixed $state, string $operation): void {
+                                if ($operation === 'create' && $state) {
+                                    $set('session_year', AcademicSession::currentYearFor(StudentProfile::find($state)?->class));
+                                }
+                            }),
 
                         Select::make('fee_type_id')
                             ->label('Fee Type')
@@ -84,7 +91,8 @@ class StudentFeeDiscountForm
                             ->numeric()
                             ->minValue(2000)
                             ->maxValue(2100)
-                            ->default(now()->year),
+                            ->default(fn (): int => AcademicSession::currentYearFor(Classes::find(request()->integer('class_id'))))
+                            ->helperText('কলেজ (একাদশ-দ্বাদশ) ক্লাসে সেশন শুরুর বছর, যেমন 2026-27 সেশনের জন্য 2026'),
                         Select::make('approved_by')
                             ->label('Approved By')
                             ->relationship(

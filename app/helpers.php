@@ -19,16 +19,3 @@ if (! function_exists('convertEnglishToBengali')) {
         return str_replace($english, $bengali, $text);
     }
 }
-
-if (! function_exists('sessionYear')) {
-    function sessionYear(): array
-    {
-        $start = 2026;
-        $end = now()->year + 1; // For next year
-
-        return collect(range($start, $end))
-            ->reverse()
-            ->mapWithKeys(fn (int $year): array => [$year => (string) $year])
-            ->toArray();
-    }
-}

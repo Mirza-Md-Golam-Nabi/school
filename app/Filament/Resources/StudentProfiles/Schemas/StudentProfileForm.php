@@ -10,6 +10,7 @@ use App\Models\Classes;
 use App\Models\ClassGroupSubject;
 use App\Models\Section as SectionModel;
 use App\Models\StudentProfile;
+use App\Support\AcademicSession;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
@@ -86,8 +87,8 @@ class StudentProfileForm
 
                             Select::make('session_year')
                                 ->label('Session Year')
-                                ->options(sessionYear())
-                                ->default(now()->year)
+                                ->options(fn (Get $get): array => AcademicSession::optionsFor(Classes::find($get('current_class_id'))))
+                                ->default(fn (): int => AcademicSession::currentYearFor())
                                 ->required(),
 
                             Select::make('current_class_id')
@@ -96,7 +97,11 @@ class StudentProfileForm
                                 ->searchable()
                                 ->live()
                                 ->required()
-                                ->afterStateUpdated(function (Set $set) {
+                                ->afterStateUpdated(function (Set $set, mixed $state, string $operation) {
+                                    if ($operation === 'create') {
+                                        $set('session_year', AcademicSession::currentYearFor(Classes::find($state)));
+                                    }
+
                                     $set('current_section_id', null);
                                     $set('current_group_id', null);
                                     $set('main_optional_subject_id', null);

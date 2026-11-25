@@ -31,7 +31,7 @@ class ListStudentProfiles extends Page
             ->withCount([
                 'studentProfiles as student_profiles_count' => fn ($q) => $q
                     ->where('status', StudentStatus::Active)
-                    ->where('session_year', now()->year),
+                    ->inCurrentSession(),
             ])
             ->orderBy('order')
             ->get();

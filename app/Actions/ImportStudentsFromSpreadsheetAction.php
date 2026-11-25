@@ -10,6 +10,7 @@ use App\Models\Classes;
 use App\Models\ClassGroupSubject;
 use App\Models\Section;
 use App\Models\StudentProfile;
+use App\Support\AcademicSession;
 use BackedEnum;
 use Carbon\Carbon;
 use DateTimeInterface;
@@ -37,10 +38,10 @@ class ImportStudentsFromSpreadsheetAction
      *
      * @return array<string, string|int>
      */
-    public static function prefilledValues(): array
+    public static function prefilledValues(?Classes $class = null): array
     {
         return [
-            'session_year' => now()->year,
+            'session_year' => AcademicSession::currentYearFor($class),
             'nationality' => 'Bangladeshi',
         ];
     }
@@ -58,7 +59,7 @@ class ImportStudentsFromSpreadsheetAction
         'class' => ['required' => true, 'note' => 'সিস্টেমে থাকা ক্লাসের নাম হুবহু। ক্লাসের পেজ থেকে আপলোড করলে খালি রাখা যায়', 'example' => 'Class 6'],
         'section' => ['required' => false, 'note' => 'ওই ক্লাসের section-এর নাম', 'example' => 'A'],
         'group' => ['required' => false, 'note' => 'ওই ক্লাসের group-এর নাম (যেমন Science)', 'example' => ''],
-        'session_year' => ['required' => false, 'note' => 'খালি রাখলে চলতি বছর ধরা হবে', 'example' => '2026'],
+        'session_year' => ['required' => false, 'note' => 'খালি রাখলে ক্লাসের চলতি সেশন ধরা হবে। কলেজে (একাদশ-দ্বাদশ) সেশন শুরুর বছর লিখুন, যেমন 2026-27 সেশনের জন্য 2026', 'example' => '2026'],
         'gender' => ['required' => true, 'note' => 'male / female / other', 'example' => 'male'],
         'registration_no' => ['required' => false, 'note' => 'শুধু সংখ্যা', 'example' => ''],
         'admission_date' => ['required' => false, 'note' => 'YYYY-MM-DD অথবা DD/MM/YYYY', 'example' => '2026-01-05'],
@@ -331,7 +332,7 @@ class ImportStudentsFromSpreadsheetAction
             'current_class_id' => $class?->id,
             'current_section_id' => $sectionId,
             'current_group_id' => $groupId,
-            'session_year' => (int) ($row['session_year'] ?? now()->year),
+            'session_year' => (int) ($row['session_year'] ?? AcademicSession::currentYearFor($class)),
             'gender' => $this->resolveEnum(Gender::class, $row['gender'], 'gender', $errors),
             'date_of_birth' => $this->resolveDate($row['date_of_birth'], 'date_of_birth', $errors),
             'blood_group' => $this->resolveEnum(BloodGroup::class, $row['blood_group'], 'blood_group', $errors),

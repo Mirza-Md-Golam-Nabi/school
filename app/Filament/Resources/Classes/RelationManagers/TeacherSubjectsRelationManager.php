@@ -6,6 +6,7 @@ use App\Models\ClassGroupSubject;
 use App\Models\Section;
 use App\Models\TeacherProfile;
 use App\Models\TeacherSubject;
+use App\Support\AcademicSession;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
@@ -64,16 +65,8 @@ class TeacherSubjectsRelationManager extends RelationManager
 
                 Select::make('session_year')
                     ->label('Session Year')
-                    ->options(function () {
-                        $currentYear = (int) now()->format('Y');
-                        $years = [];
-                        for ($year = 2026; $year <= $currentYear; $year++) {
-                            $years[$year] = (string) $year;
-                        }
-
-                        return $years;
-                    })
-                    ->default(fn () => (int) now()->format('Y'))
+                    ->options(fn (RelationManager $livewire): array => AcademicSession::optionsFor($livewire->getOwnerRecord()))
+                    ->default(fn (RelationManager $livewire): int => $livewire->getOwnerRecord()->currentSessionYear())
                     ->required(),
             ])
             ->columns(2);
@@ -103,22 +96,15 @@ class TeacherSubjectsRelationManager extends RelationManager
                     ->label('Session')
                     ->alignCenter()
                     ->sortable()
+                    ->formatStateUsing(fn (int $state): string => $this->getOwnerRecord()->sessionLabel($state))
                     ->badge()
                     ->color('info'),
             ])
             ->filters([
                 SelectFilter::make('session_year')
                     ->label('Session Year')
-                    ->options(function () {
-                        $currentYear = (int) now()->format('Y');
-                        $years = [];
-                        for ($year = 2026; $year <= $currentYear; $year++) {
-                            $years[$year] = (string) $year;
-                        }
-
-                        return $years;
-                    })
-                    ->default((int) now()->format('Y')),
+                    ->options(fn (RelationManager $livewire): array => AcademicSession::optionsFor($livewire->getOwnerRecord()))
+                    ->default($this->getOwnerRecord()->currentSessionYear()),
             ])
             ->headerActions([
                 CreateAction::make()

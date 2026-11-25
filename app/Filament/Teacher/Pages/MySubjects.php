@@ -3,9 +3,11 @@
 namespace App\Filament\Teacher\Pages;
 
 use App\Models\TeacherSubject;
+use App\Support\AcademicSession;
 use BackedEnum;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
@@ -23,18 +25,22 @@ class MySubjects extends Page
 
     protected static ?int $navigationSort = 1;
 
-    public int $sessionYear;
+    /**
+     * 0 = the current session, which differs per class: college classes
+     * (July start) are still on last year's session between January and June.
+     */
+    public const CURRENT_SESSION = 0;
 
-    public function mount(): void
-    {
-        $this->sessionYear = (int) now()->format('Y');
-    }
+    public int $sessionYear = self::CURRENT_SESSION;
 
+    /**
+     * @return array<int, string>
+     */
     public function getSessionYearOptions(): array
     {
-        $currentYear = (int) now()->format('Y');
-        $years = [];
-        for ($year = 2026; $year <= $currentYear; $year++) {
+        $years = [self::CURRENT_SESSION => 'Current Session'];
+
+        foreach (range(AcademicSession::currentYearFor(), AcademicSession::FIRST_SESSION_YEAR) as $year) {
             $years[$year] = (string) $year;
         }
 
@@ -52,13 +58,18 @@ class MySubjects extends Page
 
         return TeacherSubject::query()
             ->where('teacher_id', $teacherId)
-            ->where('session_year', $this->sessionYear)
+            ->when(
+                $this->sessionYear === self::CURRENT_SESSION,
+                fn (Builder $query) => $query->inCurrentSession(),
+                fn (Builder $query) => $query->where('session_year', $this->sessionYear),
+            )
             ->with(['subject', 'class', 'section'])
             ->orderBy('class_id')
             ->get()
             ->groupBy('class_id')
             ->map(fn (Collection $rows) => [
                 'class' => $rows->first()->class,
+                'sessionLabel' => $rows->first()->class?->sessionLabel($rows->first()->session_year) ?? (string) $rows->first()->session_year,
                 'subjects' => $rows->map(fn ($row) => [
                     'name' => $row->subject?->display_name ?? '—',
                     'section' => $row->section?->name,

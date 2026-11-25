@@ -30,7 +30,7 @@ class PendingAlertsWidget extends Widget
     public function getViewData(): array
     {
         $unpublishedExams = Exam::query()
-            ->where('session_year', now()->year)
+            ->inCurrentSession()
             ->where('is_published', false)
             ->where('end_date', '<', today()->addDay()->toDateString())
             ->count();

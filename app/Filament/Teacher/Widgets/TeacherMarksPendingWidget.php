@@ -25,7 +25,7 @@ class TeacherMarksPendingWidget extends Widget
     public static function canView(): bool
     {
         return TeacherSubject::where('teacher_id', Auth::user()?->teacherProfile?->id)
-            ->where('session_year', now()->year)
+            ->inCurrentSession()
             ->exists();
     }
 
@@ -34,14 +34,12 @@ class TeacherMarksPendingWidget extends Widget
      */
     public function getViewData(): array
     {
-        $session = now()->year;
-
         $assignments = TeacherSubject::where('teacher_id', Auth::user()->teacherProfile->id)
-            ->where('session_year', $session)
+            ->inCurrentSession()
             ->get(['class_id', 'subject_id']);
 
         $exams = Exam::whereIn('class_id', $assignments->pluck('class_id')->unique())
-            ->where('session_year', $session)
+            ->inCurrentSession()
             ->with(['examType', 'class'])
             ->get();
 

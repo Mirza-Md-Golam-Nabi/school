@@ -4,6 +4,7 @@ namespace App\Filament\Student\Widgets;
 
 use App\Models\Exam;
 use App\Models\ExamSchedule;
+use App\Support\AcademicSession;
 use Filament\Widgets\Widget;
 use Illuminate\Support\Facades\Auth;
 
@@ -33,7 +34,7 @@ class StudentUpcomingExamWidget extends Widget
 
         $exams = Exam::query()
             ->where('class_id', $profile->current_class_id)
-            ->where('session_year', now()->year)
+            ->where('session_year', AcademicSession::currentYearFor($profile->class))
             ->where('start_date', '>=', today()->toDateString())
             ->with(['examType', 'schedules.subject'])
             ->orderBy('start_date')

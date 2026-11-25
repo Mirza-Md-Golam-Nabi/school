@@ -41,7 +41,7 @@
         @if ($classes->isEmpty())
             <x-filament::empty-state icon="heroicon-o-book-open">
                 <x-slot name="heading">No subjects assigned</x-slot>
-                <x-slot name="description">Your subject assignments for {{ $sessionYear }} will appear here once added
+                <x-slot name="description">Your subject assignments for {{ $sessionYear ? $sessionYear : 'the current session' }} will appear here once added
                     by the admin.</x-slot>
             </x-filament::empty-state>
         @else
@@ -97,7 +97,7 @@
                         {{-- Footer --}}
                         <div
                             class="flex items-center justify-between border-t border-gray-100 pt-1 dark:border-gray-800">
-                            <span class="text-xs text-gray-400 dark:text-gray-500">Session {{ $sessionYear }}</span>
+                            <span class="text-xs text-gray-400 dark:text-gray-500">Session {{ $item['sessionLabel'] }}</span>
                             <span class="text-xs font-medium text-gray-600 dark:text-gray-300">{{ $count }}
                                 {{ Str::plural('subject', $count) }}</span>
                         </div>

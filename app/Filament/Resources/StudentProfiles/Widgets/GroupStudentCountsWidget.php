@@ -26,7 +26,7 @@ class GroupStudentCountsWidget extends StatsOverviewWidget
 
         $countsByGroupId = StudentProfile::query()
             ->where('current_class_id', $this->classId)
-            ->where('session_year', now()->year)
+            ->inCurrentSession()
             ->where('status', StudentStatus::Active)
             ->whereIn('current_group_id', $groupIds->values())
             ->selectRaw('current_group_id, count(*) as total')

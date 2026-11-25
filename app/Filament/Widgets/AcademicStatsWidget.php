@@ -25,10 +25,8 @@ class AcademicStatsWidget extends Widget
      */
     public function getViewData(): array
     {
-        $sessionYear = now()->year;
-
         $examCounts = Exam::query()
-            ->where('session_year', $sessionYear)
+            ->inCurrentSession()
             ->selectRaw('is_published, count(*) as total')
             ->groupBy('is_published')
             ->pluck('total', 'is_published');
@@ -37,7 +35,6 @@ class AcademicStatsWidget extends Widget
         $unpublishedExams = (int) ($examCounts[0] ?? 0);
 
         return [
-            'sessionYear' => $sessionYear,
             'totalExams' => $publishedExams + $unpublishedExams,
             'publishedExams' => $publishedExams,
             'unpublishedExams' => $unpublishedExams,

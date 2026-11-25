@@ -18,7 +18,7 @@ class ClassStudentListPdfController extends Controller
      */
     public function __invoke(Classes $class, BuildClassStudentListPdfAction $action, Request $request): Response
     {
-        $sessionYear = now()->year;
+        $sessionYear = $class->currentSessionYear();
 
         $columns = (array) $request->query('columns', []);
         $orientation = (string) $request->query('orientation', 'P');

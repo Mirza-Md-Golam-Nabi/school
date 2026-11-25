@@ -34,7 +34,7 @@ class TeacherSubjectsOverview extends StatsOverviewWidget
         }
 
         $assignments = TeacherSubject::where('teacher_id', $teacherId)
-            ->where('session_year', (int) now()->format('Y'))
+            ->inCurrentSession()
             ->get(['class_id', 'subject_id']);
 
         return [

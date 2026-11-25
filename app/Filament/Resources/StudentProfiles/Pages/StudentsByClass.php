@@ -143,7 +143,7 @@ class StudentsByClass extends ListRecords
     {
         $query = StudentProfileResource::getEloquentQuery()
             ->where('current_class_id', $this->classId)
-            ->where('session_year', now()->year);
+            ->inCurrentSession();
 
         return StudentProfilesTable::configure($table->query($query), $this->resolveClass());
     }

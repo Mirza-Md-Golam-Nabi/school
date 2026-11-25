@@ -77,7 +77,7 @@ class BuildStudentImportTemplateAction
         $this->writeRows($allowedValues, [['Column', 'Class', 'Group', 'Value (কপি করে বসান)'], ...$allowedValueRows]);
         $allowedValues->getStyle('1:1')->getFont()->setBold(true);
 
-        $this->addDropdowns($spreadsheet, $students, $this->dropdownLists($allowedValueRows));
+        $this->addDropdowns($spreadsheet, $students, $this->dropdownLists($allowedValueRows), $class);
 
         foreach ([$students, $instructions, $allowedValues] as $sheet) {
             foreach (range(1, Coordinate::columnIndexFromString($sheet->getHighestColumn())) as $columnIndex) {
@@ -165,7 +165,7 @@ class BuildStudentImportTemplateAction
      *
      * @param  Collection<string, Collection<int, string>>  $lists
      */
-    private function addDropdowns(Spreadsheet $spreadsheet, Worksheet $students, Collection $lists): void
+    private function addDropdowns(Spreadsheet $spreadsheet, Worksheet $students, Collection $lists, ?Classes $class): void
     {
         $listsSheet = $spreadsheet->createSheet()->setTitle(self::LISTS_SHEET);
         $listsSheet->setSheetState(Worksheet::SHEETSTATE_HIDDEN);
@@ -174,7 +174,7 @@ class BuildStudentImportTemplateAction
         $lastRow = ImportStudentsFromSpreadsheetAction::MAX_ROWS + 1;
         $listColumnIndex = 0;
 
-        $prefilledValues = ImportStudentsFromSpreadsheetAction::prefilledValues();
+        $prefilledValues = ImportStudentsFromSpreadsheetAction::prefilledValues($class);
 
         foreach ($columnNames as $index => $name) {
             $studentColumn = Coordinate::stringFromColumnIndex($index + 1);

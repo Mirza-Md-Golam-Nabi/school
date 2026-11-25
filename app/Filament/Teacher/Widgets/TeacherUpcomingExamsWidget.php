@@ -33,7 +33,7 @@ class TeacherUpcomingExamsWidget extends Widget
     {
         $exams = Exam::query()
             ->whereIn('class_id', static::currentTeacherTaughtClassIds())
-            ->where('session_year', now()->year)
+            ->inCurrentSession()
             ->where('start_date', '>=', today()->toDateString())
             ->with(['examType', 'class'])
             ->orderBy('start_date')

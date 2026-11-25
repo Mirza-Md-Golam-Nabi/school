@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Exams\Pages;
 
 use App\Actions\CreateExamAction;
 use App\Filament\Resources\Exams\ExamResource;
+use App\Filament\Resources\Exams\Schemas\ExamForm;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Database\Eloquent\Model;
 
@@ -25,6 +26,7 @@ class CreateExam extends CreateRecord
 
         if ($this->filterClassId) {
             $this->data['class_id'] = [$this->filterClassId];
+            $this->data['session_year'] = ExamForm::currentSessionYearFor($this->filterClassId);
         }
     }
 
