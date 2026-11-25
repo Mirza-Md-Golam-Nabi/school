@@ -6,6 +6,7 @@ use App\Enums\BloodGroup;
 use App\Enums\Gender;
 use App\Enums\Religion;
 use App\Enums\StudentStatus;
+use App\Traits\HasAcademicSession;
 use App\Traits\LogsRelationLabels;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -19,6 +20,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 class StudentProfile extends Model
 {
+    use HasAcademicSession;
     use LogsActivity;
     use LogsRelationLabels;
     use SoftDeletes;
@@ -92,6 +94,11 @@ class StudentProfile extends Model
     public function class(): BelongsTo
     {
         return $this->belongsTo(Classes::class, 'current_class_id');
+    }
+
+    public function academicSessionClassColumn(): string
+    {
+        return 'current_class_id';
     }
 
     public function section(): BelongsTo

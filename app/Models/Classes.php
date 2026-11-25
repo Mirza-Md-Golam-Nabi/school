@@ -6,6 +6,7 @@ use App\Enums\ClassLevel;
 use App\Models\ClassGroupSubject;
 use App\Models\Group;
 use App\Models\Section;
+use App\Support\AcademicSession;
 use App\Traits\LogsRelationLabels;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
@@ -46,6 +47,31 @@ class Classes extends Model
         }
 
         return $this->name;
+    }
+
+    /**
+     * College classes (11–12) run their session from the configured start
+     * month (July by default) instead of January.
+     */
+    public function isCollege(): bool
+    {
+        return AcademicSession::isCollege($this);
+    }
+
+    /**
+     * The session (start year) that is running for this class today.
+     */
+    public function currentSessionYear(): int
+    {
+        return AcademicSession::currentYearFor($this);
+    }
+
+    /**
+     * The session as shown for this class — "2026" or "2026-27".
+     */
+    public function sessionLabel(int $year): string
+    {
+        return AcademicSession::label($year, $this);
     }
 
     #[Scope]

@@ -4,6 +4,7 @@ use App\Enums\UserType;
 use App\Filament\Pages\SchoolSettings;
 use App\Models\SchoolSetting;
 use App\Models\User;
+use App\Support\AcademicSession;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 
@@ -66,6 +67,24 @@ it('saves the school EIIN number and prints it as an EIIN line', function () {
 
     Livewire::test(SchoolSettings::class)
         ->assertSchemaStateSet([SchoolSetting::EIIN_SETTING => '123456']);
+});
+
+it('defaults the college session start month to July and saves a new one', function () {
+    $admin = grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]));
+    test()->actingAs($admin);
+
+    Livewire::test(SchoolSettings::class)
+        ->assertSchemaStateSet([AcademicSession::COLLEGE_START_MONTH_SETTING => 7])
+        ->fillForm([
+            'school_name' => 'Test School',
+            AcademicSession::COLLEGE_START_MONTH_SETTING => 6,
+        ])
+        ->call('save')
+        ->assertHasNoFormErrors()
+        ->assertNotified();
+
+    expect(SchoolSetting::get(AcademicSession::COLLEGE_START_MONTH_SETTING))->toBe('6')
+        ->and(AcademicSession::collegeStartMonth())->toBe(6);
 });
 
 it('rejects an EIIN number that is not digits only', function () {

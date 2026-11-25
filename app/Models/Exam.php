@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\StudentMeritRanking;
 use App\Support\BengaliNumber;
+use App\Traits\HasAcademicSession;
 use App\Traits\LogsRelationLabels;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -14,6 +15,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 class Exam extends Model
 {
+    use HasAcademicSession;
     use LogsActivity;
     use LogsRelationLabels;
     use SoftDeletes;

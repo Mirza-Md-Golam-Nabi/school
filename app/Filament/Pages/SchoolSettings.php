@@ -11,7 +11,9 @@ use App\Enums\WeekDay;
 use App\Models\ResultRule;
 use App\Models\SchoolSetting;
 use App\Models\SubjectMerge;
+use App\Support\AcademicSession;
 use BackedEnum;
+use Carbon\Carbon;
 use Filament\Actions\Action;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\FileUpload;
@@ -53,6 +55,7 @@ class SchoolSettings extends Page
             'school_name' => SchoolSetting::get('school_name', ''),
             SchoolSetting::SCHOOL_CODE_SETTING => SchoolSetting::schoolCode(),
             'weekend_days' => json_decode($weekendRaw, true) ?? ['friday'],
+            AcademicSession::COLLEGE_START_MONTH_SETTING => AcademicSession::collegeStartMonth(),
             'school_logo' => SchoolSetting::get('school_logo') ?: null,
             'school_address' => SchoolSetting::get('school_address', ''),
             SchoolSetting::EIIN_SETTING => SchoolSetting::get(SchoolSetting::EIIN_SETTING, ''),
@@ -104,6 +107,17 @@ class SchoolSettings extends Page
                             ])
                             ->gridDirection('row')
                             ->helperText('Select which days are weekends (non-working days).'),
+                    ]),
+
+                Section::make('Academic Session')
+                    ->schema([
+                        Select::make(AcademicSession::COLLEGE_START_MONTH_SETTING)
+                            ->label('College Session Start Month')
+                            ->options(collect(range(1, 12))
+                                ->mapWithKeys(fn (int $month): array => [$month => Carbon::create(2000, $month, 1)->format('F')])
+                                ->all())
+                            ->required()
+                            ->helperText('কলেজ (একাদশ-দ্বাদশ) লেভেলের ক্লাসের সেশন এই মাস থেকে শুরু হয় (যেমন জুলাই → সেশন 2026-27)। স্কুলের বাকি সব ক্লাসের সেশন জানুয়ারি–ডিসেম্বর।'),
                     ]),
 
                 Section::make('Branding')
@@ -238,6 +252,7 @@ class SchoolSettings extends Page
         SchoolSetting::set('school_name', $data['school_name']);
         SchoolSetting::set(SchoolSetting::SCHOOL_CODE_SETTING, (string) (int) $data[SchoolSetting::SCHOOL_CODE_SETTING]);
         SchoolSetting::set('weekend_days', json_encode($data['weekend_days'] ?? []));
+        SchoolSetting::set(AcademicSession::COLLEGE_START_MONTH_SETTING, (string) (int) $data[AcademicSession::COLLEGE_START_MONTH_SETTING]);
         SchoolSetting::set('school_logo', $data['school_logo'] ?? '');
         SchoolSetting::set('school_address', $data['school_address'] ?? '');
         SchoolSetting::set(SchoolSetting::EIIN_SETTING, trim((string) ($data[SchoolSetting::EIIN_SETTING] ?? '')));

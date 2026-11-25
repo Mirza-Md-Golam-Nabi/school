@@ -3,11 +3,14 @@
 namespace App\Models;
 
 use App\Enums\PromotionStatus;
+use App\Traits\HasAcademicSession;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class StudentClassHistory extends Model
 {
+    use HasAcademicSession;
+
     protected $table = 'student_class_history';
 
     protected $fillable = [
