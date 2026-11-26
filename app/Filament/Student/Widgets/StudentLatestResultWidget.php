@@ -3,6 +3,7 @@
 namespace App\Filament\Student\Widgets;
 
 use App\Filament\Student\Resources\ExamResults\ExamResultResource;
+use App\Models\Exam;
 use App\Models\StudentMeritRanking;
 use App\Models\StudentProfile;
 use Filament\Widgets\Widget;
@@ -36,8 +37,13 @@ class StudentLatestResultWidget extends Widget
 
         $ranking = static::latestRanking($profile)
             ->with(['exam.examType', 'class'])
-            ->get()
-            ->sortByDesc(fn (StudentMeritRanking $ranking): string => (string) $ranking->exam?->start_date)
+            ->orderByDesc(
+                Exam::query()
+                    ->select('start_date')
+                    ->whereColumn('exams.id', 'student_merit_rankings.exam_id')
+                    ->limit(1)
+            )
+            ->orderBy('student_merit_rankings.id')
             ->first();
 
         // No published result for the current class/session yet (e.g. right after a

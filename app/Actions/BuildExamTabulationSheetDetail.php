@@ -8,11 +8,9 @@ use App\Models\Exam;
 use App\Models\ExamSubjectConfig;
 use App\Models\ExamSubjectMerge;
 use App\Models\GradeScale;
-use App\Models\Group;
 use App\Models\StudentMeritRanking;
 use App\Models\StudentResult;
 use App\Models\Subject;
-use App\Support\ClassGroupSubjectDefinitions;
 use Illuminate\Support\Collection;
 
 class BuildExamTabulationSheetDetail
@@ -37,9 +35,8 @@ class BuildExamTabulationSheetDetail
 
         $rankings = $exam->meritRankings()
             ->with(['student.user', 'student.group', 'section'])
-            ->get()
-            ->sortBy(fn (StudentMeritRanking $ranking): int => (int) $ranking->student?->roll_no)
-            ->values();
+            ->orderedByStudentRoll()
+            ->get();
 
         if ($rankings->isEmpty()) {
             return [
@@ -51,7 +48,9 @@ class BuildExamTabulationSheetDetail
             ];
         }
 
-        $subjectConfigs = $exam->subjectConfigs()->with('subject')->get()->keyBy('subject_id');
+        // In the school-wide subject order (sort_order, then id), so the
+        // tabulation sheet lists subjects like the marksheet.
+        $subjectConfigs = $exam->subjectConfigs()->orderedBySubject()->with('subject')->get()->keyBy('subject_id');
 
         $resultsByStudent = StudentResult::where('exam_id', $exam->id)
             ->get()
@@ -82,7 +81,7 @@ class BuildExamTabulationSheetDetail
             ];
         }
 
-        $subjects = $this->inSubjectOrder($subjectConfigs->pluck('subject')->filter());
+        $subjects = $subjectConfigs->pluck('subject')->filter()->values();
 
         return [
             'exam' => $exam,
@@ -116,9 +115,7 @@ class BuildExamTabulationSheetDetail
         bool $hasSections,
         array $mergeContext
     ): array {
-        $groups = $exam->class->groups
-            ->sortBy(fn (Group $group): int => array_search($group->name, ClassGroupSubjectDefinitions::SECONDARY_GROUPS, true))
-            ->values();
+        $groups = $exam->class->groups()->inSecondaryGroupOrder()->get();
 
         $blocks = [];
 
@@ -133,15 +130,14 @@ class BuildExamTabulationSheetDetail
 
             // The exam's subjects this group takes — a paper (Biology 1st
             // Paper) by its main subject's syllabus record.
-            $groupSubjects = $this->inSubjectOrder(
-                $mergeContext['subjectConfigs']
-                    ->pluck('subject')
-                    ->filter()
-                    ->filter(fn (Subject $subject): bool => ClassGroupSubject::isTakenByGroup($mergeContext['subjectTypeRecords']->get((int) $subject->id), (int) $group->id))
-                    ->filter(fn (Subject $subject): bool => $groupRankings->contains(
-                        fn (StudentMeritRanking $ranking): bool => $resultsByStudent->get($ranking->student_id)?->has($subject->id) ?? false
-                    ))
-            );
+            $groupSubjects = $mergeContext['subjectConfigs']
+                ->pluck('subject')
+                ->filter()
+                ->filter(fn (Subject $subject): bool => ClassGroupSubject::isTakenByGroup($mergeContext['subjectTypeRecords']->get((int) $subject->id), (int) $group->id))
+                ->filter(fn (Subject $subject): bool => $groupRankings->contains(
+                    fn (StudentMeritRanking $ranking): bool => $resultsByStudent->get($ranking->student_id)?->has($subject->id) ?? false
+                ))
+                ->values();
 
             $blocks[] = [
                 'group' => $group,
@@ -228,23 +224,6 @@ class BuildExamTabulationSheetDetail
             'class_rank' => $ranking->class_rank,
             'section_rank' => $ranking->section_rank,
         ];
-    }
-
-    /**
-     * Sort subjects in the school-wide subject order (Subject::scopeOrdered():
-     * sort_order, then id) so the tabulation sheet lists them like the marksheet.
-     *
-     * @param  Collection<int, Subject>  $subjects
-     * @return Collection<int, Subject>
-     */
-    private function inSubjectOrder(Collection $subjects): Collection
-    {
-        return $subjects
-            ->sortBy([
-                fn (Subject $first, Subject $second): int => (int) $first->sort_order <=> (int) $second->sort_order,
-                fn (Subject $first, Subject $second): int => (int) $first->id <=> (int) $second->id,
-            ])
-            ->values();
     }
 
     /**

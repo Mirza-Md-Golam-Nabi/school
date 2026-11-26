@@ -50,11 +50,7 @@ class FeeTypeResyncPolicyFields
                         return [];
                     }
 
-                    return FeeType::whereIn('id', $ids)
-                        ->get()
-                        ->flatMap(fn (FeeType $feeType) => $feeType->availableYears())
-                        ->unique()
-                        ->sortDesc()
+                    return collect(FeeType::availableYearsFor($ids))
                         ->mapWithKeys(fn (int $year) => [$year => $year])
                         ->toArray();
                 })

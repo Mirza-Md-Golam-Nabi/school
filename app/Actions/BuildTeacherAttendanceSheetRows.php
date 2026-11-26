@@ -32,9 +32,8 @@ class BuildTeacherAttendanceSheetRows
         $teachers = TeacherProfile::query()
             ->active()
             ->with('user:id,name')
-            ->get()
-            ->sortBy(fn (TeacherProfile $teacher): string => mb_strtolower((string) $teacher->user?->name))
-            ->values();
+            ->orderedByUserName()
+            ->get();
 
         $days = [];
 

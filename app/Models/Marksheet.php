@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Traits\OrdersByStudentRoll;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Marksheet extends Model
 {
+    use OrdersByStudentRoll;
+
     protected $fillable = [
         'student_id',
         'exam_id',

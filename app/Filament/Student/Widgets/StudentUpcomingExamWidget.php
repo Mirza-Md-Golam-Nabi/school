@@ -36,7 +36,11 @@ class StudentUpcomingExamWidget extends Widget
             ->where('class_id', $profile->current_class_id)
             ->where('session_year', AcademicSession::currentYearFor($profile->class))
             ->where('start_date', '>=', today()->toDateString())
-            ->with(['examType', 'schedules.subject'])
+            ->with([
+                'examType',
+                'schedules' => fn ($query) => $query->orderBy('exam_date')->orderBy('id'),
+                'schedules.subject',
+            ])
             ->orderBy('start_date')
             ->limit(5)
             ->get()
@@ -45,7 +49,6 @@ class StudentUpcomingExamWidget extends Widget
                 'startDate' => $exam->start_date?->format('d M, Y'),
                 'endDate' => $exam->end_date?->format('d M, Y'),
                 'schedules' => $exam->schedules
-                    ->sortBy('exam_date')
                     ->map(fn (ExamSchedule $schedule): array => [
                         'subject' => $schedule->subject?->display_name ?? __('Subject'),
                         'date' => $schedule->exam_date?->format('d M, Y (D)'),

@@ -78,10 +78,9 @@ class BuildCombinedClassAdmitCardsPdfAction
     private function loadAdmitCards(Builder $query): Collection
     {
         return $query
-            ->with(['student.user', 'student.class', 'student.section', 'student.group', 'exam.examType', 'exam.schedules.subject'])
-            ->get()
-            ->sortBy(fn (AdmitCard $admitCard) => $admitCard->student?->roll_no)
-            ->values();
+            ->with(['student.user', 'student.class', 'student.section', 'student.group', 'exam.examType', 'exam.schedules' => fn ($query) => $query->inExamDateOrder(), 'exam.schedules.subject'])
+            ->orderedByStudentRoll()
+            ->get();
     }
 
     /**

@@ -60,8 +60,8 @@ class DownloadEmployeeAttendanceReportRequest extends FormRequest
             ->map(fn (string $key): int => (int) substr($key, strlen($kind) + 1))
             ->all();
 
-        $teachers = TeacherProfile::with('user')->whereKey($idsOf('teacher'))->get()->sortBy('user.name');
-        $staff = StaffProfile::with('user')->whereKey($idsOf('staff'))->get()->sortBy('user.name');
+        $teachers = TeacherProfile::with('user')->whereKey($idsOf('teacher'))->orderedByUserName()->get();
+        $staff = StaffProfile::with('user')->whereKey($idsOf('staff'))->orderedByUserName()->get();
 
         return collect([...$teachers, ...$staff]);
     }

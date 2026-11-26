@@ -47,9 +47,9 @@ class HasProfileableFields
                 return $type::query()
                     ->active()
                     ->with('user')
+                    ->orderedByUserName()
                     ->get()
                     ->mapWithKeys(fn ($profile) => [$profile->id => $profile->user?->name ?? "#{$profile->id}"])
-                    ->sort()
                     ->toArray();
             })
             ->searchable()

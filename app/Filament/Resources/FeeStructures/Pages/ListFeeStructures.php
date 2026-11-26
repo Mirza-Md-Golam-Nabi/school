@@ -33,7 +33,7 @@ class ListFeeStructures extends Page
     protected function getViewData(): array
     {
         $classes = Classes::with([
-            'feeStructures' => fn ($query) => $query->where('is_active', true)->with('feeType'),
+            'feeStructures' => fn ($query) => $query->where('is_active', true)->with('feeType')->orderedByFeeTypeName(),
         ])
             ->active()
             ->orderBy('order')
@@ -45,7 +45,6 @@ class ListFeeStructures extends Page
                     'feeStructures',
                     $class->feeStructures
                         ->where('session_year', $latestSessionYear)
-                        ->sortBy('feeType.name')
                         ->values()
                 );
             });

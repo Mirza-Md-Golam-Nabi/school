@@ -3,8 +3,10 @@
 namespace App\Actions\Attendance;
 
 use App\Models\Attendance;
+use App\Models\Exam;
 use App\Models\StudentAttendanceSummary;
 use App\Models\StudentProfile;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
 /**
@@ -64,14 +66,26 @@ class ResolveStudentAttendanceTotals
             ->when($classId !== null, fn ($query) => $query->where('class_id', $classId))
             ->when($studentIds !== null, fn ($query) => $query->whereIn('student_id', collect($studentIds)))
             ->with('exam:id,start_date,end_date')
+            ->orderByDesc($this->examColumn('end_date'))
+            ->orderByDesc($this->examColumn('start_date'))
+            ->orderByDesc('student_attendance_summaries.exam_id')
+            ->orderBy('student_attendance_summaries.id')
             ->get()
-            ->sortByDesc(fn (StudentAttendanceSummary $summary): string => implode('|', [
-                $summary->exam?->end_date?->format('Y-m-d') ?? '',
-                $summary->exam?->start_date?->format('Y-m-d') ?? '',
-                str_pad((string) $summary->exam_id, 10, '0', STR_PAD_LEFT),
-            ]))
             ->unique('student_id')
             ->keyBy('student_id');
+    }
+
+    /**
+     * A summary row's exam column as a subquery, for ordering in the database.
+     *
+     * @return Builder<Exam>
+     */
+    private function examColumn(string $column): Builder
+    {
+        return Exam::withTrashed()
+            ->select($column)
+            ->whereColumn('exams.id', 'student_attendance_summaries.exam_id')
+            ->limit(1);
     }
 
     /**

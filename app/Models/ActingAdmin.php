@@ -58,31 +58,27 @@ class ActingAdmin extends Model
         && ($this->to_date === null || $this->to_date->gte(Carbon::today()));
     }
 
-    public static function activeUser()
+    /**
+     * Active teachers and staff as dropdown options (user id => "Name (Type)"),
+     * sorted by name in the database. A user with both active profiles is
+     * listed as Staff.
+     *
+     * @return array<int, string>
+     */
+    public static function activeUser(): array
     {
-        $teachers = TeacherProfile::with('user')
-            ->where('status', EmploymentStatus::Active)
-            ->get()
-            ->map(fn ($profile) => [
-                'id' => $profile->user_id,
-                'name' => $profile->user->name,
-                'type' => 'Teacher',
-            ]);
+        $isActive = fn ($query) => $query->where('status', EmploymentStatus::Active);
 
-        $staff = StaffProfile::with('user')
-            ->where('status', EmploymentStatus::Active)
+        return User::query()
+            ->where(fn ($query) => $query
+                ->whereHas('teacherProfile', $isActive)
+                ->orWhereHas('staffProfile', $isActive))
+            ->withExists(['staffProfile as has_active_staff_profile' => $isActive])
+            ->orderBy('name')
+            ->orderBy('id')
             ->get()
-            ->map(fn ($profile) => [
-                'id' => $profile->user_id,
-                'name' => $profile->user->name,
-                'type' => 'Staff',
-            ]);
-
-        return $teachers->concat($staff)
-            ->sortBy('name')
-            ->values()
-            ->mapWithKeys(fn ($person) => [
-                $person['id'] => $person['name'].' ('.$person['type'].')',
+            ->mapWithKeys(fn (User $user): array => [
+                $user->id => $user->name.' ('.($user->has_active_staff_profile ? 'Staff' : 'Teacher').')',
             ])
             ->toArray();
     }

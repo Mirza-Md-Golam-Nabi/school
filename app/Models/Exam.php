@@ -117,8 +117,11 @@ class Exam extends Model
      */
     public function admitCardRoutineColumns(): array
     {
+        // Callers eager-load the schedules already in routine order
+        // (ExamSchedule::inExamDateOrder()); load them that way if they didn't.
+        $this->loadMissing(['schedules' => fn ($query) => $query->inExamDateOrder()->with('subject')]);
+
         $rows = $this->schedules
-            ->sortBy(fn (ExamSchedule $schedule): string => $schedule->exam_date?->format('Y-m-d').'-'.str_pad((string) $schedule->id, 10, '0', STR_PAD_LEFT))
             ->values()
             ->map(fn (ExamSchedule $schedule, int $index): array => [
                 'serial' => $index + 1,

@@ -248,8 +248,8 @@ class StudentAttendanceReport extends Page
         $optionsFor = fn (string $kind, string $model): array => $model::query()
             ->active()
             ->with('user')
+            ->orderedByUserName()
             ->get()
-            ->sortBy('user.name')
             ->mapWithKeys(fn (TeacherProfile|StaffProfile $person): array => [
                 "{$kind}-{$person->id}" => $person->user?->name ?? "#{$person->id}",
             ])

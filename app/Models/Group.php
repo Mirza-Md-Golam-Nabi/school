@@ -3,6 +3,9 @@
 namespace App\Models;
 
 use App\Models\Classes;
+use App\Support\ClassGroupSubjectDefinitions;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -30,6 +33,25 @@ class Group extends Model
         }
 
         return $this->name;
+    }
+
+    /**
+     * Orders groups in the secondary level's fixed sequence (Science,
+     * Commerce, Humanities); any other group comes after them, by id.
+     */
+    #[Scope]
+    protected function inSecondaryGroupOrder(Builder $query): void
+    {
+        $groupNames = ClassGroupSubjectDefinitions::SECONDARY_GROUPS;
+
+        $cases = collect($groupNames)
+            ->keys()
+            ->map(fn (int $position): string => "when ? then {$position}")
+            ->implode(' ');
+
+        $query
+            ->orderByRaw("case {$this->qualifyColumn('name')} {$cases} else ".count($groupNames).' end', $groupNames)
+            ->orderBy($this->qualifyColumn('id'));
     }
 
     public function classes(): BelongsToMany

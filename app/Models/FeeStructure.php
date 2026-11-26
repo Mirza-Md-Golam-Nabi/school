@@ -4,6 +4,8 @@ namespace App\Models;
 
 use App\Traits\HasAcademicSession;
 use App\Traits\LogsRelationLabels;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Spatie\Activitylog\LogOptions;
@@ -39,6 +41,23 @@ class FeeStructure extends Model
     public function feeType(): BelongsTo
     {
         return $this->belongsTo(FeeType::class);
+    }
+
+    /**
+     * Orders fee structures by their fee type's name in the database, then by
+     * id so structures of the same fee type keep a stable order.
+     */
+    #[Scope]
+    protected function orderedByFeeTypeName(Builder $query): void
+    {
+        $query
+            ->orderBy(
+                FeeType::query()
+                    ->select('name')
+                    ->whereColumn('fee_types.id', $this->qualifyColumn('fee_type_id'))
+                    ->limit(1)
+            )
+            ->orderBy($this->qualifyColumn('id'));
     }
 
     public function getActivitylogOptions(): LogOptions

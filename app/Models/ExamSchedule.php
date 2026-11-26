@@ -4,6 +4,8 @@ namespace App\Models;
 
 use App\Traits\LogsRelationLabels;
 use Database\Factories\ExamScheduleFactory;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -36,6 +38,17 @@ class ExamSchedule extends Model
     public function subject(): BelongsTo
     {
         return $this->belongsTo(Subject::class);
+    }
+
+    /**
+     * Routine order: by exam date, then id for papers on the same day.
+     */
+    #[Scope]
+    protected function inExamDateOrder(Builder $query): void
+    {
+        $query
+            ->orderBy($this->qualifyColumn('exam_date'))
+            ->orderBy($this->qualifyColumn('id'));
     }
 
     public function getActivitylogOptions(): LogOptions

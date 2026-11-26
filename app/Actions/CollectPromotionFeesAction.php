@@ -45,9 +45,8 @@ class CollectPromotionFeesAction
             ->where('session_year', $sessionYear)
             ->where('is_active', true)
             ->whereIn('fee_type_id', FeeType::where('is_active', true)->select('id'))
-            ->get()
-            ->sortBy(fn (FeeStructure $structure): string => $structure->feeType->name)
-            ->values();
+            ->orderedByFeeTypeName()
+            ->get();
     }
 
     /**

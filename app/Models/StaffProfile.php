@@ -7,6 +7,7 @@ use App\Enums\EmploymentStatus;
 use App\Enums\Gender;
 use App\Enums\Religion;
 use App\Traits\LogsRelationLabels;
+use App\Traits\OrdersByUserName;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -22,6 +23,7 @@ class StaffProfile extends Model
     use HasFactory;
     use LogsActivity;
     use LogsRelationLabels;
+    use OrdersByUserName;
     use SoftDeletes;
 
     protected $fillable = [

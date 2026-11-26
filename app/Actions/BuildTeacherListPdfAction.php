@@ -22,9 +22,8 @@ class BuildTeacherListPdfAction
     public function handle(array $columns = [], string $orientation = 'P'): string
     {
         $teachers = TeacherProfile::with(['user', 'addresses'])
-            ->get()
-            ->sortBy(fn (TeacherProfile $teacher): string => mb_strtolower($teacher->user?->name ?? ''))
-            ->values();
+            ->orderedByUserName()
+            ->get();
 
         abort_if($teachers->isEmpty(), 404, 'এখনো কোনো teacher যোগ করা হয়নি।');
 

@@ -3,6 +3,7 @@
 namespace App\Actions\Attendance;
 
 use App\Models\AttendanceDevice;
+use App\Models\Classes;
 use App\Models\DeviceUser;
 use App\Models\StaffProfile;
 use App\Models\StudentProfile;
@@ -56,12 +57,20 @@ class AssignDeviceEnrollIdsAction
         $people = collect();
 
         if (in_array(StudentProfile::class, $personTypes, true)) {
+            $classOrder = Classes::query()
+                ->select('order')
+                ->whereColumn('classes.id', 'student_profiles.current_class_id')
+                ->limit(1);
+
+            // Class order first (students without a class last), then roll.
             $people = $people->concat(
                 $this->withoutEnrollment($device, StudentProfile::query()->active())
                     ->with('class')
+                    ->orderByRaw('('.$classOrder->toSql().') is null', $classOrder->getBindings())
+                    ->orderBy($classOrder)
+                    ->orderBy('student_profiles.roll_no')
+                    ->orderBy('student_profiles.id')
                     ->get()
-                    ->sortBy(fn (StudentProfile $student): array => [$student->class?->order ?? PHP_INT_MAX, (int) $student->roll_no])
-                    ->values()
             );
         }
 

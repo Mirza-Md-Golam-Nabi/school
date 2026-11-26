@@ -56,11 +56,24 @@ class FeeType extends Model
      */
     public function availableYears(): array
     {
-        return StudentFeeInvoice::where('fee_type_id', $this->id)
+        return static::availableYearsFor([$this->id]);
+    }
+
+    /**
+     * availableYears() across several fee types in one query: distinct years,
+     * most recent first.
+     *
+     * @param  array<int, int|string>  $feeTypeIds
+     * @return array<int>
+     */
+    public static function availableYearsFor(array $feeTypeIds): array
+    {
+        return StudentFeeInvoice::whereIn('fee_type_id', $feeTypeIds)
             ->whereHas('payments')
             ->distinct()
             ->orderByDesc('year')
             ->pluck('year')
+            ->map(fn (int|string $year): int => (int) $year)
             ->all();
     }
 

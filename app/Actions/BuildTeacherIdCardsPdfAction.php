@@ -79,8 +79,7 @@ class BuildTeacherIdCardsPdfAction
 
         return TeacherProfile::with(['user', 'addresses'])
             ->active()
-            ->get()
-            ->sortBy(fn (TeacherProfile $profile): string => mb_strtolower((string) $profile->user?->name))
-            ->values();
+            ->orderedByUserName()
+            ->get();
     }
 }

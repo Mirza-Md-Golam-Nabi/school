@@ -48,9 +48,8 @@ class TeacherIdCards extends Page
     {
         return TeacherProfile::with('user')
             ->active()
-            ->get()
-            ->sortBy(fn (TeacherProfile $teacher): string => mb_strtolower((string) $teacher->user?->name))
-            ->values();
+            ->orderedByUserName()
+            ->get();
     }
 
     /**

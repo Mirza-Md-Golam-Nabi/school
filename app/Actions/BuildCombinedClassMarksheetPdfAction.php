@@ -120,9 +120,8 @@ class BuildCombinedClassMarksheetPdfAction
     {
         return $query
             ->with(['student.user', 'student.class', 'student.section', 'exam.examType', 'exam.class.classTeacher'])
-            ->get()
-            ->sortBy(fn (Marksheet $marksheet) => $marksheet->student?->roll_no)
-            ->values();
+            ->orderedByStudentRoll()
+            ->get();
     }
 
     /**

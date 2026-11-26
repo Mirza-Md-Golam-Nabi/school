@@ -9,7 +9,6 @@ use App\Models\GradeScale;
 use App\Models\Group;
 use App\Models\Section;
 use App\Models\Subject;
-use App\Support\ClassGroupSubjectDefinitions;
 use Illuminate\Support\Collection;
 
 class BuildExamResultReport
@@ -293,8 +292,9 @@ class BuildExamResultReport
         $class = $exam->class;
 
         if ($class?->has_group) {
-            $columns = $class->groups
-                ->sortBy(fn (Group $group): int => (int) array_search($group->name, ClassGroupSubjectDefinitions::SECONDARY_GROUPS, true))
+            $columns = $class->groups()
+                ->inSecondaryGroupOrder()
+                ->get()
                 ->filter(fn (Group $group): bool => $students->contains('group_id', $group->id))
                 ->map(fn (Group $group): array => ['key' => (int) $group->id, 'label' => $group->name])
                 ->values()

@@ -5,6 +5,7 @@ namespace App\Filament\Resources\StudentFeeDiscounts\Pages;
 use App\Enums\StudentStatus;
 use App\Filament\Resources\StudentFeeDiscounts\StudentFeeDiscountResource;
 use App\Models\Classes;
+use App\Models\FeeDiscount;
 use App\Models\StudentFeeDiscount;
 use Filament\Actions\Action;
 use Filament\Resources\Pages\Page;
@@ -34,6 +35,13 @@ class ListStudentFeeDiscounts extends Page
                         ->where('status', StudentStatus::Active)
                 )
                     ->with('discount')
+                    ->orderByDesc(
+                        FeeDiscount::query()
+                            ->select('name')
+                            ->whereColumn('fee_discounts.id', 'student_fee_discounts.discount_id')
+                            ->limit(1)
+                    )
+                    ->orderBy('student_fee_discounts.discount_id')
                     ->get()
                     ->groupBy('discount_id')
                     ->map(fn ($group) => (object) [
@@ -41,7 +49,6 @@ class ListStudentFeeDiscounts extends Page
                         'student_count' => $group->unique('student_id')->count(),
                         'color' => $group->first()->discount->discount_type->getColor(),
                     ])
-                    ->sortByDesc('name')
                     ->values();
             });
     }

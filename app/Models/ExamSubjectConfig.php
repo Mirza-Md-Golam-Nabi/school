@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Actions\MarkExamDocumentsOutdatedAction;
 use App\Actions\SyncExamPaperMergesAction;
 use App\Traits\LogsRelationLabels;
+use App\Traits\OrdersBySubject;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -15,6 +16,7 @@ class ExamSubjectConfig extends Model
 {
     use LogsActivity;
     use LogsRelationLabels;
+    use OrdersBySubject;
     use SoftDeletes;
 
     protected $fillable = [

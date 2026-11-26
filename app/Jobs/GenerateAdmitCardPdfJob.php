@@ -22,7 +22,7 @@ class GenerateAdmitCardPdfJob implements ShouldQueue
      */
     public function handle(): void
     {
-        $admitCard = AdmitCard::with(['student.user', 'student.class', 'student.section', 'student.group', 'exam.examType', 'exam.schedules.subject'])
+        $admitCard = AdmitCard::with(['student.user', 'student.class', 'student.section', 'student.group', 'exam.examType', 'exam.schedules' => fn ($query) => $query->inExamDateOrder(), 'exam.schedules.subject'])
             ->findOrFail($this->admitCardId);
 
         if ($admitCard->file_path && Storage::disk('local')->exists($admitCard->file_path)) {

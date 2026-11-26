@@ -174,9 +174,8 @@ class TeacherAttendance extends Page
     {
         return TeacherProfile::with('user')
             ->where('status', EmploymentStatus::Active)
-            ->get()
-            ->sortBy('user.name')
-            ->values();
+            ->orderedByUserName()
+            ->get();
     }
 
     public function getYesterdayAttendance(): Collection
