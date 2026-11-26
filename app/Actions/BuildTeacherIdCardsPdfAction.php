@@ -43,6 +43,8 @@ class BuildTeacherIdCardsPdfAction
             'frontFields' => TeacherIdCardLayout::frontFields(),
             'backFields' => TeacherIdCardLayout::backFields(),
             'issueDate' => TeacherIdCardLayout::issueDate(),
+            'showQrCode' => TeacherIdCardLayout::showsQrCode(),
+            'role' => 'TEACHER',
         ];
 
         // Every card embeds a base64 portrait, so mpdf is fed one page of cards
@@ -53,7 +55,7 @@ class BuildTeacherIdCardsPdfAction
             }
 
             $cards = $pageTeachers->values()->map(fn (TeacherProfile $profile, int $slot): array => [
-                'teacher' => $profile,
+                'person' => $profile,
                 'photo' => $this->photoRenderer->render(
                     $profile->user?->avatar,
                     ringColour: $template->photoRing(),
@@ -62,7 +64,7 @@ class BuildTeacherIdCardsPdfAction
                 ...$this->slotOrigin($slot),
             ]);
 
-            $mpdf->WriteHTML(view('documents.teacher-id-card-sheet', [...$sharedViewData, 'cards' => $cards])->render());
+            $mpdf->WriteHTML(view('documents.employee-id-card-sheet', [...$sharedViewData, 'cards' => $cards])->render());
         }
 
         return $this->outputMpdfString($mpdf);

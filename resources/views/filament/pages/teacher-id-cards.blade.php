@@ -5,6 +5,7 @@
         'sampleFrontRows' => ['ID NO' => 'T0010001', 'POST' => 'Asst. Teacher', 'BLOOD' => 'O+'],
         'sampleBackRows' => ['PHONE' => '01700-000000', 'EMAIL' => 'teacher@school.edu', 'BLOOD GROUP' => 'O+'],
         'sampleFooter' => 'SINCE',
+        'sampleIdNumber' => 'T0010001',
         'pickerDescription' => 'Teacher-দের ID card-এর ডিজাইন বেছে নিন (student card থেকে আলাদা রাখলে সহজে চেনা যায়), লোগোর রং ঠিক করুন, প্রিভিউ দেখে Submit চাপুন।',
     ])
 

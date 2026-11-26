@@ -20,10 +20,15 @@ use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\MarksheetPdfController;
 use App\Http\Controllers\PushNotificationDeliveryController;
 use App\Http\Controllers\PushSubscriptionController;
+use App\Http\Controllers\StaffIdCardsPdfController;
 use App\Http\Controllers\SubjectListPdfController;
 use App\Http\Controllers\TeacherAttendanceSheetPdfController;
 use App\Http\Controllers\TeacherIdCardsPdfController;
 use App\Http\Controllers\TeacherListPdfController;
+use App\Http\Controllers\VerifyAdmitCardController;
+use App\Http\Controllers\VerifyDocumentController;
+use App\Http\Controllers\VerifyIdCardController;
+use App\Http\Controllers\VerifyMarksheetController;
 use App\Models\SchoolSetting;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
@@ -45,6 +50,31 @@ Route::get('/', function () {
 Route::get('/{panel}/install', InstallGuideController::class)
     ->whereIn('panel', ['student', 'teacher'])
     ->name('install-guide');
+
+// Opened by the QR code printed on admit cards: public (exam-hall invigilators
+// scan it without logging in) and throttled so tokens can't be brute-forced.
+Route::get('/verify/admit-card/{token}', VerifyAdmitCardController::class)
+    ->where('token', '[A-Za-z0-9]{1,32}')
+    ->middleware('throttle:30,1')
+    ->name('admit-cards.verify');
+
+// Opened by the QR code printed on marksheets, and the page where the code
+// printed under it can be typed in by hand — public and throttled the same way.
+// Opened by the QR code printed on student, teacher and staff ID cards — public
+// (a gatekeeper or parent scans it without logging in) and throttled the same way.
+Route::get('/verify/id-card/{token}', VerifyIdCardController::class)
+    ->where('token', '[A-Za-z0-9]{1,32}')
+    ->middleware('throttle:30,1')
+    ->name('id-cards.verify');
+
+Route::get('/verify', VerifyDocumentController::class)
+    ->middleware('throttle:30,1')
+    ->name('verify');
+
+Route::get('/verify/marksheet/{code}', VerifyMarksheetController::class)
+    ->where('code', '[A-Za-z0-9-]{1,20}')
+    ->middleware('throttle:30,1')
+    ->name('marksheets.verify');
 
 Route::get('/email/verify/{id}/{hash}', [EmailVerificationController::class, 'verify'])
     ->middleware('signed')
@@ -108,6 +138,18 @@ Route::get('/teacher-id-cards/download', [TeacherIdCardsPdfController::class, 'd
 Route::get('/teacher-id-cards/{teacher}/view', [TeacherIdCardsPdfController::class, 'show'])
     ->middleware('auth')
     ->name('teacher-id-cards.teacher.view');
+
+Route::get('/staff-id-cards/view', [StaffIdCardsPdfController::class, 'view'])
+    ->middleware('auth')
+    ->name('staff-id-cards.view');
+
+Route::get('/staff-id-cards/download', [StaffIdCardsPdfController::class, 'download'])
+    ->middleware('auth')
+    ->name('staff-id-cards.download');
+
+Route::get('/staff-id-cards/{staff}/view', [StaffIdCardsPdfController::class, 'show'])
+    ->middleware('auth')
+    ->name('staff-id-cards.staff.view');
 
 Route::get('/classes/{class}/attendance-report/{year}/{month}/download', ClassAttendanceReportPdfController::class)
     ->middleware('auth')

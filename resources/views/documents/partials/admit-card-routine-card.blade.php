@@ -153,6 +153,9 @@
                 <div class="arc-sign-line">School Seal</div>
             </td>
             <td>
+                @include('documents.partials.admit-card-qr', ['admitCard' => $admitCard, 'size' => 0.7, 'captionSize' => '8px'])
+            </td>
+            <td>
                 @if ($branding->signatureSrc)
                     <img src="{{ $branding->signatureSrc }}" alt="Signature" width="70" height="26" style="width: 70px; height: 26px;"><br>
                 @endif

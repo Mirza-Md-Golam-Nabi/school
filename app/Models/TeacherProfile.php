@@ -7,6 +7,7 @@ use App\Enums\EmploymentStatus;
 use App\Enums\Gender;
 use App\Enums\Religion;
 use App\Support\IdCardPhotoPosition;
+use App\Traits\HasIdCardToken;
 use App\Traits\LogsRelationLabels;
 use App\Traits\OrdersByUserName;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -24,6 +25,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 class TeacherProfile extends Model
 {
     use HasFactory;
+    use HasIdCardToken;
     use LogsActivity;
     use LogsRelationLabels;
     use OrdersByUserName;

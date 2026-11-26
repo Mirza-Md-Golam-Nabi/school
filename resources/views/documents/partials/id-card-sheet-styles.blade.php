@@ -122,14 +122,40 @@
         line-height: 1.2;
     }
 
-    .barcode {
-        text-align: center;
+    table.qr-block td {
+        vertical-align: middle;
     }
 
-    .barcode-number {
-        font-size: 6pt;
+    td.qr-cell {
+        width: 13.6mm;
+        padding: 0.8mm;
+        background-color: #ffffff;
+    }
+
+    td.qr-text {
+        padding-left: 2mm;
+    }
+
+    .qr-id {
+        font-size: 7pt;
+        font-weight: bold;
+        letter-spacing: 0.3mm;
+        color: {{ $theme['fieldValue'] }};
+    }
+
+    .qr-caption {
+        margin-top: 0.6mm;
+        font-size: 4.6pt;
+        color: {{ $theme['muted'] }};
+        line-height: 1.25;
+    }
+
+    .card-number {
+        padding-top: 4mm;
+        font-size: 7pt;
         font-weight: bold;
         letter-spacing: 0.6mm;
+        text-align: center;
         color: {{ $theme['fieldValue'] }};
     }
 

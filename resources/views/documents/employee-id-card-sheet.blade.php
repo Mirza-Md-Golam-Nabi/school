@@ -1,9 +1,20 @@
 @php
+    /**
+     * ID card sheet for school employees — teachers and staff share one card
+     * layout; only the role printed on it and the field enum differ.
+     *
+     * @var string $role  TEACHER or STAFF
+     * @var \Illuminate\Support\Collection<int, array{person: \App\Models\TeacherProfile|\App\Models\StaffProfile, photo: string, x: float, y: float}> $cards
+     * @var array<int, \App\Enums\TeacherIdCardField|\App\Enums\StaffIdCardField> $frontFields
+     * @var array<int, \App\Enums\TeacherIdCardField|\App\Enums\StaffIdCardField> $backFields
+     */
     use App\Enums\StudentIdCardTemplate;
-    use App\Enums\TeacherIdCardField;
 
     // Colours laid over the chosen design's artwork.
     $theme ??= StudentIdCardTemplate::Midnight->theme();
+
+    // Whether the verification QR is printed beside the ID number.
+    $showQrCode ??= true;
 
     // mpdf only honours absolute positioning on blocks that are direct children
     // of <body>, so each card is assembled from separately positioned layers
@@ -17,7 +28,7 @@
     );
 
     // Blood group is the one value picked out in red, wherever it is printed.
-    $valueColour = fn (TeacherIdCardField $field, string $shade): string => $field === TeacherIdCardField::BloodGroup ? "color: {$shade};" : '';
+    $valueColour = fn (BackedEnum $field, string $shade): string => $field->value === 'blood_group' ? "color: {$shade};" : '';
 @endphp
 <!DOCTYPE html>
 <html>
@@ -30,16 +41,16 @@
 <body>
     @foreach ($cards as $card)
         @php
-            $teacher = $card['teacher'];
+            $person = $card['person'];
             $frontX = $card['x'];
             $backX = $card['x'] + $cardWidth;
             $y = $card['y'];
 
-            $idNumber = $teacher->idCardNumber();
+            $idNumber = $person->idCardNumber();
 
-            // Fields the teacher has nothing recorded for are left off the card.
+            // Fields the person has nothing recorded for are left off the card.
             $resolve = fn (array $fields) => collect($fields)
-                ->map(fn (TeacherIdCardField $field): array => ['field' => $field, 'value' => $field->valueFor($teacher)])
+                ->map(fn (BackedEnum $field): array => ['field' => $field, 'value' => $field->valueFor($person)])
                 ->filter(fn (array $detail): bool => $detail['value'] !== null)
                 ->values();
 
@@ -83,8 +94,8 @@
         </div>
 
         <div class="layer" style="{{ $box($frontX + 2, $y + 40, 50, 11) }}">
-            <div class="student-name">{{ $teacher->user?->name }}</div>
-            <div class="role">TEACHER</div>
+            <div class="student-name">{{ $person->user?->name }}</div>
+            <div class="role">{{ $role }}</div>
         </div>
 
         <div class="layer" style="{{ $box($frontX + 6, $y + 51.2, 42, 24.3) }}">
@@ -98,9 +109,9 @@
             </table>
         </div>
 
-        @if ($teacher->joining_date)
+        @if ($person->joining_date)
             <div class="layer" style="{{ $box($frontX, $y + 80.2, $cardWidth, 4) }}">
-                <div class="footer">SINCE <span class="accent">{{ $teacher->joining_date->year }}</span></div>
+                <div class="footer">SINCE <span class="accent">{{ $person->joining_date->year }}</span></div>
             </div>
         @endif
 
@@ -110,10 +121,10 @@
         </div>
 
         <div class="layer" style="{{ $box($backX, $y + 3.4, $cardWidth, 5) }}">
-            <div class="back-title">TEACHER ID CARD</div>
+            <div class="back-title">{{ $role }} ID CARD</div>
         </div>
 
-        <div class="layer" style="{{ $box($backX + 5, $y + 16.5, 44, 32) }}">
+        <div class="layer" style="{{ $box($backX + 5, $y + 16.5, 44, 31) }}">
             <table class="guardian">
                 @foreach ($backDetails as $detail)
                     <tr>
@@ -126,11 +137,11 @@
             </table>
         </div>
 
-        <div class="layer" style="{{ $box($backX + 5, $y + 49.5, 44, 11.5) }}">
-            <div class="barcode">
-                <barcode code="{{ $idNumber }}" type="C128B" size="0.75" height="0.85" />
-            </div>
-            <div class="barcode barcode-number">{{ $idNumber }}</div>
+        <div class="layer" style="{{ $box($backX + 5, $y + 47.6, 44, 13.6) }}">
+            @include('documents.partials.id-card-qr', [
+                'verificationUrl' => $showQrCode ? $person->idCardVerificationUrl() : null,
+                'idNumber' => $idNumber,
+            ])
         </div>
 
         <div class="layer" style="{{ $box($backX + 5, $y + 61.5, 44, 10.5) }}">

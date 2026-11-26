@@ -84,7 +84,7 @@ class StudentIdCards extends Page
                 ->label('Card Fields')
                 ->icon(Heroicon::OutlinedAdjustmentsHorizontal)
                 ->modalHeading('ID Card Fields')
-                ->modalDescription('কার্ডের সামনে ও পেছনে কোন কোন তথ্য ছাপা হবে তা বেছে নিন। ছবি, নাম, স্কুলের তথ্য, barcode ও স্বাক্ষর সবসময় থাকে। কোনো student-এর যে তথ্য নেই, সেটা তার কার্ডে বাদ যায়।')
+                ->modalDescription('কার্ডের সামনে ও পেছনে কোন কোন তথ্য ছাপা হবে তা বেছে নিন। ছবি, নাম, স্কুলের তথ্য, ID নম্বর ও স্বাক্ষর সবসময় থাকে। কোনো student-এর যে তথ্য নেই, সেটা তার কার্ডে বাদ যায়।')
                 ->modalSubmitActionLabel('Save')
                 ->fillForm(fn (): array => [
                     'front_fields' => array_column(StudentIdCardLayout::frontFields(), 'value'),
@@ -93,6 +93,7 @@ class StudentIdCards extends Page
                     'back_order' => $this->orderItems(StudentIdCardLayout::backFields()),
                     'validity' => StudentIdCardLayout::validity()->value,
                     'issue_date' => StudentIdCardLayout::issueDate()->toDateString(),
+                    'show_qr_code' => StudentIdCardLayout::showsQrCode(),
                 ])
                 ->schema([
                     $this->cardFieldsCheckboxList('front_fields', 'front_order', 'Front Side', StudentIdCardField::options(), StudentIdCardLayout::MAX_FIELDS_PER_SIDE, StudentIdCardField::descriptions()),
@@ -112,6 +113,7 @@ class StudentIdCards extends Page
                         ->displayFormat('d M Y')
                         ->visible(fn (Get $get): bool => $get('validity') === StudentIdCardValidity::IssueDate->value)
                         ->required(),
+                    $this->cardQrCodeToggle(),
                 ])
                 ->action(function (array $data): void {
                     StudentIdCardLayout::save(
@@ -120,6 +122,8 @@ class StudentIdCards extends Page
                         StudentIdCardValidity::from($data['validity']),
                         filled($data['issue_date'] ?? null) ? Carbon::parse($data['issue_date']) : null,
                     );
+
+                    StudentIdCardLayout::saveShowsQrCode((bool) ($data['show_qr_code'] ?? true));
 
                     Notification::make()
                         ->title('ID card fields saved.')

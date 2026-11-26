@@ -8,6 +8,8 @@ use App\Enums\MergedComponentPassRule;
 use App\Enums\MergedPassRule;
 use App\Enums\ResultRounding;
 use App\Enums\WeekDay;
+use App\Models\AdmitCard;
+use App\Models\Marksheet;
 use App\Models\ResultRule;
 use App\Models\SchoolSetting;
 use App\Models\SubjectMerge;
@@ -67,10 +69,12 @@ class SchoolSettings extends Page
             SchoolSetting::HEAD_TITLE_SETTING => SchoolSetting::get(SchoolSetting::HEAD_TITLE_SETTING) ?: SchoolSetting::DEFAULT_HEAD_TITLE,
             SchoolSetting::HEAD_TITLE_BN_SETTING => SchoolSetting::get(SchoolSetting::HEAD_TITLE_BN_SETTING) ?: SchoolSetting::DEFAULT_HEAD_TITLE_BN,
             'admit_card_footer_text' => SchoolSetting::get('admit_card_footer_text', ''),
+            AdmitCard::SHOW_QR_SETTING => AdmitCard::showsQrCode(),
             'marksheet_use_watermark' => (bool) SchoolSetting::get('marksheet_use_watermark', '0'),
             'marksheet_watermark_text' => SchoolSetting::get('marksheet_watermark_text', ''),
             'marksheet_use_logo' => (bool) SchoolSetting::get('marksheet_use_logo', '1'),
             'marksheet_footer_text' => SchoolSetting::get('marksheet_footer_text', ''),
+            Marksheet::SHOW_QR_SETTING => Marksheet::showsQrCode(),
             ResultRule::DEFAULT_FULL_MARKS_SETTING => SchoolSetting::get(ResultRule::DEFAULT_FULL_MARKS_SETTING, ResultRule::DEFAULT_FULL_MARKS),
             ...array_combine(
                 [SubjectMerge::PASS_RULE_SETTING, SubjectMerge::COMPONENT_PASS_RULE_SETTING, SubjectMerge::ABSENT_RULE_SETTING, SubjectMerge::ROUNDING_SETTING],
@@ -224,6 +228,9 @@ class SchoolSettings extends Page
                     ->schema([
                         TextInput::make('admit_card_footer_text')
                             ->label('Footer Text'),
+                        Toggle::make(AdmitCard::SHOW_QR_SETTING)
+                            ->label('Show Verification QR Code')
+                            ->helperText('স্ক্যান করলে কার্ডটি আসল কিনা দেখা যায় — ছবি, নাম, রোল ও পরীক্ষা। পরিবর্তন নতুন জেনারেট করা কার্ডে প্রযোজ্য।'),
                     ]),
 
                 Section::make('Marksheet')
@@ -240,6 +247,10 @@ class SchoolSettings extends Page
                             ->columnSpanFull(),
                         TextInput::make('marksheet_footer_text')
                             ->label('Footer Text')
+                            ->columnSpanFull(),
+                        Toggle::make(Marksheet::SHOW_QR_SETTING)
+                            ->label('Show Verification QR Code')
+                            ->helperText('স্ক্যান করলে বা কোড দিয়ে স্কুলের রেকর্ডে থাকা আসল ফলাফল দেখা যায় — জাল মার্কশিট ধরা পড়ে। পরিবর্তন নতুন জেনারেট করা মার্কশিটে প্রযোজ্য।')
                             ->columnSpanFull(),
                     ]),
             ])
@@ -275,10 +286,12 @@ class SchoolSettings extends Page
         SchoolSetting::set(SchoolSetting::HEAD_TITLE_SETTING, $data[SchoolSetting::HEAD_TITLE_SETTING]);
         SchoolSetting::set(SchoolSetting::HEAD_TITLE_BN_SETTING, $data[SchoolSetting::HEAD_TITLE_BN_SETTING] ?? '');
         SchoolSetting::set('admit_card_footer_text', $data['admit_card_footer_text'] ?? '');
+        SchoolSetting::set(AdmitCard::SHOW_QR_SETTING, ($data[AdmitCard::SHOW_QR_SETTING] ?? false) ? '1' : '0');
         SchoolSetting::set('marksheet_use_watermark', $data['marksheet_use_watermark'] ? '1' : '0');
         SchoolSetting::set('marksheet_watermark_text', $data['marksheet_watermark_text'] ?? '');
         SchoolSetting::set('marksheet_use_logo', $data['marksheet_use_logo'] ? '1' : '0');
         SchoolSetting::set('marksheet_footer_text', $data['marksheet_footer_text'] ?? '');
+        SchoolSetting::set(Marksheet::SHOW_QR_SETTING, ($data[Marksheet::SHOW_QR_SETTING] ?? false) ? '1' : '0');
         SchoolSetting::set(ResultRule::DEFAULT_FULL_MARKS_SETTING, $data[ResultRule::DEFAULT_FULL_MARKS_SETTING]);
 
         $previousMergeRules = SubjectMerge::defaultRules();

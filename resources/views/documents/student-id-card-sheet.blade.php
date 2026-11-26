@@ -6,6 +6,9 @@
     // Colours laid over the chosen design's artwork.
     $theme ??= StudentIdCardTemplate::Royal->theme();
 
+    // Whether the verification QR is printed beside the ID number.
+    $showQrCode ??= true;
+
     // mpdf only honours absolute positioning on blocks that are direct children
     // of <body>, so each card is assembled from separately positioned layers
     // rather than nested ones. This builds one layer's page-relative box.
@@ -115,7 +118,7 @@
             <div class="back-title">STUDENT ID CARD</div>
         </div>
 
-        <div class="layer" style="{{ $box($backX + 5, $y + 16.5, 44, 32) }}">
+        <div class="layer" style="{{ $box($backX + 5, $y + 16.5, 44, 31) }}">
             <table class="guardian">
                 @foreach ($backDetails as $detail)
                     <tr>
@@ -128,11 +131,11 @@
             </table>
         </div>
 
-        <div class="layer" style="{{ $box($backX + 5, $y + 49.5, 44, 11.5) }}">
-            <div class="barcode">
-                <barcode code="{{ $idNumber }}" type="C128B" size="0.75" height="0.85" />
-            </div>
-            <div class="barcode barcode-number">{{ $idNumber }}</div>
+        <div class="layer" style="{{ $box($backX + 5, $y + 47.6, 44, 13.6) }}">
+            @include('documents.partials.id-card-qr', [
+                'verificationUrl' => $showQrCode ? $student->idCardVerificationUrl() : null,
+                'idNumber' => $idNumber,
+            ])
         </div>
 
         <div class="layer" style="{{ $box($backX + 5, $y + 61.5, 44, 10.5) }}">

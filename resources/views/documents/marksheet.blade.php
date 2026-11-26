@@ -1,5 +1,6 @@
 @php
     use App\Models\GradeScale;
+    use App\Models\Marksheet;
     use App\Models\SchoolSetting;
     use App\Support\PdfImage;
     use App\Support\BengaliNumber;
@@ -25,6 +26,10 @@
     $footerText = SchoolSetting::get('marksheet_footer_text', '');
 
     $imageSrc = fn (?string $path): ?string => PdfImage::path($path);
+
+    // The verification QR sits right of the school name; an equal empty cell
+    // on the left keeps the name centred on the page.
+    $verificationUrl = Marksheet::showsQrCode() ? $marksheet->verificationUrl() : null;
 
     $logoSrc = $useLogo ? $imageSrc(SchoolSetting::get('school_logo')) : null;
     $sealSrc = $imageSrc(SchoolSetting::get('school_seal'));
@@ -91,6 +96,36 @@
         .header img.logo {
             height: 50px;
             margin-bottom: 4px;
+        }
+
+        table.header-layout {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        table.header-layout td {
+            vertical-align: middle;
+            text-align: center;
+            padding: 0;
+        }
+
+        table.header-layout td.header-side {
+            width: 34mm;
+        }
+
+        .qr-caption {
+            font-size: 8px;
+            color: #444;
+        }
+
+        .qr-link,
+        .qr-code {
+            font-size: 7px;
+            color: #555;
+        }
+
+        .qr-code {
+            font-weight: bold;
         }
 
         .school-name {
@@ -287,6 +322,12 @@
 
     <div class="sheet">
         <div class="header">
+            @if ($verificationUrl)
+                <table class="header-layout">
+                    <tr>
+                        <td class="header-side"></td>
+                        <td>
+            @endif
             @if ($logoSrc)
                 <img class="logo" src="{{ $logoSrc }}" alt="Logo">
             @endif
@@ -296,6 +337,14 @@
             @endif
             @if ($schoolAddressLine)
                 <div class="school-address">{{ $schoolAddressLine }}</div>
+            @endif
+            @if ($verificationUrl)
+                        </td>
+                        <td class="header-side">
+                            @include('documents.partials.marksheet-qr', ['verificationUrl' => $verificationUrl, 'marksheet' => $marksheet])
+                        </td>
+                    </tr>
+                </table>
             @endif
         </div>
 

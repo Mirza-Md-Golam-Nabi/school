@@ -2,6 +2,8 @@
 
 use App\Enums\UserType;
 use App\Filament\Pages\SchoolSettings;
+use App\Models\AdmitCard;
+use App\Models\Marksheet;
 use App\Models\SchoolSetting;
 use App\Models\User;
 use App\Support\AcademicSession;
@@ -68,6 +70,46 @@ it('saves the school EIIN number and prints it as an EIIN line', function () {
 
     Livewire::test(SchoolSettings::class)
         ->assertSchemaStateSet([SchoolSetting::EIIN_SETTING => '123456']);
+});
+
+it('shows the admit card QR code by default and lets the school turn it off', function () {
+    $admin = grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]));
+    test()->actingAs($admin);
+
+    expect(AdmitCard::showsQrCode())->toBeTrue();
+
+    Livewire::test(SchoolSettings::class)
+        ->assertSchemaStateSet([AdmitCard::SHOW_QR_SETTING => true])
+        ->fillForm([
+            'school_name' => 'Test School',
+            AdmitCard::SHOW_QR_SETTING => false,
+        ])
+        ->call('save')
+        ->assertHasNoFormErrors()
+        ->assertNotified();
+
+    expect(SchoolSetting::get(AdmitCard::SHOW_QR_SETTING))->toBe('0')
+        ->and(AdmitCard::showsQrCode())->toBeFalse();
+});
+
+it('shows the marksheet QR code by default and lets the school turn it off', function () {
+    $admin = grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]));
+    test()->actingAs($admin);
+
+    expect(Marksheet::showsQrCode())->toBeTrue();
+
+    Livewire::test(SchoolSettings::class)
+        ->assertSchemaStateSet([Marksheet::SHOW_QR_SETTING => true])
+        ->fillForm([
+            'school_name' => 'Test School',
+            Marksheet::SHOW_QR_SETTING => false,
+        ])
+        ->call('save')
+        ->assertHasNoFormErrors()
+        ->assertNotified();
+
+    expect(SchoolSetting::get(Marksheet::SHOW_QR_SETTING))->toBe('0')
+        ->and(Marksheet::showsQrCode())->toBeFalse();
 });
 
 it('defaults the college session start month to July and saves a new one', function () {

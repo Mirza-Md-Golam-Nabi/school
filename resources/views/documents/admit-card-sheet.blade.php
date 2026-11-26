@@ -270,6 +270,9 @@
                                                 School Seal
                                             </td>
                                             <td>
+                                                @include('documents.partials.admit-card-qr', ['admitCard' => $admitCard, 'size' => 0.55, 'captionSize' => '7px'])
+                                            </td>
+                                            <td>
                                                 @if ($signatureSrc)
                                                     <img src="{{ $signatureSrc }}" alt="Signature" width="50"
                                                         height="20" style="width: 50px; height: 20px;"><br>

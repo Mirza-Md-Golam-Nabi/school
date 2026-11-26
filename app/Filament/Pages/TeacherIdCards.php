@@ -77,7 +77,7 @@ class TeacherIdCards extends Page
                 ->icon(Heroicon::OutlinedAdjustmentsHorizontal)
                 ->color('gray')
                 ->modalHeading('Teacher ID Card Fields')
-                ->modalDescription('কার্ডের সামনে ও পেছনে কোন কোন তথ্য ছাপা হবে তা বেছে নিন। ছবি, নাম, স্কুলের তথ্য, barcode ও স্বাক্ষর সবসময় থাকে। কোনো teacher-এর যে তথ্য নেই, সেটা তার কার্ডে বাদ যায়।')
+                ->modalDescription('কার্ডের সামনে ও পেছনে কোন কোন তথ্য ছাপা হবে তা বেছে নিন। ছবি, নাম, স্কুলের তথ্য, ID নম্বর ও স্বাক্ষর সবসময় থাকে। কোনো teacher-এর যে তথ্য নেই, সেটা তার কার্ডে বাদ যায়।')
                 ->modalSubmitActionLabel('Save')
                 ->fillForm(fn (): array => [
                     'front_fields' => array_column(TeacherIdCardLayout::frontFields(), 'value'),
@@ -85,6 +85,7 @@ class TeacherIdCards extends Page
                     'back_fields' => array_column(TeacherIdCardLayout::backFields(), 'value'),
                     'back_order' => $this->orderItems(TeacherIdCardLayout::backFields()),
                     'issue_date' => TeacherIdCardLayout::issueDate()->toDateString(),
+                    'show_qr_code' => TeacherIdCardLayout::showsQrCode(),
                 ])
                 ->schema([
                     $this->cardFieldsCheckboxList('front_fields', 'front_order', 'Front Side', $options, $limit),
@@ -97,6 +98,7 @@ class TeacherIdCards extends Page
                         ->native(false)
                         ->displayFormat('d M Y')
                         ->required(),
+                    $this->cardQrCodeToggle(),
                 ])
                 ->action(function (array $data): void {
                     TeacherIdCardLayout::save(
@@ -104,6 +106,8 @@ class TeacherIdCards extends Page
                         $this->orderedSelection($data['back_fields'] ?? [], $data['back_order'] ?? []),
                         Carbon::parse($data['issue_date']),
                     );
+
+                    TeacherIdCardLayout::saveShowsQrCode((bool) ($data['show_qr_code'] ?? true));
 
                     Notification::make()
                         ->title('Teacher ID card fields saved.')

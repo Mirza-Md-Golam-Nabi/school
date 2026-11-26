@@ -9,6 +9,7 @@ use App\Models\TeacherProfile;
 use App\Models\User;
 use App\Support\IdCardLogo;
 use App\Support\IdCardPhotoPosition;
+use App\Support\QrCodeImage;
 use App\Support\TeacherIdCardLayout;
 use BackedEnum;
 use Filament\Notifications\Notification;
@@ -98,6 +99,9 @@ class MyIdCard extends Page
             'frontDetails' => $resolve(TeacherIdCardLayout::frontFields()),
             'backDetails' => $resolve(TeacherIdCardLayout::backFields()),
             'issueDate' => TeacherIdCardLayout::issueDate(),
+            'qrImage' => TeacherIdCardLayout::showsQrCode() && ($verificationUrl = $teacher->idCardVerificationUrl()) !== null
+                ? QrCodeImage::svgDataUri($verificationUrl)
+                : null,
             'schoolName' => (string) SchoolSetting::get('school_name', ''),
             'schoolAddress' => (string) SchoolSetting::get('school_address', ''),
             'schoolLogoUrl' => IdCardLogo::dataUri(TeacherIdCardLayout::logoColour()),

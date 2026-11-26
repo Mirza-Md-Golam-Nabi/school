@@ -15,6 +15,7 @@
         "laravel/framework": "^13.7",
         "laravel/tinker": "^3.0",
         "mpdf/mpdf": "^8.3",
+        "mpdf/qrcode": "^1.2",
         "phpoffice/phpspreadsheet": "^5.11",
         "spatie/laravel-activitylog": "^4.12",
         "spatie/laravel-permission": "^7.4"

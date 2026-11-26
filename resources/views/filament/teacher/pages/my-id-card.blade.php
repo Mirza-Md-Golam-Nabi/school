@@ -318,8 +318,7 @@
                         @endforeach
                     </div>
 
-                    <div style="{{ $box(9, 50.5, 36, 6.5) }} background: repeating-linear-gradient(90deg, #111827 0, #111827 1.5px, #ffffff 1.5px, #ffffff 3px, #111827 3px, #111827 4px, #ffffff 4px, #ffffff 6.5px);"></div>
-                    <div style="{{ $box(5, 57.6, 44) }} text-align:center; font-size:{{ $pt(6) }}; font-weight:700; letter-spacing:{{ $px(0.6) }}; color:{{ $theme['fieldValue'] }};">{{ $teacher->idCardNumber() }}</div>
+                    @include('filament.pages.partials.id-card-qr-preview', ['idNumber' => $teacher->idCardNumber(), 'qrImage' => $qrImage])
 
                     <div style="{{ $box(5, 65, 22) }} font-size:{{ $pt(5) }}; color:{{ $theme['muted'] }};">
                         ISSUE DATE

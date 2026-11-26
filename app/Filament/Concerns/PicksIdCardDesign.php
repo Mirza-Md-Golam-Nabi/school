@@ -5,12 +5,13 @@ namespace App\Filament\Concerns;
 use App\Enums\StudentIdCardTemplate;
 use App\Models\SchoolSetting;
 use App\Support\IdCardLogo;
+use App\Support\StaffIdCardLayout;
 use App\Support\StudentIdCardLayout;
 use App\Support\TeacherIdCardLayout;
 use Filament\Notifications\Notification;
 
 /**
- * The design picker shared by the student and teacher ID card pages. Clicking
+ * The design picker shared by the student, teacher and staff ID card pages. Clicking
  * a design or changing the logo colour only updates the preview; nothing is
  * saved — and no cards are made — until the school submits the design.
  */
@@ -28,7 +29,7 @@ trait PicksIdCardDesign
     /**
      * The layout class holding this card type's saved design.
      *
-     * @return class-string<StudentIdCardLayout|TeacherIdCardLayout>
+     * @return class-string<StudentIdCardLayout|TeacherIdCardLayout|StaffIdCardLayout>
      */
     abstract protected function idCardLayout(): string;
 

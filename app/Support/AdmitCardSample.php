@@ -57,7 +57,9 @@ class AdmitCardSample
             ->setRelation('section', new Section(['name' => 'A']))
             ->setRelation('group', null);
 
+        // A placeholder token, so the sample shows the QR code where it prints.
         return (new AdmitCard(['page_size' => 'A5', 'design' => $design]))
+            ->forceFill(['verification_token' => 'sample'])
             ->setRelation('student', $student)
             ->setRelation('exam', $exam);
     }

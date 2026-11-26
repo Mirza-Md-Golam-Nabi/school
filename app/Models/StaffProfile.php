@@ -6,6 +6,7 @@ use App\Enums\BloodGroup;
 use App\Enums\EmploymentStatus;
 use App\Enums\Gender;
 use App\Enums\Religion;
+use App\Traits\HasIdCardToken;
 use App\Traits\LogsRelationLabels;
 use App\Traits\OrdersByUserName;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -21,6 +22,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 class StaffProfile extends Model
 {
     use HasFactory;
+    use HasIdCardToken;
     use LogsActivity;
     use LogsRelationLabels;
     use OrdersByUserName;
@@ -104,6 +106,15 @@ class StaffProfile extends Model
     public function salaryInvoices(): MorphMany
     {
         return $this->morphMany(SalaryInvoice::class, 'profileable');
+    }
+
+    /**
+     * The number printed on the staff member's ID card. The "S" prefix keeps
+     * it from ever colliding with a student's or teacher's ID number.
+     */
+    public function idCardNumber(): string
+    {
+        return sprintf('S%03d%04d', SchoolSetting::schoolCode(), (int) $this->id);
     }
 
     #[Scope]

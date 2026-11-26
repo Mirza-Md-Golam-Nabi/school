@@ -7,6 +7,7 @@ use App\Enums\Gender;
 use App\Enums\Religion;
 use App\Enums\StudentStatus;
 use App\Traits\HasAcademicSession;
+use App\Traits\HasIdCardToken;
 use App\Traits\LogsRelationLabels;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -21,6 +22,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 class StudentProfile extends Model
 {
     use HasAcademicSession;
+    use HasIdCardToken;
     use LogsActivity;
     use LogsRelationLabels;
     use SoftDeletes;

@@ -30,6 +30,8 @@ class TeacherIdCardLayout
 
     private const LOGO_COLOUR_KEY = 'teacher_id_card_logo_colour';
 
+    private const SHOW_QR_KEY = 'teacher_id_card_show_qr';
+
     /**
      * @return array<int, TeacherIdCardField>
      */
@@ -98,6 +100,20 @@ class TeacherIdCardLayout
         self::saveTemplate($template);
 
         SchoolSetting::set(self::LOGO_COLOUR_KEY, IdCardLogo::isValidColour($logoColour) ? strtolower($logoColour) : '');
+    }
+
+    /**
+     * Whether the verification QR code is printed on the back of the card —
+     * on until the school turns it off.
+     */
+    public static function showsQrCode(): bool
+    {
+        return (bool) SchoolSetting::get(self::SHOW_QR_KEY, '1');
+    }
+
+    public static function saveShowsQrCode(bool $show): void
+    {
+        SchoolSetting::set(self::SHOW_QR_KEY, $show ? '1' : '0');
     }
 
     /**

@@ -6,12 +6,13 @@ use BackedEnum;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Illuminate\Support\Str;
 
 /**
- * The "Card Fields" modal pieces shared by the student and teacher ID card
+ * The "Card Fields" modal pieces shared by the student, teacher and staff ID card
  * pages: tick which fields a side prints, then drag them into order.
  */
 trait ConfiguresIdCardFields
@@ -71,6 +72,17 @@ trait ConfiguresIdCardFields
             ->deletable(false)
             ->reorderableWithButtons()
             ->hidden(fn (?array $state): bool => blank($state));
+    }
+
+    /**
+     * Whether the back of the card carries the verification QR code beside
+     * the ID number.
+     */
+    protected function cardQrCodeToggle(): Toggle
+    {
+        return Toggle::make('show_qr_code')
+            ->label('Show Verification QR Code')
+            ->helperText('কার্ডের পেছনে QR থাকবে। মোবাইলে স্ক্যান করলে দেখা যাবে কার্ডটি আসল কিনা এবং মানুষটি এখনো প্রতিষ্ঠানে আছেন কিনা। কার্ড হারালে প্রোফাইল থেকে "Reissue ID Card QR" চাপুন — পুরনো কার্ড বাতিল হয়ে যাবে।');
     }
 
     /**

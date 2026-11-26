@@ -48,6 +48,7 @@ class BuildClassStudentIdCardsPdfAction
             'backFields' => StudentIdCardLayout::backFields(),
             'validity' => StudentIdCardLayout::validity(),
             'issueDate' => StudentIdCardLayout::issueDate(),
+            'showQrCode' => StudentIdCardLayout::showsQrCode(),
         ];
 
         // Every card embeds a base64 portrait, so mpdf is fed one page of cards

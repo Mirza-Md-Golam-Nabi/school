@@ -182,5 +182,7 @@
     "I have installed it ✓": "ইন্সটল করেছি ✓",
     "Seat Plan": "সিট প্ল্যান",
     "Established: :year": "স্থাপিত: :year",
-    "Seat plan language": "সিট প্ল্যানের ভাষা"
+    "Seat plan language": "সিট প্ল্যানের ভাষা",
+    "Scan to verify": "স্ক্যান করে যাচাই করুন",
+    "Code: :code": "কোড: :code"
 }

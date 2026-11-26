@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\StaffProfiles\Pages;
 
 use App\Actions\UpdateStaffProfileAction;
+use App\Filament\Concerns\ReissuesIdCardQr;
 use App\Filament\Resources\StaffProfiles\StaffProfileResource;
 use App\Models\StaffProfile;
 use Filament\Actions\DeleteAction;
@@ -13,11 +14,14 @@ use Illuminate\Database\Eloquent\Model;
 
 class EditStaffProfile extends EditRecord
 {
+    use ReissuesIdCardQr;
+
     protected static string $resource = StaffProfileResource::class;
 
     protected function getHeaderActions(): array
     {
         return [
+            $this->reissueIdCardQrAction(),
             DeleteAction::make()
                 ->modalHeading(fn (StaffProfile $record): string => "Delete \"{$record->user?->name}\"?"),
             ForceDeleteAction::make()

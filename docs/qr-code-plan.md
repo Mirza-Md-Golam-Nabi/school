@@ -19,16 +19,38 @@
 
 | # | ডকুমেন্ট | QR-এর লিংক | অগ্রাধিকার |
 |---|---|---|---|
-| 1 | শিক্ষার্থী আইডি কার্ড (`ClassStudentIdCardsPdfController`) | `/student/install` | উচ্চ |
-| 2 | শিক্ষক আইডি কার্ড (`TeacherIdCardsPdfController`) | `/teacher/install` | উচ্চ |
-| 3 | অ্যাডমিট কার্ড (`AdmitCardPdfController`, ক্লাসভিত্তিক বান্ডল) | `/student/install` | মাঝারি |
-| 4 | মার্কশিট (`MarksheetPdfController`) | `/student/install` (পরে রেজাল্ট যাচাই লিংক বিবেচনা) | মাঝারি |
+| 1 | শিক্ষার্থী আইডি কার্ড (`ClassStudentIdCardsPdfController`) | ✅ **হয়ে গেছে** — install লিংক নয়, যাচাই লিংক `/verify/id-card/{token}` | — |
+| 2 | শিক্ষক ও স্টাফ আইডি কার্ড (`TeacherIdCardsPdfController`, `StaffIdCardsPdfController`) | ✅ **হয়ে গেছে** — যাচাই লিংক `/verify/id-card/{token}` | — |
+| 3 | অ্যাডমিট কার্ড (`AdmitCardPdfController`, ক্লাসভিত্তিক বান্ডল) | ✅ **হয়ে গেছে** — install লিংক নয়, যাচাই লিংক `/verify/admit-card/{token}` | — |
+| 4 | মার্কশিট (`GenerateMarksheetPdfJob`, ক্লাসভিত্তিক বান্ডল) | ✅ **হয়ে গেছে** — রেজাল্ট যাচাই লিংক `/verify/marksheet/{code}` + হাতে কোড দেওয়ার পেজ `/verify` | — |
 | 5 | ফি পেমেন্ট স্লিপ (`FeePaymentSlipPdfController`) | `/student/install` | নিম্ন |
 | 6 | অফিস / নোটিশ বোর্ডের প্রিন্টযোগ্য পোস্টার (নতুন, অ্যাডমিন প্যানেল থেকে ডাউনলোড) | দুটোই | উচ্চ |
 
+## অ্যাডমিট কার্ড QR (সম্পন্ন)
+
+- লাইব্রেরি: `mpdf/qrcode` — mPDF-এর `<barcode type="QR">` ট্যাগ ব্যবহার হয় (partial: `documents/partials/admit-card-qr`)।
+- প্রতিটি কার্ডে `admit_cards.verification_token` (১৬ অক্ষর র‍্যান্ডম); ডিজাইন/ভাষা বদলে আবার জেনারেট করলেও token একই থাকে।
+- পাবলিক পেজ `VerifyAdmitCardController` — ছবি, নাম, ক্লাস, রোল, পরীক্ষা; ফোন/ঠিকানা দেখায় না; throttle ৩০/মিনিট।
+- School Settings → Admit Card → "Show Verification QR Code" টগল (ডিফল্ট চালু)।
+
+## মার্কশিট QR (সম্পন্ন)
+
+- প্রতিটি মার্কশিটে `marksheets.verification_code` — ৮ অক্ষর, শুধু বিভ্রান্তিহীন অক্ষর (0/O, 1/I/L নেই), ছাপা হয় `K7M4-P9QX` আকারে; আবার জেনারেট করলেও একই থাকে।
+- QR থাকে header-এর ডানে; নিচে "স্ক্যান করে যাচাই করুন", ছোট লিংক (`domain/verify`) ও কোড — স্ক্যানার ছাড়াও `/verify` পেজে কোড টাইপ করে যাচাই করা যায় (ছোট/বড় হাতের অক্ষর, হাইফেন, স্পেস যা-ই দিক)।
+- পাবলিক পেজ `VerifyMarksheetController` — ছবি, নাম, ক্লাস, রোল, পরীক্ষা এবং **বিষয়ভিত্তিক নম্বর, গ্রেড, জিপি**, প্রাপ্ত নম্বর, জিপিএ, মেধাক্রম। নম্বর সবসময় ডাটাবেসের **বর্তমান** ফলাফল (`BuildStudentMarksDetail` দিয়ে — PDF-এর সঙ্গে একই হিসাব), সাথে "সর্বশেষ হালনাগাদ"।
+- পরীক্ষার ফলাফল প্রকাশ (`exams.is_published`) না হলে নম্বর দেখায় না; ফোন/ঠিকানা কখনো দেখায় না; throttle ৩০/মিনিট।
+- School Settings → Marksheet → "Show Verification QR Code" টগল (ডিফল্ট চালু)।
+
+## আইডি কার্ড QR (সম্পন্ন)
+
+- শিক্ষার্থী, শিক্ষক ও স্টাফ — তিন কার্ডেই পেছনের **barcode বাদ**, তার জায়গায় QR (১২mm + সাদা quiet zone) ও পাশে ID নম্বর। Barcode কোথাও স্ক্যান করে ব্যবহার হতো না; ভবিষ্যতে কাউন্টার স্ক্যানার লাগলে 2D স্ক্যানার দিয়ে এই QR-ই পড়া যাবে।
+- টোকেন প্রোফাইলে: `student_profiles` / `teacher_profiles` / `staff_profiles`.`id_card_token` (trait `HasIdCardToken`)। কার্ড আবার প্রিন্ট করলেও একই থাকে।
+- কার্ড হারালে প্রোফাইলের Edit পেজে **Reissue ID Card QR** → নতুন টোকেন; পুরনো কার্ড "পাওয়া যায়নি" দেখায়।
+- পাবলিক পেজ `VerifyIdCardController` — ছবি, নাম, ID, (শিক্ষার্থী হলে) বর্তমান ক্লাস/শাখা/রোল, (শিক্ষক/স্টাফ হলে) পদবি; **সক্রিয় কিনা** সবচেয়ে বড় করে দেখায় (TC/অবসর/অব্যাহতি/মুছে ফেলা হলে "কার্ডটি আর বৈধ নয়")। ফোন, ঠিকানা, রক্তের গ্রুপ দেখায় না; throttle ৩০/মিনিট।
+- প্রতিটি কার্ডের Card Fields মোডালে "Show Verification QR Code" টগল (ডিফল্ট চালু)।
+- নতুন **Staff ID Card** পেজ (Document Management) — শিক্ষক কার্ডের layout (`documents.employee-id-card-sheet`) শেয়ার করে।
+
 ## সিদ্ধান্ত নেওয়া বাকি
 
-- QR লাইব্রেরি (নতুন dependency — অনুমোদন লাগবে) নাকি SVG নিজে তৈরি।
 - প্রতিটি ডকুমেন্টে QR-এর অবস্থান ও আকার (আইডি কার্ডের পেছনে নাকি সামনে)।
 - ডকুমেন্ট ডিজাইন সেটিংসে QR দেখানো/লুকানোর অপশন থাকবে কিনা।
-- মার্কশিটে ভবিষ্যতে "রেজাল্ট যাচাই" QR (জাল মার্কশিট রোধ) যোগ হবে কিনা।

@@ -75,7 +75,8 @@ it('refuses to build a pdf when there is no active teacher', function () {
 it('prints the teacher card sheet with the teacher details and role', function () {
     $teacher = makeIdCardTestTeacher(['designation' => 'Senior Teacher', 'joining_date' => '2015-06-01'], ['name' => 'Rahima Khatun', 'phone' => '01711000000']);
 
-    $html = view('documents.teacher-id-card-sheet', [
+    $html = view('documents.employee-id-card-sheet', [
+        'role' => 'TEACHER',
         'school' => ['name' => 'Test School', 'address' => '', 'logo' => null, 'signature' => null],
         'frontBackground' => 'front.svg',
         'backBackground' => 'back.svg',
@@ -84,7 +85,7 @@ it('prints the teacher card sheet with the teacher details and role', function (
         'frontFields' => TeacherIdCardLayout::frontFields(),
         'backFields' => TeacherIdCardLayout::backFields(),
         'issueDate' => TeacherIdCardLayout::issueDate(),
-        'cards' => collect([['teacher' => $teacher->load(['user', 'addresses']), 'photo' => 'photo.png', 'x' => 0, 'y' => 0]]),
+        'cards' => collect([['person' => $teacher->load(['user', 'addresses']), 'photo' => 'photo.png', 'x' => 0, 'y' => 0]]),
     ])->render();
 
     expect($html)

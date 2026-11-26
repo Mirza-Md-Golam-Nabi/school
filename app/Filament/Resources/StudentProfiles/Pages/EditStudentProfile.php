@@ -4,6 +4,7 @@ namespace App\Filament\Resources\StudentProfiles\Pages;
 
 use App\Actions\UpdateStudentProfileAction;
 use App\Enums\OptionalSubjectRole;
+use App\Filament\Concerns\ReissuesIdCardQr;
 use App\Filament\Resources\StudentFeeInvoices\Actions\FeeDefaultActions;
 use App\Filament\Resources\StudentProfiles\Concerns\HasResetPasswordAction;
 use App\Filament\Resources\StudentProfiles\StudentProfileResource;
@@ -17,6 +18,7 @@ use Illuminate\Database\Eloquent\Model;
 class EditStudentProfile extends EditRecord
 {
     use HasResetPasswordAction;
+    use ReissuesIdCardQr;
 
     protected static string $resource = StudentProfileResource::class;
 
@@ -26,6 +28,8 @@ class EditStudentProfile extends EditRecord
             FeeDefaultActions::recoverStudentDues(),
 
             $this->resetPasswordAction('warning'),
+
+            $this->reissueIdCardQrAction(),
 
             DeleteAction::make(),
             ForceDeleteAction::make(),

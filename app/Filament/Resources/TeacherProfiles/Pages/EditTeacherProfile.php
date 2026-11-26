@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\TeacherProfiles\Pages;
 
 use App\Actions\UpdateTeacherProfileAction;
+use App\Filament\Concerns\ReissuesIdCardQr;
 use App\Filament\Resources\TeacherProfiles\TeacherProfileResource;
 use App\Models\TeacherProfile;
 use Filament\Actions\DeleteAction;
@@ -13,11 +14,14 @@ use Illuminate\Database\Eloquent\Model;
 
 class EditTeacherProfile extends EditRecord
 {
+    use ReissuesIdCardQr;
+
     protected static string $resource = TeacherProfileResource::class;
 
     protected function getHeaderActions(): array
     {
         return [
+            $this->reissueIdCardQrAction(),
             DeleteAction::make()
                 ->modalHeading(fn (TeacherProfile $record): string => "Delete \"{$record->user?->name}\"?"),
             ForceDeleteAction::make()

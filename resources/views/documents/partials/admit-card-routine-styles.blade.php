@@ -208,7 +208,7 @@
     }
 
     table.arc-signatures td {
-        width: 50%;
+        width: 33%;
         text-align: center;
         vertical-align: bottom;
         padding: 0 30px;

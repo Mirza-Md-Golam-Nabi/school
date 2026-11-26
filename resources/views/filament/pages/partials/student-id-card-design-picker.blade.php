@@ -1,11 +1,14 @@
 @php
-    // The student ID card page uses the defaults; the teacher page passes its own wording.
+    // The student ID card page uses the defaults; the teacher and staff pages pass their own wording.
     $sample = [
         'cardRole' => $cardRole ?? 'STUDENT',
         'sampleName' => $sampleName ?? 'Student Name',
         'sampleFrontRows' => $sampleFrontRows ?? ['ID NO' => '20260001', 'CLASS' => 'Six', 'ROLL' => '12'],
         'sampleBackRows' => $sampleBackRows ?? ['GUARDIAN' => 'Guardian Name', 'PHONE' => '01700-000000', 'BLOOD GROUP' => 'B+'],
         'sampleFooter' => $sampleFooter ?? 'ADMISSION',
+        'sampleIdNumber' => $sampleIdNumber ?? '20260001',
+        // A real, scannable code in the shape the printed card carries — it opens the "card not found" page.
+        'sampleQr' => \App\Support\QrCodeImage::svgDataUri(route('id-cards.verify', ['token' => 'SAMPLE0000000000'])),
         'schoolName' => $schoolName,
         'schoolAddress' => $schoolAddress,
         'logo' => $previewLogo,
