@@ -5,6 +5,7 @@ use App\Filament\Pages\SchoolSettings;
 use App\Models\SchoolSetting;
 use App\Models\User;
 use App\Support\AcademicSession;
+use App\Support\DocumentLocale;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 
@@ -99,4 +100,40 @@ it('rejects an EIIN number that is not digits only', function () {
         ->call('save')
         ->assertHasFormErrors([SchoolSetting::EIIN_SETTING => 'regex'])
         ->assertNotNotified();
+});
+
+it('saves the বাংলা school name and address and prints them only in বাংলা documents', function () {
+    $admin = grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]));
+    test()->actingAs($admin);
+
+    Livewire::test(SchoolSettings::class)
+        ->fillForm([
+            'school_name' => 'Test School',
+            'school_address' => 'Dhaka',
+            SchoolSetting::SCHOOL_NAME_BN_SETTING => ' টেস্ট স্কুল ',
+            SchoolSetting::SCHOOL_ADDRESS_BN_SETTING => 'ঢাকা',
+        ])
+        ->call('save')
+        ->assertHasNoFormErrors()
+        ->assertNotified();
+
+    expect(SchoolSetting::get(SchoolSetting::SCHOOL_NAME_BN_SETTING))->toBe('টেস্ট স্কুল')
+        ->and(SchoolSetting::schoolName())->toBe('Test School')
+        ->and(SchoolSetting::schoolAddress())->toBe('Dhaka')
+        ->and(DocumentLocale::using('bn', fn (): string => SchoolSetting::schoolName()))->toBe('টেস্ট স্কুল')
+        ->and(DocumentLocale::using('bn', fn (): string => SchoolSetting::schoolAddress()))->toBe('ঢাকা');
+
+    Livewire::test(SchoolSettings::class)
+        ->assertSchemaStateSet([
+            SchoolSetting::SCHOOL_NAME_BN_SETTING => 'টেস্ট স্কুল',
+            SchoolSetting::SCHOOL_ADDRESS_BN_SETTING => 'ঢাকা',
+        ]);
+});
+
+it('falls back to the english school name and address in বাংলা when no বাংলা ones are set', function () {
+    SchoolSetting::set('school_name', 'Test School');
+    SchoolSetting::set('school_address', 'Dhaka');
+
+    expect(DocumentLocale::using('bn', fn (): string => SchoolSetting::schoolName()))->toBe('Test School')
+        ->and(DocumentLocale::using('bn', fn (): string => SchoolSetting::schoolAddress()))->toBe('Dhaka');
 });

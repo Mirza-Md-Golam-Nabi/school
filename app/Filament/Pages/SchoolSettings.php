@@ -53,11 +53,13 @@ class SchoolSettings extends Page
 
         $this->form->fill([
             'school_name' => SchoolSetting::get('school_name', ''),
+            SchoolSetting::SCHOOL_NAME_BN_SETTING => SchoolSetting::get(SchoolSetting::SCHOOL_NAME_BN_SETTING, ''),
             SchoolSetting::SCHOOL_CODE_SETTING => SchoolSetting::schoolCode(),
             'weekend_days' => json_decode($weekendRaw, true) ?? ['friday'],
             AcademicSession::COLLEGE_START_MONTH_SETTING => AcademicSession::collegeStartMonth(),
             'school_logo' => SchoolSetting::get('school_logo') ?: null,
             'school_address' => SchoolSetting::get('school_address', ''),
+            SchoolSetting::SCHOOL_ADDRESS_BN_SETTING => SchoolSetting::get(SchoolSetting::SCHOOL_ADDRESS_BN_SETTING, ''),
             SchoolSetting::EIIN_SETTING => SchoolSetting::get(SchoolSetting::EIIN_SETTING, ''),
             'school_established_year' => SchoolSetting::get('school_established_year') ?: null,
             'school_seal' => SchoolSetting::get('school_seal') ?: null,
@@ -86,6 +88,10 @@ class SchoolSettings extends Page
                         TextInput::make('school_name')
                             ->label('School Name')
                             ->required(),
+                        TextInput::make(SchoolSetting::SCHOOL_NAME_BN_SETTING)
+                            ->label('School Name (বাংলা)')
+                            ->maxLength(255)
+                            ->helperText('বাংলা ভাষার ডকুমেন্টে (যেমন সিট প্ল্যান) ছাপা হবে — খালি রাখলে ইংরেজি নাম ছাপা হবে'),
                         TextInput::make(SchoolSetting::SCHOOL_CODE_SETTING)
                             ->label('School Code')
                             ->integer()
@@ -160,6 +166,11 @@ class SchoolSettings extends Page
                         Textarea::make('school_address')
                             ->label('School Address')
                             ->rows(2)
+                            ->columnSpanFull(),
+                        Textarea::make(SchoolSetting::SCHOOL_ADDRESS_BN_SETTING)
+                            ->label('School Address (বাংলা)')
+                            ->rows(2)
+                            ->helperText('বাংলা ভাষার ডকুমেন্টে ছাপা হবে — খালি রাখলে ইংরেজি ঠিকানা ছাপা হবে')
                             ->columnSpanFull(),
                         TextInput::make(SchoolSetting::EIIN_SETTING)
                             ->label('EIIN Number')
@@ -250,11 +261,13 @@ class SchoolSettings extends Page
         $data = $this->form->getState();
 
         SchoolSetting::set('school_name', $data['school_name']);
+        SchoolSetting::set(SchoolSetting::SCHOOL_NAME_BN_SETTING, trim((string) ($data[SchoolSetting::SCHOOL_NAME_BN_SETTING] ?? '')));
         SchoolSetting::set(SchoolSetting::SCHOOL_CODE_SETTING, (string) (int) $data[SchoolSetting::SCHOOL_CODE_SETTING]);
         SchoolSetting::set('weekend_days', json_encode($data['weekend_days'] ?? []));
         SchoolSetting::set(AcademicSession::COLLEGE_START_MONTH_SETTING, (string) (int) $data[AcademicSession::COLLEGE_START_MONTH_SETTING]);
         SchoolSetting::set('school_logo', $data['school_logo'] ?? '');
         SchoolSetting::set('school_address', $data['school_address'] ?? '');
+        SchoolSetting::set(SchoolSetting::SCHOOL_ADDRESS_BN_SETTING, trim((string) ($data[SchoolSetting::SCHOOL_ADDRESS_BN_SETTING] ?? '')));
         SchoolSetting::set(SchoolSetting::EIIN_SETTING, trim((string) ($data[SchoolSetting::EIIN_SETTING] ?? '')));
         SchoolSetting::set('school_established_year', $data['school_established_year'] ?? '');
         SchoolSetting::set('school_seal', $data['school_seal'] ?? '');

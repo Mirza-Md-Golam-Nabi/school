@@ -42,9 +42,11 @@ class SubjectForm
                             ->options(fn (?Subject $record): array => Subject::query()
                                 ->whereNull('parent_subject_id')
                                 ->when($record, fn ($query) => $query->whereKeyNot($record->getKey()))
-                                ->ordered()
-                                ->get()
-                                ->pluck('display_name', 'id')
+                                ->selectRaw(app()->getLocale() === 'bn'
+                                    ? "id, COALESCE(NULLIF(name_bn, ''), name) as label"
+                                    : 'id, name as label')
+                                ->orderBy('label')
+                                ->pluck('label', 'id')
                                 ->all())
                             ->searchable()
                             ->disabled(fn (?Subject $record): bool => (bool) $record?->papers()->exists())

@@ -179,5 +179,8 @@
     "All Teachers Attendance Sheet": "সব শিক্ষকের উপস্থিতির শিট",
     "One PDF for all active teachers: names down the left, the month's dates across the top, each day marked P (Present), LP (Late Present), A (Absent) or L (Leave).": "সব active শিক্ষকের জন্য একটি PDF: বাঁ পাশে শিক্ষকের নাম, উপরে মাসের তারিখ, প্রতিদিন P (উপস্থিত), LP (দেরিতে উপস্থিত), A (অনুপস্থিত) বা L (ছুটি) লেখা থাকবে।",
     "Download All Teachers Sheet (PDF)": "সব শিক্ষকের শিট ডাউনলোড (PDF)",
-    "I have installed it ✓": "ইন্সটল করেছি ✓"
+    "I have installed it ✓": "ইন্সটল করেছি ✓",
+    "Seat Plan": "সিট প্ল্যান",
+    "Established: :year": "স্থাপিত: :year",
+    "Seat plan language": "সিট প্ল্যানের ভাষা"
 }

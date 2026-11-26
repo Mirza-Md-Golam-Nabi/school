@@ -22,6 +22,10 @@ class SchoolSetting extends Model
 
     public const EIIN_SETTING = 'school_eiin';
 
+    public const SCHOOL_NAME_BN_SETTING = 'school_name_bn';
+
+    public const SCHOOL_ADDRESS_BN_SETTING = 'school_address_bn';
+
     public const SCHOOL_CODE_SETTING = 'school_code';
 
     public const DEFAULT_SCHOOL_CODE = 1;
@@ -59,6 +63,33 @@ class SchoolSetting extends Model
         }
 
         return app()->getLocale() === 'bn' ? self::DEFAULT_HEAD_TITLE_BN : self::DEFAULT_HEAD_TITLE;
+    }
+
+    /**
+     * The school's name printed on documents — the বাংলা name when the locale
+     * is bn and one is set, else the English name.
+     */
+    public static function schoolName(): string
+    {
+        return (string) static::localizedSetting('school_name', self::SCHOOL_NAME_BN_SETTING);
+    }
+
+    /**
+     * The school's address printed on documents — the বাংলা address when the
+     * locale is bn and one is set, else the English address.
+     */
+    public static function schoolAddress(): string
+    {
+        return (string) static::localizedSetting('school_address', self::SCHOOL_ADDRESS_BN_SETTING);
+    }
+
+    private static function localizedSetting(string $englishKey, string $bengaliKey): mixed
+    {
+        if (app()->getLocale() === 'bn' && filled($bengali = static::get($bengaliKey))) {
+            return $bengali;
+        }
+
+        return static::get($englishKey, '');
     }
 
     /**

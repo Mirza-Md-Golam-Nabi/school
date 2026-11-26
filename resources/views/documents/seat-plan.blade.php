@@ -1,14 +1,23 @@
 @php
     use App\Models\SchoolSetting;
+    use App\Support\BengaliNumber;
 
-    $schoolName = SchoolSetting::get('school_name', '');
-    $schoolEiinLine = SchoolSetting::eiinLine();
-    $schoolAddress = SchoolSetting::get('school_address', '');
+    // Rendered inside DocumentLocale::using(), so in বাংলা the school's
+    // name/address come from their বাংলা settings (falling back to English).
+    $schoolName = SchoolSetting::schoolName();
+    $schoolEiinLine = BengaliNumber::localize(SchoolSetting::eiinLine());
+    $schoolAddress = SchoolSetting::schoolAddress();
     $schoolEstablishedYear = SchoolSetting::get('school_established_year', '');
     $schoolAddressLine = collect([
         $schoolAddress,
-        $schoolEstablishedYear ? "Established: {$schoolEstablishedYear}" : null,
+        $schoolEstablishedYear ? __('Established: :year', ['year' => BengaliNumber::localize((string) $schoolEstablishedYear)]) : null,
     ])->filter()->implode(' | ');
+
+    // Rendered inside DocumentLocale::using(), so labels, class/group names and
+    // digits all follow the chosen language; বাংলায় name_bn is preferred.
+    $isBengali = app()->getLocale() === 'bn';
+    $label = collect(['Seat Plan', 'Roll', 'Name', 'Class', 'Group', 'Section'])
+        ->mapWithKeys(fn (string $key): array => [$key => __($key)]);
 @endphp
 <!DOCTYPE html>
 <html>
@@ -141,7 +150,7 @@
                                             <td class="title-cell">
                                                 <table class="title">
                                                     <tr>
-                                                        <td class="title-inner">Seat Plan</td>
+                                                        <td class="title-inner">{{ $label['Seat Plan'] }}</td>
                                                     </tr>
                                                 </table>
                                             </td>
@@ -150,26 +159,26 @@
 
                                     <table class="info-table">
                                         <tr class="roll">
-                                            <td class="label">Roll</td>
-                                            <td>{{ sprintf('%02d', $student->roll_no) }}</td>
+                                            <td class="label">{{ $label['Roll'] }}</td>
+                                            <td>{{ BengaliNumber::localize(sprintf('%02d', $student->roll_no)) }}</td>
                                         </tr>
                                         <tr>
-                                            <td class="label">Name</td>
-                                            <td>{{ $student->user?->name }}</td>
+                                            <td class="label">{{ $label['Name'] }}</td>
+                                            <td>{{ $isBengali && filled($student->name_bn) ? $student->name_bn : $student->user?->name }}</td>
                                         </tr>
                                         <tr>
-                                            <td class="label">Class</td>
+                                            <td class="label">{{ $label['Class'] }}</td>
                                             <td>{{ $student->class?->display_name }}</td>
                                         </tr>
                                         @if ($student->group)
                                             <tr>
-                                                <td class="label">Group</td>
-                                                <td>{{ $student->group?->name ?? "-" }}</td>
+                                                <td class="label">{{ $label['Group'] }}</td>
+                                                <td>{{ $student->group?->display_name ?? "-" }}</td>
                                             </tr>
                                         @endif
                                         @if ($student->section)
                                             <tr>
-                                                <td class="label">Section</td>
+                                                <td class="label">{{ $label['Section'] }}</td>
                                                 <td>{{ $student->section?->name ?? "-" }}</td>
                                             </tr>
                                         @endif

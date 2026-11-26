@@ -1,17 +1,34 @@
 <x-filament-panels::page>
-    @if ($classes->isEmpty())
+    @if ($this->classes->isEmpty())
         <x-filament::empty-state
             icon="heroicon-o-table-cells"
             heading="No active classes found"
             description="Add active classes first to generate seat plans."
         />
     @else
+        <div class="flex flex-wrap items-center gap-2">
+            <span class="text-xs font-medium text-gray-700 sm:text-sm dark:text-gray-300">
+                {{ __('Seat plan language') }}:
+            </span>
+
+            <x-filament::tabs>
+                @foreach ($this->getLanguageOptions() as $languageCode => $languageLabel)
+                    <x-filament::tabs.item
+                        :active="$language === $languageCode"
+                        wire:click="$set('language', '{{ $languageCode }}')"
+                    >
+                        {{ $languageLabel }}
+                    </x-filament::tabs.item>
+                @endforeach
+            </x-filament::tabs>
+        </div>
+
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-            @foreach ($classes as $class)
+            @foreach ($this->classes as $class)
                 @php
                     $accent = \App\Support\ClassAccentColor::for($class->id);
                     $studentCount = $class->active_students_count;
-                    $url = $studentCount > 0 ? route('seat-plan.class.download', ['class' => $class->id]) : null;
+                    $url = $studentCount > 0 ? route('seat-plan.class.download', ['class' => $class->id, 'language' => $language]) : null;
                 @endphp
 
                 <a
@@ -49,7 +66,7 @@
                     {{-- Footer --}}
                     <div class="flex items-center justify-between border-t border-gray-100 px-3 py-2 dark:border-gray-800">
                         <p class="text-[11px] text-gray-500 dark:text-gray-400">
-                            {{ $url ? 'Download PDF' : 'No students yet' }}
+                            {{ $url ? 'Download PDF ('.($this->getLanguageOptions()[$language] ?? $language).')' : 'No students yet' }}
                         </p>
 
                         @if ($url)
