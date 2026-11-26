@@ -6,7 +6,10 @@ use App\Enums\MergedAbsentRule;
 use App\Enums\MergedComponentPassRule;
 use App\Enums\MergedPassRule;
 use App\Enums\ResultRounding;
+use App\Models\Classes;
+use App\Models\ClassGroupSubject;
 use App\Models\ExamSubjectMerge;
+use App\Models\Group;
 use App\Models\Subject;
 use App\Models\SubjectMerge;
 use Closure;
@@ -33,7 +36,7 @@ class SubjectMergeFields
      */
     public static function form(int $classId, Closure $siblingMerges, bool $rulesRequired): array
     {
-        $classSubjectOptions = Subject::whereHas('classes', fn (Builder $query) => $query->where('classes.id', $classId))
+        $classSubjectOptions = Subject::taughtInClass($classId)
             ->ordered()
             ->get()
             ->pluck('display_name', 'id')
@@ -88,7 +91,8 @@ class SubjectMergeFields
                         ->options($subjectOptions('first_subject_id'))
                         ->searchable()
                         ->live()
-                        ->required(),
+                        ->required()
+                        ->helperText(fn (Get $get): ?string => self::groupMismatchWarning($classId, $get('first_subject_id'), $get('second_subject_id'))),
                 ]),
             Section::make('Rules')
                 ->description($rulesRequired ? null : 'ফাঁকা রাখলে School Settings-এর নিয়ম খাটবে')
@@ -122,6 +126,38 @@ class SubjectMergeFields
                         ->required($rulesRequired),
                 ]),
         ];
+    }
+
+    /**
+     * A note when some group of the class takes only one of the two papers
+     * (Arabic 1st for every group, Arabic 2nd only for Humanities): the merge
+     * does not apply to that group's students, who have the paper they take
+     * counted on its own. Only informs — the merge can still be saved.
+     */
+    private static function groupMismatchWarning(int $classId, mixed $firstSubjectId, mixed $secondSubjectId): ?string
+    {
+        if (blank($firstSubjectId) || blank($secondSubjectId)) {
+            return null;
+        }
+
+        $class = Classes::with('groups')->find($classId);
+        $records = ClassGroupSubject::recordsBySubjectForClass($classId);
+        $groups = $class?->has_group ? $class->groups : collect();
+
+        $groupNames = $groups
+            ->filter(function (Group $group) use ($records, $firstSubjectId, $secondSubjectId): bool {
+                $takesFirst = ClassGroupSubject::isTakenByGroup($records->get((int) $firstSubjectId), (int) $group->id);
+                $takesSecond = ClassGroupSubject::isTakenByGroup($records->get((int) $secondSubjectId), (int) $group->id);
+
+                return $takesFirst !== $takesSecond;
+            })
+            ->pluck('name');
+
+        if ($groupNames->isEmpty()) {
+            return null;
+        }
+
+        return '⚠ '.$groupNames->implode(', ').' group-এর student-রা এই দুটো পত্রের একটাই পড়ে — তাদের জন্য এই মার্জ খাটবে না, পত্রটা আলাদা বিষয় হিসেবে গোনা হবে।';
     }
 
     /**

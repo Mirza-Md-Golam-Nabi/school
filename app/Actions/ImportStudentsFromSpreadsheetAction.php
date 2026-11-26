@@ -112,7 +112,7 @@ class ImportStudentsFromSpreadsheetAction
      * একটা রো-তেও ভুল থাকলে কিছুই import হয় না — নইলে ফাইল ঠিক করে আবার আপলোড করলে
      * আগের সফল রো-গুলো দ্বিতীয়বার তৈরি হয়ে যেত।
      *
-     * @return array{imported: int, errors: array<int, string>}
+     * @return array{imported: int, errors: array<int, string>, warnings?: array<int, string>}
      */
     public function handle(string $path, ?int $defaultClassId = null): array
     {
@@ -135,6 +135,7 @@ class ImportStudentsFromSpreadsheetAction
         }
 
         $errors = [];
+        $warnings = [];
         $students = [];
         $seenRolls = [];
 
@@ -144,14 +145,25 @@ class ImportStudentsFromSpreadsheetAction
 
             if ($rowErrors === []) {
                 $rollKey = implode('-', [$student['current_class_id'], $student['current_section_id'] ?? 0, $student['session_year'], $student['roll_no']]);
+                $rollHolder = $this->rollHolder($student);
 
+                // একই রোল আর একই নাম = একই student দুবার (একই ফাইল আবার আপলোড) — আটকানো হয়।
+                // নাম আলাদা হলে একই রোল চলতে পারে (যেমন কলেজে repeat করা student), শুধু সতর্ক করা হয়।
                 if (isset($seenRolls[$rollKey])) {
-                    $rowErrors[] = "roll_no {$student['roll_no']} এই ফাইলের Row {$seenRolls[$rollKey]}-এও একই ক্লাস/section-এ আছে";
-                } elseif ($this->rollIsTaken($student)) {
-                    $rowErrors[] = "roll_no {$student['roll_no']} এই ক্লাস/section ও সেশনে আগে থেকেই একজন student-এর আছে";
+                    if ($this->isSameStudentName($student, $seenRolls[$rollKey]['student'])) {
+                        $rowErrors[] = "এই student (roll_no {$student['roll_no']}) এই ফাইলের Row {$seenRolls[$rollKey]['row']}-এও আছে";
+                    } else {
+                        $warnings[] = "Row {$rowNumber}: roll_no {$student['roll_no']} এই ফাইলের Row {$seenRolls[$rollKey]['row']}-এও একই ক্লাস/section-এ আছে";
+                    }
+                } elseif ($rollHolder) {
+                    if ($this->isSameStudentName($student, ['name' => $rollHolder->user?->name, 'name_bn' => $rollHolder->name_bn])) {
+                        $rowErrors[] = "roll_no {$student['roll_no']}-এর এই student এই ক্লাস/section ও সেশনে আগে থেকেই আছে";
+                    } else {
+                        $warnings[] = "Row {$rowNumber}: roll_no {$student['roll_no']} এই ক্লাস/section ও সেশনে আগে থেকেই {$rollHolder->user?->name}-এর আছে";
+                    }
                 }
 
-                $seenRolls[$rollKey] ??= $rowNumber;
+                $seenRolls[$rollKey] ??= ['row' => $rowNumber, 'student' => $student];
             }
 
             foreach ($rowErrors as $rowError) {
@@ -171,7 +183,9 @@ class ImportStudentsFromSpreadsheetAction
             }
         });
 
-        return ['imported' => count($students), 'errors' => []];
+        $result = ['imported' => count($students), 'errors' => []];
+
+        return $warnings === [] ? $result : [...$result, 'warnings' => $warnings];
     }
 
     /**
@@ -473,15 +487,15 @@ class ImportStudentsFromSpreadsheetAction
     }
 
     /**
-     * একই ক্লাস/section ও সেশনে ওই roll আগে থেকেই থাকলে ধরা হয় — একই ফাইল দুবার আপলোড
-     * হলে ডুপ্লিকেট student তৈরি হওয়া ঠেকায়। Birth certificate মিলে গেলে সেটা বিদ্যমান
-     * student-এর আপডেট, তাই তখন বাধা দেওয়া হয় না।
+     * একই ক্লাস/section ও সেশনে ওই roll যে student-এর আগে থেকেই আছে। Birth
+     * certificate মিলে গেলে সেটা বিদ্যমান student-এর আপডেট, তাই তখন ধরা হয় না।
      *
      * @param  array<string, mixed>  $student
      */
-    private function rollIsTaken(array $student): bool
+    private function rollHolder(array $student): ?StudentProfile
     {
         return StudentProfile::query()
+            ->with('user:id,name')
             ->active()
             ->where('current_class_id', $student['current_class_id'])
             ->where('current_section_id', $student['current_section_id'])
@@ -493,7 +507,25 @@ class ImportStudentsFromSpreadsheetAction
                     ->whereNull('birth_certificate_no')
                     ->orWhere('birth_certificate_no', '!=', $student['birth_certificate_no'])),
             )
-            ->exists();
+            ->first();
+    }
+
+    /**
+     * Whether two rows name the same student — the English name, or the Bangla
+     * name when the English one is missing on either side.
+     *
+     * @param  array<string, mixed>  $student
+     * @param  array<string, mixed>  $other
+     */
+    private function isSameStudentName(array $student, array $other): bool
+    {
+        foreach (['name', 'name_bn'] as $column) {
+            if (filled($student[$column] ?? null) && filled($other[$column] ?? null)) {
+                return $this->sameName((string) $student[$column], (string) $other[$column]);
+            }
+        }
+
+        return false;
     }
 
     private function sameName(string $first, string $second): bool

@@ -92,6 +92,20 @@ class Exam extends Model
     }
 
     /**
+     * A subject's name on this exam's papers — the name written for this
+     * exam in its subject config, else the subject's own name.
+     */
+    public function subjectDisplayName(?Subject $subject): string
+    {
+        if (! $subject) {
+            return '—';
+        }
+
+        return $this->subjectConfigs->firstWhere('subject_id', $subject->id)?->subjectDisplayName($subject)
+            ?? $subject->display_name;
+    }
+
+    /**
      * The exam routine as an admit card prints it: in date order, numbered,
      * split into two columns — the first half (rounded up) on the left, so
      * 7 subjects are 4 + 3.
@@ -109,7 +123,7 @@ class Exam extends Model
             ->map(fn (ExamSchedule $schedule, int $index): array => [
                 'serial' => $index + 1,
                 'date' => $schedule->exam_date ? BengaliNumber::localize($schedule->exam_date->translatedFormat('d M Y')) : null,
-                'subject' => $schedule->subject?->display_name ?? '—',
+                'subject' => $this->subjectDisplayName($schedule->subject),
             ]);
 
         $leftCount = (int) ceil($rows->count() / 2);

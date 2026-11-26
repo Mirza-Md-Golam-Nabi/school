@@ -117,10 +117,8 @@ class CalculateExamRankings
             ->get(['id', 'current_group_id', 'current_section_id'])
             ->keyBy('id');
 
-        // subject_id → Collection of ClassGroupSubject records (grouped by subject)
-        $subjectTypeRecords = ClassGroupSubject::where('class_id', $exam->class_id)
-            ->get()
-            ->groupBy('subject_id');
+        // subject_id → Collection of ClassGroupSubject records (a paper gets its main subject's)
+        $subjectTypeRecords = ClassGroupSubject::recordsBySubjectForClass($exam->class_id);
 
         // student_id → Collection of the student's chosen optional-subject roles for this class
         $optionalSelections = StudentOptionalSubject::where('class_id', $exam->class_id)
@@ -161,7 +159,8 @@ class CalculateExamRankings
     /**
      * Per student: total marks and GPA. Each merged subject (two papers) counts
      * as one subject — its converted marks go into the total and its single
-     * grade point into the GPA; every other subject counts on its own.
+     * grade point into the GPA; every other subject counts on its own, and so
+     * does a merged paper whose other paper the student's group does not take.
      *
      * GPA = (grade points of the compulsory + main optional subjects
      * + the additional subject's grade point above 2) ÷ the number of
@@ -185,13 +184,16 @@ class CalculateExamRankings
         Collection $gradeScales
     ): array {
         $studentData = [];
-        $mergedSubjectIds = $merges->flatMap(fn (ExamSubjectMerge $merge): array => $merge->subjectIds());
 
         foreach ($results as $studentId => $studentResults) {
             $profile = $profiles->get((int) $studentId);
             $studentGroupId = $profile?->current_group_id
                 ? (int) $profile->current_group_id
                 : null;
+            // A merge whose papers the student's group does not both take
+            // leaves the paper it does take as a subject of its own.
+            $studentMerges = ExamSubjectMerge::applyingToGroup($merges, $subjectTypeRecords, $studentGroupId);
+            $mergedSubjectIds = $studentMerges->flatMap(fn (ExamSubjectMerge $merge): array => $merge->subjectIds());
             $studentOptionalSelections = $optionalSelections->get((int) $studentId);
             $studentResults = $studentResults->keyBy('subject_id');
             $isFullyAbsent = $studentResults->every(fn (StudentResult $result): bool => (bool) $result->is_absent);
@@ -213,7 +215,7 @@ class CalculateExamRankings
                 ] + $outcome;
             }
 
-            foreach ($merges as $merge) {
+            foreach ($studentMerges as $merge) {
                 [$firstId, $secondId] = $merge->subjectIds();
                 $first = $studentResults->get($firstId);
                 $second = $studentResults->get($secondId);

@@ -3,7 +3,9 @@
 namespace App\Actions;
 
 use App\Enums\ClassLevel;
+use App\Models\ClassGroupSubject;
 use App\Models\Exam;
+use App\Models\ExamSubjectConfig;
 use App\Models\ExamSubjectMerge;
 use App\Models\GradeScale;
 use App\Models\Group;
@@ -59,7 +61,12 @@ class BuildExamTabulationSheetDetail
         $gradeScales = GradeScale::cached();
 
         $merges = $exam->subjectMerges()->get();
-        $mergeContext = ['merges' => $merges, 'subjectConfigs' => $subjectConfigs, 'gradeScales' => $gradeScales];
+        $mergeContext = [
+            'merges' => $merges,
+            'subjectConfigs' => $subjectConfigs,
+            'gradeScales' => $gradeScales,
+            'subjectTypeRecords' => ClassGroupSubject::recordsBySubjectForClass($exam->class_id),
+        ];
 
         $class = $exam->class;
 
@@ -87,7 +94,7 @@ class BuildExamTabulationSheetDetail
             'isEmpty' => false,
             'subjects' => $subjects,
             'hasMerges' => $merges->isNotEmpty(),
-            'columns' => $this->columnGroups($subjects, $merges),
+            'columns' => $this->columnGroups($subjects, $merges, $subjectConfigs),
             'rows' => $rankings->map(
                 fn (StudentMeritRanking $ranking): array => $this->buildRow($ranking, $subjects, $resultsByStudent, $gradeScales, $hasSections, $mergeContext)
             )->values(),
@@ -98,7 +105,7 @@ class BuildExamTabulationSheetDetail
      * @param  Collection<int, StudentMeritRanking>  $rankings
      * @param  Collection<int, Collection<int, StudentResult>>  $resultsByStudent
      * @param  Collection<int, GradeScale>  $gradeScales
-     * @param  array{merges: Collection<int, ExamSubjectMerge>, subjectConfigs: Collection, gradeScales: Collection}  $mergeContext
+     * @param  array{merges: Collection<int, ExamSubjectMerge>, subjectConfigs: Collection, gradeScales: Collection, subjectTypeRecords: Collection}  $mergeContext
      * @return array<int, array<string, mixed>>
      */
     private function buildGroupBlocks(
@@ -124,11 +131,13 @@ class BuildExamTabulationSheetDetail
                 continue;
             }
 
+            // The exam's subjects this group takes — a paper (Biology 1st
+            // Paper) by its main subject's syllabus record.
             $groupSubjects = $this->inSubjectOrder(
-                $exam->class->subjectsForGroup($group->id)
+                $mergeContext['subjectConfigs']
                     ->pluck('subject')
                     ->filter()
-                    ->unique('id')
+                    ->filter(fn (Subject $subject): bool => ClassGroupSubject::isTakenByGroup($mergeContext['subjectTypeRecords']->get((int) $subject->id), (int) $group->id))
                     ->filter(fn (Subject $subject): bool => $groupRankings->contains(
                         fn (StudentMeritRanking $ranking): bool => $resultsByStudent->get($ranking->student_id)?->has($subject->id) ?? false
                     ))
@@ -137,7 +146,11 @@ class BuildExamTabulationSheetDetail
             $blocks[] = [
                 'group' => $group,
                 'subjects' => $groupSubjects,
-                'columns' => $this->columnGroups($groupSubjects, $mergeContext['merges']),
+                'columns' => $this->columnGroups(
+                    $groupSubjects,
+                    ExamSubjectMerge::applyingToGroup($mergeContext['merges'], $mergeContext['subjectTypeRecords'], (int) $group->id),
+                    $mergeContext['subjectConfigs'],
+                ),
                 'rows' => $groupRankings->map(
                     fn (StudentMeritRanking $ranking): array => $this->buildRow($ranking, $groupSubjects, $resultsByStudent, $gradeScales, $hasSections, $mergeContext)
                 )->values(),
@@ -151,7 +164,7 @@ class BuildExamTabulationSheetDetail
      * @param  Collection<int, Subject>  $subjects
      * @param  Collection<int, Collection<int, StudentResult>>  $resultsByStudent
      * @param  Collection<int, GradeScale>  $gradeScales
-     * @param  array{merges: Collection<int, ExamSubjectMerge>, subjectConfigs: Collection, gradeScales: Collection}  $mergeContext
+     * @param  array{merges: Collection<int, ExamSubjectMerge>, subjectConfigs: Collection, gradeScales: Collection, subjectTypeRecords: Collection}  $mergeContext
      * @return array<string, mixed>
      */
     private function buildRow(
@@ -175,8 +188,12 @@ class BuildExamTabulationSheetDetail
             ]];
         });
 
-        // Each merged subject's marks, keyed "merge:{id}".
-        foreach ($mergeContext['merges'] as $merge) {
+        // Each merged subject's marks, keyed "merge:{id}" — only the merges
+        // whose papers the student's group both takes.
+        $groupId = $ranking->student?->current_group_id;
+        $studentMerges = ExamSubjectMerge::applyingToGroup($mergeContext['merges'], $mergeContext['subjectTypeRecords'], $groupId !== null ? (int) $groupId : null);
+
+        foreach ($studentMerges as $merge) {
             [$firstId, $secondId] = $merge->subjectIds();
             $first = $studentResults->get($firstId);
             $second = $studentResults->get($secondId);
@@ -238,9 +255,10 @@ class BuildExamTabulationSheetDetail
      *
      * @param  Collection<int, Subject>  $subjects
      * @param  Collection<int, ExamSubjectMerge>  $merges
+     * @param  Collection<int, ExamSubjectConfig>  $subjectConfigs  subject_id → config, for the subject's name in this exam
      * @return Collection<int, array{key: int|string, label: string, papers: list<int>}>
      */
-    private function columnGroups(Collection $subjects, Collection $merges): Collection
+    private function columnGroups(Collection $subjects, Collection $merges, Collection $subjectConfigs): Collection
     {
         $columns = collect();
         $emittedMergeIds = [];
@@ -249,7 +267,7 @@ class BuildExamTabulationSheetDetail
             $merge = $merges->first(fn (ExamSubjectMerge $merge): bool => in_array((int) $subject->id, $merge->subjectIds(), true));
 
             if (! $merge) {
-                $columns->push(['key' => (int) $subject->id, 'label' => $subject->display_name, 'papers' => [(int) $subject->id]]);
+                $columns->push(['key' => (int) $subject->id, 'label' => $subjectConfigs->get($subject->id)?->subjectDisplayName($subject) ?? $subject->display_name, 'papers' => [(int) $subject->id]]);
 
                 continue;
             }

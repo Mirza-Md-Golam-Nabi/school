@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Classes\Schemas;
 
 use App\Enums\ClassLevel;
+use App\Enums\PromotionRollPolicy;
 use App\Models\TeacherProfile;
 use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Select;
@@ -48,6 +49,12 @@ class ClassesForm
                     ->boolean()
                     ->inline()
                     ->inlineLabel(false),
+                Select::make('promotion_roll_policy')
+                    ->label('Roll On Promotion')
+                    ->options(PromotionRollPolicy::class)
+                    ->default(PromotionRollPolicy::Merit)
+                    ->required()
+                    ->helperText('এই ক্লাস থেকে promote / repeat করার সময় নতুন রোল কীভাবে বসবে। Promotion পেজে রোল সবসময় হাতে বদলানো যায়।'),
                 Radio::make('is_active')
                     ->label('Is Active?')
                     ->default(true)

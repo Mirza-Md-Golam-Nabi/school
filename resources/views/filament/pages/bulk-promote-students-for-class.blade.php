@@ -33,14 +33,21 @@
                 <x-slot name="heading">এই ক্লাসে এই session-এ কোনো active student নেই।</x-slot>
             </x-filament::empty-state>
         @else
-            @unless ($hasMainExamResults)
+            @if ($keepsCurrentRoll)
+                <div class="flex items-center gap-x-2 rounded-xl bg-info-50 px-4 py-2.5 ring-1 ring-info-600/20 dark:bg-info-950 dark:ring-info-400/20">
+                    <x-heroicon-o-information-circle class="h-4 w-4 shrink-0 text-info-600 dark:text-info-400" />
+                    <p class="text-xs text-info-700 dark:text-info-400">
+                        এই ক্লাসে promote করলে আগের রোলই থাকে, তাই "New Roll"-এ প্রত্যেকের বর্তমান রোল বসানো হয়েছে। চাইলে বদলাতে পারবেন।
+                    </p>
+                </div>
+            @elseif (! $hasMainExamResults)
                 <div class="flex items-center gap-x-2 rounded-xl bg-warning-50 px-4 py-2.5 ring-1 ring-warning-600/20 dark:bg-warning-950 dark:ring-warning-400/20">
                     <x-heroicon-o-exclamation-triangle class="h-4 w-4 shrink-0 text-warning-600 dark:text-warning-400" />
                     <p class="text-xs text-warning-700 dark:text-warning-400">
                         এই ক্লাসের Main Exam-এর merit ranking পাওয়া যায়নি, তাই "New Roll" ফাঁকা আছে — প্রতিটা student-এর জন্য ম্যানুয়ালি roll বসাতে হবে।
                     </p>
                 </div>
-            @endunless
+            @endif
 
             {{-- Promotion Table --}}
             <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10">

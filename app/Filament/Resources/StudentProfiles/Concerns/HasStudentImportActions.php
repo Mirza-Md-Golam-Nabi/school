@@ -91,6 +91,18 @@ trait HasStudentImportActions
                     ->body('প্রত্যেকের login Student ID তার প্রোফাইলে আছে; password: "password" — প্রথম লগইনে বদলাতে হবে।')
                     ->persistent()
                     ->send();
+
+                if (($result['warnings'] ?? []) !== []) {
+                    $shown = array_slice($result['warnings'], 0, 15);
+                    $remaining = count($result['warnings']) - count($shown);
+
+                    Notification::make()
+                        ->warning()
+                        ->title('একই রোল একাধিক student-এর')
+                        ->body(implode('<br>', array_map('e', $shown)).($remaining > 0 ? "<br>...আরও {$remaining}টা" : '').'<br><br>Import হয়ে গেছে — চাইলে Student Profile থেকে রোল বদলাতে পারেন।')
+                        ->persistent()
+                        ->send();
+                }
             });
     }
 

@@ -2,6 +2,7 @@
 
 namespace App\Actions;
 
+use App\Models\ClassGroupSubject;
 use App\Models\Exam;
 use App\Models\ExamSubjectMerge;
 use App\Models\GradeScale;
@@ -205,18 +206,29 @@ class BuildExamResultReport
     /**
      * The exam's subjects in the school's subject order, keyed like
      * CalculateExamRankings' failed_subject_keys: a merged subject (1st + 2nd
-     * paper) is one entry under its own name, placed at its first paper.
+     * paper) is one entry under its own name, placed at its first paper. A
+     * paper that some group takes without its other paper (Arabic 1st for
+     * Science) is also an entry of its own, since it counts alone there.
      *
      * @return array<string, string> key ("subject:{id}" / "merge:{id}") => subject name
      */
     private function reportSubjects(Exam $exam): array
     {
         $merges = $exam->subjectMerges()->get();
+        $subjectTypeRecords = ClassGroupSubject::recordsBySubjectForClass($exam->class_id);
+        $groupIds = $exam->class?->has_group
+            ? $exam->class->groups->map(fn (Group $group): ?int => (int) $group->id)->all()
+            : [null];
+        $isTakenAloneByAGroup = fn (ExamSubjectMerge $merge, Subject $subject): bool => collect($groupIds)->contains(
+            fn (?int $groupId): bool => ClassGroupSubject::isTakenByGroup($subjectTypeRecords->get((int) $subject->id), $groupId)
+                && ExamSubjectMerge::applyingToGroup(collect([$merge]), $subjectTypeRecords, $groupId)->isEmpty()
+        );
 
         $subjects = Subject::query()
             ->whereIn('id', $exam->subjectConfigs()->select('subject_id'))
             ->ordered()
             ->get();
+        $subjectName = fn (Subject $subject): string => $exam->subjectDisplayName($subject);
 
         $entries = [];
 
@@ -226,10 +238,14 @@ class BuildExamResultReport
             if ($merge) {
                 $entries["merge:{$merge->id}"] ??= $merge->display_name;
 
+                if ($isTakenAloneByAGroup($merge, $subject)) {
+                    $entries["subject:{$subject->id}"] = $subjectName($subject);
+                }
+
                 continue;
             }
 
-            $entries["subject:{$subject->id}"] = $subject->display_name;
+            $entries["subject:{$subject->id}"] = $subjectName($subject);
         }
 
         return $entries;

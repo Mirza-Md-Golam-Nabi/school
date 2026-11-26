@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Exams\RelationManagers;
 use App\Models\ExamSubjectConfig;
 use App\Models\ResultRule;
 use App\Models\Subject;
+use Closure;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\CreateAction;
@@ -18,6 +19,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Infolists\Components\TextEntry;
+use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
@@ -42,10 +44,11 @@ class SubjectConfigsRelationManager extends RelationManager
         $exam = $this->getOwnerRecord();
         $classId = $exam->class_id;
 
-        $subjectOptions = Subject::whereHas(
-            'classes',
-            fn (Builder $q) => $q->where('classes.id', $classId)
-        )->get()->pluck('display_name', 'id')->toArray();
+        $subjectOptions = Subject::taughtInClass($classId)
+            ->ordered()
+            ->get()
+            ->pluck('display_name', 'id')
+            ->toArray();
 
         $resultRule = ResultRule::forClass($classId)->with('targetExamType', 'components.examType')->first();
         $isResultTarget = $resultRule?->target_exam_type_id === $exam->exam_type_id;
@@ -63,11 +66,33 @@ class SubjectConfigsRelationManager extends RelationManager
                     ->searchable()
                     ->live()
                     ->required()
+                    ->rules([
+                        fn (?ExamSubjectConfig $record): Closure => function (string $attribute, mixed $value, Closure $fail) use ($exam, $record): void {
+                            $problem = self::paperConflict($exam->id, (int) $value, $record?->id);
+
+                            if ($problem) {
+                                $fail($problem);
+                            }
+                        },
+                    ])
                     ->afterStateUpdated(function (Set $set, Get $get): void {
                         $set('mcq_applicable', self::subjectHas($get, 'has_mcq'));
                         $set('written_applicable', self::subjectHas($get, 'has_written'));
                         $set('practical_applicable', self::subjectHas($get, 'has_practical'));
                     }),
+
+                Grid::make(['default' => 1, 'md' => 2])
+                    ->schema([
+                        TextInput::make('subject_name')
+                            ->label('Name In This Exam')
+                            ->placeholder('ফাঁকা = সাবজেক্টের আসল নাম')
+                            ->helperText('শুধু এই পরীক্ষার marksheet, tabulation sheet, result report, admit card ও routine-এ ছাপা হবে।')
+                            ->maxLength(255),
+                        TextInput::make('subject_name_bn')
+                            ->label('Name In This Exam (Bangla)')
+                            ->placeholder('ফাঁকা = উপরের নাম / আসল নাম')
+                            ->maxLength(255),
+                    ]),
 
                 Section::make('MCQ')
                     ->schema([
@@ -247,6 +272,9 @@ class SubjectConfigsRelationManager extends RelationManager
                 TextColumn::make('subject.name')
                     ->label('Subject')
                     ->formatStateUsing(fn ($record) => $record->subject?->display_name)
+                    ->description(fn (ExamSubjectConfig $record): ?string => filled($record->subject_name) || filled($record->subject_name_bn)
+                        ? 'এই পরীক্ষায়: '.collect([$record->subject_name, $record->subject_name_bn])->filter()->implode(' / ')
+                        : null)
                     ->searchable(),
 
                 TextColumn::make('total_marks')
@@ -309,6 +337,15 @@ class SubjectConfigsRelationManager extends RelationManager
                 EditAction::make()
                     ->modalWidth(Width::Large)
                     ->iconButton()
+                    ->after(function (ExamSubjectConfig $record): void {
+                        if ($record->wasChanged(['subject_name', 'subject_name_bn'])) {
+                            Notification::make()
+                                ->title('সাবজেক্টের নাম বদলেছে')
+                                ->body('এই পরীক্ষার আগে তৈরি marksheet ও admit card PDF নতুন নামে আবার Generate করুন।')
+                                ->warning()
+                                ->send();
+                        }
+                    })
                     ->mutateRecordDataUsing(function (array $data): array {
                         $data['mcq_applicable'] = filled($data['mcq_total'] ?? null);
                         $data['written_applicable'] = filled($data['written_total'] ?? null);
@@ -390,6 +427,36 @@ class SubjectConfigsRelationManager extends RelationManager
             ->when($exceptConfigId, fn (Builder $query) => $query->whereKeyNot($exceptConfigId))
             ->pluck('subject_id')
             ->all();
+    }
+
+    /**
+     * An exam takes a subject either whole (Biology) or by its papers
+     * (Biology 1st / 2nd Paper), never both — why the subject can't be added,
+     * or null when it can.
+     */
+    private static function paperConflict(int $examId, int $subjectId, ?int $exceptConfigId = null): ?string
+    {
+        $subject = Subject::find($subjectId);
+
+        if (! $subject) {
+            return null;
+        }
+
+        $configuredSubjects = Subject::query()
+            ->whereKey(self::configuredSubjectIds($examId, $exceptConfigId))
+            ->get();
+
+        if ($subject->isPaper() && $configuredSubjects->contains('id', $subject->parent_subject_id)) {
+            return "এই পরীক্ষায় মূল বিষয় \"{$subject->parent?->display_name}\" আগেই আছে — তার পত্র আলাদা যোগ করা যাবে না।";
+        }
+
+        $configuredPaper = $configuredSubjects->firstWhere('parent_subject_id', $subject->id);
+
+        if ($configuredPaper) {
+            return "এই পরীক্ষায় এর পত্র \"{$configuredPaper->display_name}\" আগেই আছে — মূল বিষয় আর তার পত্র একসাথে যোগ করা যাবে না।";
+        }
+
+        return null;
     }
 
     private static function subjectHas(Get $get, string $attribute): bool

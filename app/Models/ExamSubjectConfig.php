@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Actions\MarkExamDocumentsOutdatedAction;
+use App\Actions\SyncExamPaperMergesAction;
 use App\Traits\LogsRelationLabels;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -18,6 +20,8 @@ class ExamSubjectConfig extends Model
     protected $fillable = [
         'exam_id',
         'subject_id',
+        'subject_name',
+        'subject_name_bn',
         'mcq_total',
         'mcq_pass_mark',
         'written_total',
@@ -38,6 +42,53 @@ class ExamSubjectConfig extends Model
         'check_practical_pass' => 'boolean',
         'contributes_to_target' => 'boolean',
     ];
+
+    /**
+     * A paper (Biology 1st Paper) joining the exam merges it with its other
+     * paper; one leaving unmerges them. Changing any other subject leaves the
+     * merges alone, so a paper merge the admin deleted does not come back.
+     */
+    protected static function booted(): void
+    {
+        $syncPaperMerges = function (ExamSubjectConfig $config, array $addedSubjectIds = []): void {
+            if ($config->exam) {
+                app(SyncExamPaperMergesAction::class)->handle($config->exam, $addedSubjectIds);
+            }
+        };
+
+        static::created(fn (ExamSubjectConfig $config) => $syncPaperMerges($config, [(int) $config->subject_id]));
+        static::updated(function (ExamSubjectConfig $config) use ($syncPaperMerges): void {
+            if ($config->wasChanged('subject_id')) {
+                $syncPaperMerges($config, [(int) $config->subject_id]);
+            }
+
+            // PDFs already made for the exam still print the old name.
+            if ($config->wasChanged(['subject_name', 'subject_name_bn']) && $config->exam) {
+                app(MarkExamDocumentsOutdatedAction::class)->handle($config->exam);
+            }
+        });
+        static::deleted(fn (ExamSubjectConfig $config) => $syncPaperMerges($config));
+        static::restored(fn (ExamSubjectConfig $config) => $syncPaperMerges($config, [(int) $config->subject_id]));
+    }
+
+    /**
+     * The subject's name on this exam's papers (marksheet, tabulation sheet,
+     * result report, admit card routine, exam routine): the name written for
+     * this exam, else the subject's own name. On a Bangla document the Bangla
+     * name written for the exam comes first, then the English one.
+     */
+    public function subjectDisplayName(?Subject $subject = null): string
+    {
+        $examName = app()->getLocale() === 'bn'
+            ? ($this->subject_name_bn ?: $this->subject_name)
+            : $this->subject_name;
+
+        if (filled($examName)) {
+            return $examName;
+        }
+
+        return ($subject ?? $this->subject)?->display_name ?? '—';
+    }
 
     public function exam(): BelongsTo
     {

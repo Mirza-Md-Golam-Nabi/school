@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Actions\CollectPromotionFeesAction;
+use App\Actions\FindDuplicateRollsAction;
 use App\Actions\PromoteStudentsAction;
 use App\Actions\ResolveDefaultPromotionOptionalSubjects;
 use App\Enums\ExamConfigType;
@@ -37,6 +38,7 @@ use Filament\Tables\Table;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\HtmlString;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Url;
 
@@ -163,7 +165,7 @@ class PromoteStudentsForClass extends Page implements HasTable
                     'main_optional_subject_id' => $optionalDefaults['main_optional_subject_id'],
                     'extra_optional_subject_id' => $optionalDefaults['extra_optional_subject_id'],
                     'roll_no' => $status === PromotionStatus::Promoted
-                        ? ($this->resolveMeritRoll($record) ?? $record->roll_no)
+                        ? ($this->resolveClass()?->keepsRollOnPromotion() ? $record->roll_no : ($this->resolveMeritRoll($record) ?? $record->roll_no))
                         : null,
                     'remarks' => null,
                     'fee_structure_ids' => [],
@@ -187,6 +189,10 @@ class PromoteStudentsForClass extends Page implements HasTable
                             PromotionStatus::Promoted->value => $this->resolveNextClassId($record),
                             default => null,
                         };
+
+                        if ($classId && blank($get('roll_no')) && $this->resolveClass()?->keepsRollOnPromotion()) {
+                            $set('roll_no', $record->roll_no);
+                        }
 
                         if ((int) $get('class_id') === (int) $classId) {
                             return;
@@ -360,6 +366,8 @@ class PromoteStudentsForClass extends Page implements HasTable
                         ])
                         ->send();
                 }
+
+                $this->warnAboutDuplicateRolls([$record->id]);
             });
     }
 
@@ -615,5 +623,30 @@ class PromoteStudentsForClass extends Page implements HasTable
     private function resolveClass(): ?Classes
     {
         return $this->classId ? Classes::find($this->classId) : null;
+    }
+
+    /**
+     * একই ক্লাস + section + session-এ একই রোল থাকলে promote আটকায় না —
+     * শুধু সতর্ক করে, যাতে admin চাইলে রোল বদলাতে পারে।
+     *
+     * @param  array<int, int>  $studentIds
+     */
+    private function warnAboutDuplicateRolls(array $studentIds): void
+    {
+        $duplicates = app(FindDuplicateRollsAction::class)->handle($studentIds);
+
+        if ($duplicates->isEmpty()) {
+            return;
+        }
+
+        Notification::make()
+            ->warning()
+            ->title('একই রোল একাধিক student-এর')
+            ->body(new HtmlString(
+                $duplicates->map(fn (string $line): string => e($line))->implode('<br>')
+                .'<br><br>Promote হয়ে গেছে — চাইলে Student Profile থেকে রোল বদলাতে পারেন।'
+            ))
+            ->persistent()
+            ->send();
     }
 }

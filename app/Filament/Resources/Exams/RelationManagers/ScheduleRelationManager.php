@@ -39,13 +39,14 @@ class ScheduleRelationManager extends RelationManager
                 Select::make('subject_id')
                     ->label('Subject')
                     ->options(fn (?ExamSchedule $record) => Subject::query()
-                        ->whereHas('classes', fn (Builder $q) => $q->where('classes.id', $classId))
+                        ->taughtInClass($classId)
                         ->whereNotIn(
                             'id',
                             $exam->schedules()
                                 ->when($record, fn ($query) => $query->whereKeyNot($record->getKey()))
                                 ->pluck('subject_id'),
                         )
+                        ->ordered()
                         ->get()
                         ->pluck('display_name', 'id'))
                     ->searchable()

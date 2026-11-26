@@ -15,8 +15,11 @@ class CopySubjectMergesToExamAction
      */
     private const COMPARED = ['name', 'name_bn', 'first_subject_id', 'second_subject_id', 'pass_rule', 'component_pass_rule', 'absent_rule', 'rounding'];
 
+    public function __construct(private readonly SyncExamPaperMergesAction $syncExamPaperMerges) {}
+
     /**
-     * Gives the exam its class's default subject merges, replacing whatever
+     * Gives the exam its class's default subject merges (and its paper
+     * merges — see SyncExamPaperMergesAction), replacing whatever
      * merges the exam had, and makes the exam follow the class default again
      * (later class changes reach it until it is changed on the exam itself).
      * Each copy has every rule filled in (School Settings for the ones the
@@ -35,6 +38,15 @@ class CopySubjectMergesToExamAction
                 'second_subject_id' => $merge->second_subject_id,
                 ...$merge->resolvedRules(),
             ]);
+
+        // Papers of one main subject that are both in the exam (Biology 1st +
+        // 2nd Paper) are merged too, unless a class default already merges them.
+        $classMergedSubjectIds = $defaults->flatMap(fn (array $merge): array => [(int) $merge['first_subject_id'], (int) $merge['second_subject_id']]);
+        $paperMerges = $this->syncExamPaperMerges
+            ->paperMergesFor($exam->subjectConfigs()->pluck('subject_id')->map(fn (mixed $id): int => (int) $id))
+            ->reject(fn (array $merge): bool => $classMergedSubjectIds->intersect([$merge['first_subject_id'], $merge['second_subject_id']])->isNotEmpty());
+
+        $defaults = $defaults->concat($paperMerges)->values();
 
         DB::transaction(function () use ($exam, $defaults): void {
             $current = $exam->subjectMerges()->orderBy('id')->get();

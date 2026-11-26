@@ -53,6 +53,13 @@ class SubjectsTable
                     ->searchable()
                     ->toggleable(),
 
+                TextColumn::make('parent.name')
+                    ->label('Paper Of')
+                    ->placeholder('—')
+                    ->badge()
+                    ->color('info')
+                    ->toggleable(),
+
                 IconColumn::make('has_written')
                     ->label('Written')
                     ->boolean()

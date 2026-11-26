@@ -6,6 +6,7 @@ use App\Models\Classes;
 use App\Models\ClassGroupSubject;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -21,6 +22,7 @@ class Subject extends Model
         'name',
         'name_bn',
         'code',
+        'parent_subject_id',
         'sort_order',
         'has_mcq',
         'has_written',
@@ -29,12 +31,48 @@ class Subject extends Model
     ];
 
     protected $casts = [
+        'parent_subject_id' => 'integer',
         'sort_order' => 'integer',
         'has_mcq' => 'boolean',
         'has_written' => 'boolean',
         'has_practical' => 'boolean',
         'is_active' => 'boolean',
     ];
+
+    /**
+     * The main subject this paper belongs to (Biology 1st Paper → Biology).
+     */
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(Subject::class, 'parent_subject_id');
+    }
+
+    /**
+     * The papers of this main subject (Biology → Biology 1st / 2nd Paper).
+     */
+    public function papers(): HasMany
+    {
+        return $this->hasMany(Subject::class, 'parent_subject_id');
+    }
+
+    public function isPaper(): bool
+    {
+        return $this->parent_subject_id !== null;
+    }
+
+    /**
+     * Subjects a class's exams, merges and teachers can use: every subject in
+     * the class syllabus, plus the papers of those subjects (the syllabus
+     * lists only the main subject — Biology — not its papers).
+     */
+    public function scopeTaughtInClass(Builder $query, int $classId): Builder
+    {
+        $inClass = fn (Builder $query) => $query->where('classes.id', $classId);
+
+        return $query->where(fn (Builder $query) => $query
+            ->whereHas('classes', $inClass)
+            ->orWhereHas('parent', fn (Builder $query) => $query->whereHas('classes', $inClass)));
+    }
 
     /**
      * Pivot entries that assign this subject to classes/groups.

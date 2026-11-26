@@ -81,10 +81,8 @@ trait MergesTwoSubjects
             return 'এই সাবজেক্ট অন্য একটা মার্জে আগেই আছে।';
         }
 
-        $typesBySubject = ClassGroupSubject::where('class_id', $classId)
-            ->whereIn('subject_id', [$firstSubjectId, $secondSubjectId])
-            ->get()
-            ->groupBy('subject_id')
+        $typesBySubject = ClassGroupSubject::recordsBySubjectForClass($classId)
+            ->only([$firstSubjectId, $secondSubjectId])
             ->map(fn (Collection $records): array => $records->map(fn (ClassGroupSubject $record): string => $record->subject_type->value)->unique()->sort()->values()->all());
 
         if (! $typesBySubject->has($firstSubjectId) || ! $typesBySubject->has($secondSubjectId)) {

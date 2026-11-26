@@ -247,8 +247,36 @@ it('imports nothing and reports each bad row when the file has errors', function
         ->and($errors)->toContain('Row 5: section "Z"')
         ->and($errors)->toContain('Row 5: gender "boy"')
         ->and($errors)->toContain('Row 5: date_of_birth "2014-13-45"')
-        ->and($errors)->toContain('Row 6: roll_no 1')
+        ->and($errors)->not->toContain('Row 6:')
         ->and($errors)->not->toContain('Row 2:');
+});
+
+it('imports students of different names sharing a roll, only warning about it', function () {
+    $class = Classes::create(['name' => 'Import Class 12', 'order' => 12]);
+    StudentProfile::create([
+        'user_id' => User::factory()->create(['name' => 'Karim', 'user_type' => UserType::Student])->id,
+        'roll_no' => 15,
+        'current_class_id' => $class->id,
+        'session_year' => now()->year,
+        'gender' => 'male',
+        'status' => 'active',
+    ]);
+
+    $path = makeStudentImportTestFile([
+        ['name', 'name_bn', 'roll_no', 'class', 'gender', 'session_year'],
+        ['Rahim', 'রহিম', 15, 'Import Class 12', 'male', now()->year],
+        ['Salam', 'সালাম', 16, 'Import Class 12', 'male', now()->year],
+        ['Jabbar', 'জব্বার', 16, 'Import Class 12', 'male', now()->year],
+    ]);
+
+    $result = app(ImportStudentsFromSpreadsheetAction::class)->handle($path);
+
+    expect($result['imported'])->toBe(3)
+        ->and($result['errors'])->toBe([])
+        ->and($result['warnings'])->toHaveCount(2)
+        ->and($result['warnings'][0])->toContain('Row 2: roll_no 15')
+        ->and($result['warnings'][0])->toContain('Karim')
+        ->and($result['warnings'][1])->toContain('Row 4: roll_no 16');
 });
 
 it('rejects a file that is missing a required column', function () {

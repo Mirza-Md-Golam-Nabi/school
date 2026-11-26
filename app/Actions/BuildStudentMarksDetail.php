@@ -131,7 +131,8 @@ class BuildStudentMarksDetail
             ->where('student_id', $ranking->student_id)
             ->get();
 
-        $mergeBySubject = $this->mergeBySubject($context['merges']);
+        // Only the merges whose papers the student's group both takes.
+        $mergeBySubject = $this->mergeBySubject(ExamSubjectMerge::applyingToGroup($context['merges'], $context['subjectTypeRecords'], $groupId));
 
         $rows = collect();
         $emittedMergeIds = [];
@@ -218,7 +219,7 @@ class BuildStudentMarksDetail
         $paper = $this->paperColumns($result);
 
         return [
-            ...$this->subjectPlacement($subjectId, $result->subject?->display_name ?? '—', $context, $studentOptionalSelections, $groupId),
+            ...$this->subjectPlacement($subjectId, $context['subjectConfigs']->get($subjectId)?->subjectDisplayName($result->subject) ?? $result->subject?->display_name ?? '—', $context, $studentOptionalSelections, $groupId),
             ...collect($paper)->except('paper_label')->all(),
             'grade_label' => $grade?->letter_grade,
             'grade_color' => $grade?->color,
@@ -407,14 +408,15 @@ class BuildStudentMarksDetail
     {
         return $this->examContexts["{$ranking->exam_id}-{$ranking->class_id}"] ??= (function () use ($ranking): array {
             $examResults = StudentResult::where('exam_id', $ranking->exam_id)
-                ->with(['student:id,user_id', 'student.user:id,name'])
+                ->with(['student:id,user_id,current_group_id', 'student.user:id,name'])
                 ->get();
             $allResults = $examResults->groupBy('subject_id');
 
             $subjectConfigs = ExamSubjectConfig::where('exam_id', $ranking->exam_id)->get()->keyBy('subject_id');
             $merges = ExamSubjectMerge::where('exam_id', $ranking->exam_id)->get();
+            $subjectTypeRecords = ClassGroupSubject::recordsBySubjectForClass($ranking->class_id);
 
-            $subjectBestMap = $this->mergedBestMap($merges, $examResults, $subjectConfigs);
+            $subjectBestMap = $this->mergedBestMap($merges, $examResults, $subjectConfigs, $subjectTypeRecords);
             foreach ($allResults as $subjectId => $results) {
                 $bestMarks = $results->max(fn (StudentResult $r) => $r->effective_marks);
                 $subjectBestMap[$subjectId] = [
@@ -432,7 +434,7 @@ class BuildStudentMarksDetail
             return [
                 'subjectConfigs' => $subjectConfigs,
                 'subjectBestMap' => $subjectBestMap,
-                'subjectTypeRecords' => ClassGroupSubject::where('class_id', $ranking->class_id)->get()->groupBy('subject_id'),
+                'subjectTypeRecords' => $subjectTypeRecords,
                 'merges' => $merges,
                 'topRanking' => StudentMeritRanking::where('exam_id', $ranking->exam_id)
                     ->where('class_id', $ranking->class_id)
@@ -458,9 +460,10 @@ class BuildStudentMarksDetail
      * @param  Collection<int, ExamSubjectMerge>  $merges
      * @param  Collection<int, StudentResult>  $examResults
      * @param  Collection<int, ExamSubjectConfig>  $subjectConfigs
+     * @param  Collection<int, Collection<int, ClassGroupSubject>>  $subjectTypeRecords
      * @return array<string, array{best_marks: float, best_students: string}>
      */
-    private function mergedBestMap(Collection $merges, Collection $examResults, Collection $subjectConfigs): array
+    private function mergedBestMap(Collection $merges, Collection $examResults, Collection $subjectConfigs, Collection $subjectTypeRecords): array
     {
         if ($merges->isEmpty()) {
             return [];
@@ -474,11 +477,18 @@ class BuildStudentMarksDetail
             [$firstId, $secondId] = $merge->subjectIds();
 
             $scores = $resultsByStudent
-                ->map(function (Collection $results) use ($merge, $firstId, $secondId, $subjectConfigs, $gradeScales): ?array {
+                ->map(function (Collection $results) use ($merge, $firstId, $secondId, $subjectConfigs, $gradeScales, $subjectTypeRecords): ?array {
                     $first = $results->get($firstId);
                     $second = $results->get($secondId);
 
                     if (! $first && ! $second) {
+                        return null;
+                    }
+
+                    // The merge does not apply to a student whose group takes only one paper.
+                    $groupId = ($first ?? $second)->student?->current_group_id;
+
+                    if (ExamSubjectMerge::applyingToGroup(collect([$merge]), $subjectTypeRecords, $groupId !== null ? (int) $groupId : null)->isEmpty()) {
                         return null;
                     }
 

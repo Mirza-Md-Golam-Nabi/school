@@ -8,6 +8,7 @@ use Database\Factories\ExamSubjectMergeFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Collection;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
@@ -40,6 +41,26 @@ class ExamSubjectMerge extends Model
     public function exam(): BelongsTo
     {
         return $this->belongsTo(Exam::class);
+    }
+
+    /**
+     * The merges that apply to a student of the given group: both papers are
+     * in that group's syllabus. A student who takes only one of the papers
+     * (Arabic 1st for every group, Arabic 2nd only for Humanities) has that
+     * paper counted as a subject of its own, so the missing paper is never
+     * treated as an absence.
+     *
+     * @param  Collection<int, ExamSubjectMerge>  $merges
+     * @param  Collection<int, Collection<int, ClassGroupSubject>>  $subjectTypeRecords  from ClassGroupSubject::recordsBySubjectForClass()
+     * @return Collection<int, ExamSubjectMerge>
+     */
+    public static function applyingToGroup(Collection $merges, Collection $subjectTypeRecords, ?int $groupId): Collection
+    {
+        return $merges
+            ->filter(fn (ExamSubjectMerge $merge): bool => collect($merge->subjectIds())->every(
+                fn (int $subjectId): bool => ClassGroupSubject::isTakenByGroup($subjectTypeRecords->get($subjectId), $groupId)
+            ))
+            ->values();
     }
 
     public function getActivitylogOptions(): LogOptions

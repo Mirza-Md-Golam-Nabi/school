@@ -56,7 +56,7 @@ class SubjectMergesRelationManager extends RelationManager
                     ->visible($isEditable)
                     ->requiresConfirmation()
                     ->modalHeading('ক্লাসের ডিফল্ট মার্জ বসাবেন?')
-                    ->modalDescription('এই পরীক্ষার এখনকার সব মার্জ মুছে ক্লাসের ডিফল্ট মার্জগুলো বসবে, আর পরে ক্লাসে বদলালে এখানেও বদলাবে।')
+                    ->modalDescription('এই পরীক্ষার এখনকার সব মার্জ মুছে ক্লাসের ডিফল্ট মার্জগুলো বসবে, আর পরে ক্লাসে বদলালে এখানেও বদলাবে। একই বিষয়ের দুই পত্রের (যেমন: Biology 1st + 2nd Paper) যে মার্জ আগে মুছে দিয়েছিলেন, সেগুলোও আবার বসবে।')
                     ->action(function (): void {
                         $count = app(CopySubjectMergesToExamAction::class)->handle($this->getOwnerRecord());
 

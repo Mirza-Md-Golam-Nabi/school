@@ -22,16 +22,16 @@ class ResolveEligibleStudentsForSubject
      */
     public function execute(int $classId, int $subjectId): Collection
     {
-        $classSubjects = ClassGroupSubject::where('class_id', $classId)
-            ->where('subject_id', $subjectId)
-            ->get();
+        // A paper (Biology 1st Paper) follows its main subject (Biology): the
+        // syllabus row and the students' optional choices are the main subject's.
+        $classSubjects = ClassGroupSubject::recordsBySubjectForClass($classId)->get($subjectId, collect());
 
         if ($classSubjects->isEmpty()) {
             return collect();
         }
 
         $optionalSelectionStudentIds = StudentOptionalSubject::where('class_id', $classId)
-            ->where('subject_id', $subjectId)
+            ->where('subject_id', $classSubjects->first()->subject_id)
             ->pluck('student_id')
             ->flip();
 

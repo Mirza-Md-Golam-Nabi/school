@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ClassLevel;
+use App\Enums\PromotionRollPolicy;
 use App\Models\ClassGroupSubject;
 use App\Models\Group;
 use App\Models\Section;
@@ -28,12 +29,13 @@ class Classes extends Model
 
     protected $table = 'classes';
 
-    protected $fillable = ['name', 'name_bn', 'level', 'order', 'class_teacher_id', 'has_section', 'has_group', 'is_active'];
+    protected $fillable = ['name', 'name_bn', 'level', 'order', 'class_teacher_id', 'has_section', 'has_group', 'promotion_roll_policy', 'is_active'];
 
     protected $casts = [
         'level' => ClassLevel::class,
         'has_section' => 'boolean',
         'has_group' => 'boolean',
+        'promotion_roll_policy' => PromotionRollPolicy::class,
         'is_active' => 'boolean',
     ];
 
@@ -56,6 +58,15 @@ class Classes extends Model
     public function isCollege(): bool
     {
         return AcademicSession::isCollege($this);
+    }
+
+    /**
+     * Whether promoting (or repeating) this class's students keeps each
+     * student's current roll instead of the Main exam merit rank.
+     */
+    public function keepsRollOnPromotion(): bool
+    {
+        return $this->promotion_roll_policy === PromotionRollPolicy::KeepCurrent;
     }
 
     /**

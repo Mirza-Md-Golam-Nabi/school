@@ -143,7 +143,7 @@
         <tbody>
             @foreach ($schedules as $schedule)
                 <tr>
-                    <td>{{ $schedule->subject?->display_name }}</td>
+                    <td>{{ $exam->subjectDisplayName($schedule->subject) }}</td>
                     <td class="date-col">{{ BengaliNumber::localize($schedule->exam_date->translatedFormat('d F Y')) }}</td>
                     <td class="day-col">{{ $schedule->exam_date->translatedFormat('l') }}</td>
                 </tr>

@@ -18,7 +18,7 @@ class ResolveIsExtraOptionalSubject
      * a compulsory subject for GPA purposes). Compulsory subjects, and optional
      * subjects the student hasn't recorded a choice for, are never extra optional.
      *
-     * @param  Collection<int, Collection<int, ClassGroupSubject>>  $subjectTypeRecords  subject_id → ClassGroupSubject records for the class
+     * @param  Collection<int, Collection<int, ClassGroupSubject>>  $subjectTypeRecords  subject_id → ClassGroupSubject records for the class (ClassGroupSubject::recordsBySubjectForClass)
      * @param  ?Collection<int, StudentOptionalSubject>  $studentOptionalSelections  this student's optional-subject choices for the class
      */
     public function execute(
@@ -38,7 +38,9 @@ class ResolveIsExtraOptionalSubject
             return false;
         }
 
-        $selection = $studentOptionalSelections?->firstWhere('subject_id', $subjectId);
+        // A paper (Biology 1st Paper) carries its main subject's record, and the
+        // student's choice is stored against the main subject (Biology).
+        $selection = $studentOptionalSelections?->firstWhere('subject_id', $classSubject->subject_id);
 
         return $selection?->role === OptionalSubjectRole::ExtraOptional;
     }

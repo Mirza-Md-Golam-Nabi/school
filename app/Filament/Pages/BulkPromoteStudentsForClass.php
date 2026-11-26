@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Actions\FindDuplicateRollsAction;
 use App\Actions\PromoteStudentsAction;
 use App\Actions\ResolveDefaultPromotionOptionalSubjects;
 use App\Enums\ExamConfigType;
@@ -23,6 +24,7 @@ use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Url;
 
@@ -44,6 +46,12 @@ class BulkPromoteStudentsForClass extends Page
     public array $promotions = [];
 
     public bool $hasMainExamResults = false;
+
+    /**
+     * The class keeps each student's current roll on promotion (Class →
+     * Roll On Promotion) instead of the Main exam merit rank.
+     */
+    public bool $keepsCurrentRoll = false;
 
     /** Class rank keyed by student_id — also read by the blade to show graduating students their final merit rank. */
     public Collection $meritRanks;
@@ -81,6 +89,7 @@ class BulkPromoteStudentsForClass extends Page
         $this->meritRanks = $this->getMainExamMeritRanks($this->year);
 
         $this->hasMainExamResults = $this->meritRanks->isNotEmpty();
+        $this->keepsCurrentRoll = (bool) $this->resolveClass()?->keepsRollOnPromotion();
 
         $currentSelections = StudentOptionalSubject::where('class_id', $this->classId)
             ->whereIn('student_id', $students->pluck('id'))
@@ -103,7 +112,9 @@ class BulkPromoteStudentsForClass extends Page
                 'group_id' => $groupId,
                 'main_optional_subject_id' => $optionalDefaults['main_optional_subject_id'],
                 'extra_optional_subject_id' => $optionalDefaults['extra_optional_subject_id'],
-                'roll_no' => $defaultStatus === PromotionStatus::Promoted ? $this->meritRanks->get($student->id) : null,
+                'roll_no' => $defaultStatus === PromotionStatus::Promoted
+                    ? ($this->keepsCurrentRoll ? $student->roll_no : $this->meritRanks->get($student->id))
+                    : null,
                 'remarks' => null,
             ];
         }
@@ -334,6 +345,11 @@ class BulkPromoteStudentsForClass extends Page
             ->title('Students promoted successfully')
             ->send();
 
+        $this->warnAboutDuplicateRolls(array_keys(array_filter(
+            $this->promotions,
+            fn (array $row): bool => in_array($row['status'], [PromotionStatus::Promoted->value, PromotionStatus::Repeated->value], true),
+        )));
+
         $this->redirect(PromoteStudentsForClass::getUrl(['classId' => $this->classId, 'year' => $this->year]));
     }
 
@@ -369,5 +385,30 @@ class BulkPromoteStudentsForClass extends Page
                 .$this->defaultedDuesNotice())
             ->modalSubmitActionLabel('হ্যাঁ, Promote করো')
             ->action(fn () => $this->promote());
+    }
+
+    /**
+     * একই ক্লাস + section + session-এ একই রোল থাকলে promote আটকায় না —
+     * শুধু সতর্ক করে, যাতে admin চাইলে রোল বদলাতে পারে।
+     *
+     * @param  array<int, int>  $studentIds
+     */
+    private function warnAboutDuplicateRolls(array $studentIds): void
+    {
+        $duplicates = app(FindDuplicateRollsAction::class)->handle($studentIds);
+
+        if ($duplicates->isEmpty()) {
+            return;
+        }
+
+        Notification::make()
+            ->warning()
+            ->title('একই রোল একাধিক student-এর')
+            ->body(new HtmlString(
+                $duplicates->map(fn (string $line): string => e($line))->implode('<br>')
+                .'<br><br>Promote হয়ে গেছে — চাইলে Student Profile থেকে রোল বদলাতে পারেন।'
+            ))
+            ->persistent()
+            ->send();
     }
 }

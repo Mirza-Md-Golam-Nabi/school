@@ -74,15 +74,71 @@ class ClassGroupSubject extends Pivot
         return $this->subject_type === SubjectType::Optional;
     }
 
+    /**
+     * Subjects taught in the class — the syllabus subjects plus their papers
+     * (a teacher can be given just Biology 1st Paper).
+     *
+     * @return Collection<int, string>
+     */
     public static function dropdownOptionsByClass(int $classId): Collection
     {
-        return static::query()
-            ->where('class_id', $classId)
-            ->with('subject')
+        return Subject::query()
+            ->taughtInClass($classId)
+            ->ordered()
             ->get()
-            ->pluck('subject.display_name', 'subject_id')
-            ->unique()
-            ->filter();
+            ->pluck('display_name', 'id');
+    }
+
+    /**
+     * Whether a student of the given group takes the subject, by its syllabus
+     * records (from recordsBySubjectForClass): a record for every student
+     * (no group) or for that group. A subject with no records in the class
+     * counts as taken, so a subject added to an exam outside the syllabus
+     * behaves as before.
+     *
+     * @param  ?Collection<int, ClassGroupSubject>  $records
+     */
+    public static function isTakenByGroup(?Collection $records, ?int $groupId): bool
+    {
+        if ($records === null || $records->isEmpty()) {
+            return true;
+        }
+
+        return $records->contains(fn (ClassGroupSubject $record): bool => $record->group_id === null
+            || ($groupId !== null && (int) $record->group_id === $groupId));
+    }
+
+    /**
+     * subject_id → the class's records for that subject. A paper the syllabus
+     * does not list itself (Biology 1st Paper) gets its main subject's records
+     * (Biology), so it shares the main subject's group and compulsory /
+     * optional type — and their subject_id points at the main subject, the
+     * one a student's optional choice is stored against.
+     *
+     * @return Collection<int, Collection<int, ClassGroupSubject>>
+     */
+    public static function recordsBySubjectForClass(int $classId): Collection
+    {
+        $recordsBySubject = static::query()
+            ->where('class_id', $classId)
+            ->get()
+            ->groupBy('subject_id')
+            ->toBase();
+
+        if ($recordsBySubject->isEmpty()) {
+            return $recordsBySubject;
+        }
+
+        Subject::withTrashed()
+            ->whereIn('parent_subject_id', $recordsBySubject->keys())
+            ->pluck('parent_subject_id', 'id')
+            ->each(function (int|string $parentId, int|string $paperId) use ($recordsBySubject): void {
+                if (! $recordsBySubject->has((int) $paperId)) {
+                    $recordsBySubject->put((int) $paperId, $recordsBySubject->get((int) $parentId));
+                }
+            });
+
+        return $recordsBySubject;
     }
 
     /**
