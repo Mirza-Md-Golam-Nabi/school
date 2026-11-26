@@ -6,7 +6,12 @@ import tailwindcss from '@tailwindcss/vite';
 export default defineConfig({
     plugins: [
         laravel({
-            input: ['resources/css/app.css', 'resources/js/app.js', 'resources/css/filament/theme.css'],
+            input: [
+                'resources/css/app.css',
+                'resources/js/app.js',
+                'resources/css/filament/theme.css',
+                'resources/js/id-card-camera-scanner.js',
+            ],
             refresh: true,
             fonts: [
                 bunny('Instrument Sans', {

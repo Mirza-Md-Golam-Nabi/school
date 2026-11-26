@@ -3,6 +3,8 @@
 namespace App\Filament\Teacher\Resources\FeePayments\Schemas;
 
 use App\Enums\PaymentMethod;
+use App\Enums\StudentStatus;
+use App\Filament\Concerns\ScansStudentIdCard;
 use App\Filament\Teacher\Concerns\ScopesToClassTeacherStudents;
 use App\Models\StudentFeeInvoice;
 use App\Models\StudentProfile;
@@ -19,6 +21,7 @@ use Filament\Schemas\Schema;
 
 class FeePaymentForm
 {
+    use ScansStudentIdCard;
     use ScopesToClassTeacherStudents;
 
     public static function configure(Schema $schema): Schema
@@ -29,6 +32,15 @@ class FeePaymentForm
                 Section::make('Payment Details')
                     ->columns(2)
                     ->schema([
+                        self::studentIdCardScanInput(
+                            rejectionReason: fn (StudentProfile $student): ?string => match (true) {
+                                $student->status !== StudentStatus::Active => 'শিক্ষার্থী বর্তমানে সক্রিয় নয় — অফিসে ফি জমা দিতে হবে।',
+                                ! in_array($student->current_class_id, self::currentTeacherClassIds()) => 'শিক্ষার্থী আপনার ক্লাসের নয়।',
+                                default => null,
+                            },
+                            selectStudent: fn (Set $set, StudentProfile $student) => $set('student_id', $student->id),
+                        ),
+
                         TextInput::make('receipt_no')
                             ->label('Receipt No.')
                             ->required()
