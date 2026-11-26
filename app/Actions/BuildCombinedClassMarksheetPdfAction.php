@@ -119,7 +119,7 @@ class BuildCombinedClassMarksheetPdfAction
     private function loadMarksheets(Builder $query): Collection
     {
         return $query
-            ->with(['student.user', 'student.class', 'student.section', 'exam.examType', 'exam.class.classTeacher'])
+            ->with(['student.user', 'student.class', 'student.section', 'student.group', 'exam.examType', 'exam.class.classTeacher'])
             ->orderedByStudentRoll()
             ->get();
     }

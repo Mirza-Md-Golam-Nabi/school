@@ -2,12 +2,11 @@
 
 namespace App\Filament\Resources\FeePayments\Pages;
 
+use App\Actions\AttachClassFeePaymentStatsAction;
 use App\Filament\Resources\FeePayments\FeePaymentResource;
 use App\Models\Classes;
-use App\Models\FeePayment;
 use Filament\Actions\Action;
 use Filament\Resources\Pages\Page;
-use Illuminate\Support\Collection;
 
 class ListFeePayments extends Page
 {
@@ -15,26 +14,22 @@ class ListFeePayments extends Page
 
     protected string $view = 'filament.resources.fee-payments.pages.list-fee-payments';
 
-    public Collection $classes;
-
-    public function mount(): void
+    /**
+     * Computed on every render instead of stored in a public property:
+     * Livewire re-fetches a public Eloquent collection from its IDs on
+     * each request, which would drop the attached card stats.
+     *
+     * @return array<string, mixed>
+     */
+    protected function getViewData(): array
     {
-        $this->classes = Classes::active()
+        $classes = Classes::active()
             ->orderBy('order')
-            ->get()
-            ->each(function ($class) {
-                $stats = FeePayment::whereHas(
-                    'student', fn ($q) => $q->where('current_class_id', $class->id)
-                )
-                    ->selectRaw('payment_method, COUNT(*) as count, COALESCE(SUM(amount_paid), 0) as total_amount')
-                    ->groupBy('payment_method')
-                    ->get()
-                    ->keyBy(fn ($item) => $item->getRawOriginal('payment_method'));
+            ->get();
 
-                $class->paymentStats = $stats;
-                $class->total_payments = $stats->sum('count');
-                $class->total_collected = $stats->sum('total_amount');
-            });
+        return [
+            'classes' => app(AttachClassFeePaymentStatsAction::class)->handle($classes),
+        ];
     }
 
     protected function getHeaderActions(): array

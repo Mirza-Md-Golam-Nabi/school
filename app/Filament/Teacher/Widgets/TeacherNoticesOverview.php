@@ -38,6 +38,7 @@ class TeacherNoticesOverview extends Widget
         $notices = Notice::query()
             ->published()
             ->visibleToTeacher($teacher)
+            ->with('createdBy')
             ->withExists(['reads as is_read' => fn ($query) => $query->where('user_id', $user->id)])
             ->latest('published_at')
             ->limit(3)

@@ -22,7 +22,7 @@
                                     </button>
                                 </x-slot>
                                 <x-slot name="heading">{{ $notice->title }}</x-slot>
-                                {!! $this->getNoticeDetail($notice->id) !!}
+                                @include('filament.shared.notice-detail', ['notice' => $notice])
                             </x-filament::modal>
                         </div>
 

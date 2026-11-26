@@ -6,7 +6,6 @@ use App\Models\Notice;
 use App\Models\NoticeRead;
 use App\Models\TeacherProfile;
 use App\Models\User;
-use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 
 trait InteractsWithNotices
@@ -29,11 +28,6 @@ trait InteractsWithNotices
             ->published()
             ->visibleToTeacher($teacher)
             ->findOrFail($noticeId);
-    }
-
-    public function getNoticeDetail(int $noticeId): View
-    {
-        return view('filament.shared.notice-detail', ['notice' => $this->authorizedNotice($noticeId)]);
     }
 
     public function markAsRead(int $noticeId): void

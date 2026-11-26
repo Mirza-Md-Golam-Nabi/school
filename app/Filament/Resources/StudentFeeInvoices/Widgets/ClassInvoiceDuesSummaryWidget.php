@@ -11,6 +11,8 @@ class ClassInvoiceDuesSummaryWidget extends StatsOverviewWidget
 {
     public int $classId = 0;
 
+    protected ?string $pollingInterval = null;
+
     protected int|array|null $columns = [
         'default' => 2,
         'sm' => 4,

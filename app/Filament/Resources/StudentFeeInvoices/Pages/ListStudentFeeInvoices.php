@@ -2,14 +2,12 @@
 
 namespace App\Filament\Resources\StudentFeeInvoices\Pages;
 
-use App\Enums\InvoiceStatus;
+use App\Actions\AttachClassFeeInvoiceStatsAction;
 use App\Filament\Resources\StudentFeeInvoices\StudentFeeInvoiceResource;
 use App\Filament\Resources\StudentFeeInvoices\Widgets\FeeReconciliationWidget;
 use App\Models\Classes;
-use App\Models\StudentFeeInvoice;
 use Filament\Actions\Action;
 use Filament\Resources\Pages\Page;
-use Illuminate\Support\Collection;
 
 class ListStudentFeeInvoices extends Page
 {
@@ -17,31 +15,22 @@ class ListStudentFeeInvoices extends Page
 
     protected string $view = 'filament.resources.student-fee-invoices.pages.list-student-fee-invoices';
 
-    public Collection $classes;
-
-    public function mount(): void
+    /**
+     * Computed on every render instead of stored in a public property:
+     * Livewire re-fetches a public Eloquent collection from its IDs on
+     * each request, which would drop the attached card stats.
+     *
+     * @return array<string, mixed>
+     */
+    protected function getViewData(): array
     {
-        $this->classes = Classes::active()
+        $classes = Classes::active()
             ->orderBy('order', 'asc')
-            ->get()
-            ->each(function ($class) {
-                $stats = StudentFeeInvoice::whereHas(
-                    'student', fn ($q) => $q->where('current_class_id', $class->id)
-                )
-                    ->selectRaw('status, COUNT(*) as count, COALESCE(SUM(net_amount), 0) as total_amount, COALESCE(SUM(default_amount), 0) as defaulted_amount')
-                    ->groupBy('status')
-                    ->get()
-                    ->keyBy(fn ($item) => $item->getRawOriginal('status'));
+            ->get();
 
-                $class->invoiceStats = $stats;
-                $class->total_invoices = $stats->sum('count');
-                $class->outstanding_amount = $stats
-                    ->filter(fn ($s) => in_array(
-                        $s->getRawOriginal('status'),
-                        [InvoiceStatus::Unpaid->value, InvoiceStatus::Partial->value]
-                    ))
-                    ->sum('total_amount');
-            });
+        return [
+            'classes' => app(AttachClassFeeInvoiceStatsAction::class)->handle($classes),
+        ];
     }
 
     protected function getHeaderWidgets(): array

@@ -15,6 +15,7 @@ use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 
 uses(RefreshDatabase::class);
 
@@ -198,4 +199,31 @@ it('renders the full notices page', function () {
 
     $response->assertOk();
     $response->assertSee($notice->title);
+});
+
+it('renders every notice body without a query per notice', function () {
+    $student = createNoticeTestStudent();
+    $this->actingAs($student->user);
+
+    $countQueries = function (): int {
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+        $this->get(Notices::getUrl(panel: 'student'))->assertOk();
+
+        return count(DB::getQueryLog());
+    };
+
+    $first = createNoticeTestNotice(NoticeTargetType::All);
+    $countQueries(); // warm-up: the first request also fills per-process caches
+    $queriesWithOneNotice = $countQueries();
+
+    foreach (range(1, 5) as $i) {
+        createNoticeTestNotice(NoticeTargetType::All, now()->subMinutes($i));
+    }
+
+    $response = $this->get(Notices::getUrl(panel: 'student'));
+
+    $response->assertSee('Body content', false)
+        ->assertSee($first->createdBy->name);
+    expect($countQueries())->toBe($queriesWithOneNotice);
 });

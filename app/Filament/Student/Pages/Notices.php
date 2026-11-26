@@ -42,6 +42,7 @@ class Notices extends Page
         return Notice::query()
             ->published()
             ->visibleToStudent($student)
+            ->with('createdBy')
             ->withExists(['reads as is_read' => fn ($query) => $query->where('user_id', $user->id)])
             ->latest('published_at')
             ->paginate(10);

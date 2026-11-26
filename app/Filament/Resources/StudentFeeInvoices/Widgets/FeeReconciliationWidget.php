@@ -10,6 +10,8 @@ class FeeReconciliationWidget extends StatsOverviewWidget
 {
     protected static bool $isLazy = false;
 
+    protected ?string $pollingInterval = null;
+
     protected int|string|array $columnSpan = [
         'default' => 'full',
     ];

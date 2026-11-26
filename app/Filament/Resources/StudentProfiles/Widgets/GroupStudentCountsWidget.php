@@ -15,6 +15,8 @@ class GroupStudentCountsWidget extends StatsOverviewWidget
 
     protected static bool $isLazy = false;
 
+    protected ?string $pollingInterval = null;
+
     protected int|array|null $columns = [
         'default' => 2,
         'lg' => 3,

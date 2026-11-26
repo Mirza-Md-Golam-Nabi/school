@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Marksheets\Pages;
 
+use App\Actions\AttachClassDocumentStatsAction;
 use App\Actions\GenerateMarksheetsForExamTypeAction;
 use App\Filament\Resources\Marksheets\MarksheetResource;
 use App\Models\Classes;
@@ -12,7 +13,6 @@ use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Page;
 use Filament\Support\Icons\Heroicon;
-use Illuminate\Support\Collection;
 
 class ListMarksheets extends Page
 {
@@ -20,25 +20,22 @@ class ListMarksheets extends Page
 
     protected string $view = 'filament.resources.marksheets.pages.list-marksheets';
 
-    public Collection $classes;
-
-    public function mount(): void
+    /**
+     * Computed on every render instead of stored in a public property:
+     * Livewire re-fetches a public Eloquent collection from its IDs on
+     * each request, which would drop the attached card stats.
+     *
+     * @return array<string, mixed>
+     */
+    protected function getViewData(): array
     {
-        $this->classes = Classes::active()
+        $classes = Classes::active()
             ->orderBy('order', 'asc')
-            ->get()
-            ->each(function ($class) {
-                $stats = Marksheet::whereHas(
-                    'student', fn ($q) => $q->where('current_class_id', $class->id)
-                )
-                    ->get(['is_generated'])
-                    ->groupBy(fn (Marksheet $marksheet) => $marksheet->is_generated ? 'generated' : 'pending')
-                    ->map->count();
+            ->get();
 
-                $class->marksheetStats = $stats;
-                $class->total_marksheets = $stats->sum();
-                $class->pending_count = $stats->get('pending', 0);
-            });
+        return [
+            'classes' => app(AttachClassDocumentStatsAction::class)->handle($classes, Marksheet::class, 'marksheetStats', 'total_marksheets'),
+        ];
     }
 
     protected function getHeaderActions(): array

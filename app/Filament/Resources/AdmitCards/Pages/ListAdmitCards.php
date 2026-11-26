@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\AdmitCards\Pages;
 
+use App\Actions\AttachClassDocumentStatsAction;
 use App\Actions\GenerateAdmitCardsForExamTypeAction;
 use App\Filament\Resources\AdmitCards\AdmitCardResource;
 use App\Filament\Resources\AdmitCards\Schemas\AdmitCardDesignRadio;
@@ -15,7 +16,6 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Page;
 use Filament\Support\Enums\Width;
 use Filament\Support\Icons\Heroicon;
-use Illuminate\Support\Collection;
 
 class ListAdmitCards extends Page
 {
@@ -23,25 +23,22 @@ class ListAdmitCards extends Page
 
     protected string $view = 'filament.resources.admit-cards.pages.list-admit-cards';
 
-    public Collection $classes;
-
-    public function mount(): void
+    /**
+     * Computed on every render instead of stored in a public property:
+     * Livewire re-fetches a public Eloquent collection from its IDs on
+     * each request, which would drop the attached card stats.
+     *
+     * @return array<string, mixed>
+     */
+    protected function getViewData(): array
     {
-        $this->classes = Classes::active()
+        $classes = Classes::active()
             ->orderBy('order', 'asc')
-            ->get()
-            ->each(function ($class) {
-                $stats = AdmitCard::whereHas(
-                    'student', fn ($q) => $q->where('current_class_id', $class->id)
-                )
-                    ->get(['is_generated'])
-                    ->groupBy(fn (AdmitCard $admitCard) => $admitCard->is_generated ? 'generated' : 'pending')
-                    ->map->count();
+            ->get();
 
-                $class->admitCardStats = $stats;
-                $class->total_admit_cards = $stats->sum();
-                $class->pending_count = $stats->get('pending', 0);
-            });
+        return [
+            'classes' => app(AttachClassDocumentStatsAction::class)->handle($classes, AdmitCard::class, 'admitCardStats', 'total_admit_cards'),
+        ];
     }
 
     protected function getHeaderActions(): array

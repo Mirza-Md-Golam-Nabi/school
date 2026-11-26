@@ -18,6 +18,8 @@ class IncomeExpenseChartWidget extends ChartWidget
 
     protected static bool $isLazy = false;
 
+    protected ?string $pollingInterval = null;
+
     public function getHeading(): string
     {
         return __('Income vs Expense (Last 3 Months)');

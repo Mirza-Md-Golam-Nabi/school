@@ -4,6 +4,9 @@ use App\Enums\TransactionSource;
 use App\Enums\TransactionType;
 use App\Enums\UserType;
 use App\Filament\Admin\Pages\Dashboard;
+use App\Filament\Resources\StudentFeeInvoices\Widgets\ClassInvoiceDuesSummaryWidget;
+use App\Filament\Resources\StudentFeeInvoices\Widgets\FeeReconciliationWidget;
+use App\Filament\Resources\StudentProfiles\Widgets\GroupStudentCountsWidget;
 use App\Filament\Widgets\AcademicQuickActionsWidget;
 use App\Filament\Widgets\AcademicStatsWidget;
 use App\Filament\Widgets\FinanceOverviewWidget;
@@ -75,3 +78,14 @@ it('sums this month income and expense in the finance widget', function () {
         ->assertSee('2,000')
         ->assertSee('3,000');
 });
+
+it('does not auto-poll the stats and chart widgets', function (string $widget) {
+    $getPollingInterval = (new ReflectionClass($widget))->getMethod('getPollingInterval');
+
+    expect($getPollingInterval->invoke(new $widget))->toBeNull();
+})->with([
+    IncomeExpenseChartWidget::class,
+    FeeReconciliationWidget::class,
+    ClassInvoiceDuesSummaryWidget::class,
+    GroupStudentCountsWidget::class,
+]);
