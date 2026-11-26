@@ -102,14 +102,14 @@ it('lists recent payments in a table', function () {
         ->assertSee('Exam Fee');
 });
 
-it('picks one of the five header gradients based on the student id', function () {
+it('picks one of the three header gradients based on the student id', function () {
     $admin = grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]));
 
     $class = Classes::create(['name' => 'Class Nine', 'order' => 9]);
 
-    $gradientColors = ['primary', 'success', 'warning', 'danger', 'info'];
+    $gradientColors = ['primary', 'success', 'danger'];
 
-    foreach (range(1, 5) as $i) {
+    foreach (range(1, 3) as $i) {
         $student = StudentProfile::create([
             'user_id' => User::factory()->create(['user_type' => UserType::Student, 'is_active' => true])->id,
             'roll_no' => $i,

@@ -21,50 +21,6 @@ use Spatie\Permission\Models\Role;
 
 uses(RefreshDatabase::class);
 
-function createInvoiceTestTeacher(string $name, array $extraPermissions = []): TeacherProfile
-{
-    $teacher = TeacherProfile::create([
-        'user_id' => User::factory()->create(['name' => $name, 'user_type' => UserType::Teacher, 'is_active' => true])->id,
-        'gender' => Gender::Male,
-        'status' => EmploymentStatus::Active,
-    ]);
-
-    Role::firstOrCreate(['name' => 'teacher', 'guard_name' => 'web']);
-
-    $permissions = array_unique([...['view_student_fee_invoices', 'create_student_fee_invoices', 'edit_student_fee_invoices', 'delete_student_fee_invoices'], ...$extraPermissions]);
-
-    foreach ($permissions as $permission) {
-        Permission::firstOrCreate(['name' => $permission, 'guard_name' => 'web']);
-    }
-
-    $teacher->user->assignRole('teacher');
-    $teacher->user->givePermissionTo($permissions);
-
-    return $teacher;
-}
-
-function createInvoiceTestClass(?TeacherProfile $classTeacher = null): Classes
-{
-    return Classes::create([
-        'name' => 'Class '.str()->random(4),
-        'order' => 1,
-        'is_active' => true,
-        'class_teacher_id' => $classTeacher?->id,
-    ]);
-}
-
-function createInvoiceTestStudent(Classes $class, int $rollNo): StudentProfile
-{
-    return StudentProfile::create([
-        'user_id' => User::factory()->create()->id,
-        'roll_no' => $rollNo,
-        'current_class_id' => $class->id,
-        'session_year' => now()->year,
-        'gender' => Gender::Male,
-        'status' => StudentStatus::Active,
-    ]);
-}
-
 it('lets a teacher with create_student_fee_invoices permission create an invoice for their own class-teacher student', function () {
     $teacher = createInvoiceTestTeacher('Own Teacher');
     $class = createInvoiceTestClass($teacher);

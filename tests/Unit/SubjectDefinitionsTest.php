@@ -5,7 +5,7 @@ use App\Support\SubjectDefinitions;
 it('defines the primary level subjects', function () {
     $names = collect(SubjectDefinitions::primary())->pluck('name');
 
-    expect($names)->toContain('Bangla', 'English', 'Mathematics', 'ICT')
+    expect($names)->toContain('Bangla', 'English', 'Mathematics', 'Science')
         ->and($names)->not->toContain('Physics');
 });
 

@@ -18,20 +18,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
-function createNoticeTestStudent(?Classes $class = null): StudentProfile
-{
-    $user = User::factory()->create(['user_type' => UserType::Student, 'is_active' => true]);
-
-    return StudentProfile::create([
-        'user_id' => $user->id,
-        'roll_no' => 1,
-        'current_class_id' => $class?->id,
-        'session_year' => now()->year,
-        'gender' => Gender::Male,
-        'status' => StudentStatus::Active,
-    ]);
-}
-
 function createNoticeTestNotice(NoticeTargetType $targetType, ?Carbon $publishedAt = null): Notice
 {
     $admin = User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]);

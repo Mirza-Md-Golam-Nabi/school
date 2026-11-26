@@ -17,17 +17,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
-function createNoticeTestTeacher(): TeacherProfile
-{
-    $user = User::factory()->create(['user_type' => UserType::Teacher, 'is_active' => true]);
-
-    return TeacherProfile::create([
-        'user_id' => $user->id,
-        'gender' => Gender::Male,
-        'status' => EmploymentStatus::Active,
-    ]);
-}
-
 function createTeacherNoticeTestNotice(NoticeTargetType $targetType, ?Carbon $publishedAt = null): Notice
 {
     $admin = User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]);

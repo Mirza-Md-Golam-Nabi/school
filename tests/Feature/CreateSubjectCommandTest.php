@@ -17,7 +17,7 @@ it('creates the primary level subjects', function () {
         ->assertExitCode(0);
 
     expect(Subject::where('name', 'Bangla')->exists())->toBeTrue()
-        ->and(Subject::where('name', 'ICT')->exists())->toBeTrue()
+        ->and(Subject::where('name', 'Science')->exists())->toBeTrue()
         // Secondary/college-only subjects must not appear from --primary alone.
         ->and(Subject::where('name', 'Physics')->exists())->toBeFalse();
 });

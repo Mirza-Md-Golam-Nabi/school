@@ -1,9 +1,15 @@
 <?php
 
+use App\Enums\EmploymentStatus;
+use App\Enums\Gender;
+use App\Enums\StudentStatus;
 use App\Enums\UserType;
 use App\Models\Classes;
 use App\Models\ExamType;
+use App\Models\Permission;
 use App\Models\ResultRule;
+use App\Models\StudentProfile;
+use App\Models\TeacherProfile;
 use App\Models\User;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -104,4 +110,91 @@ function makeResultRule(Classes $class, ExamType $target, array $components, arr
     }
 
     return $rule;
+}
+
+/**
+ * An active student, optionally in a class — shared by the notice tests.
+ */
+function createNoticeTestStudent(?Classes $class = null): StudentProfile
+{
+    $user = User::factory()->create(['user_type' => UserType::Student, 'is_active' => true]);
+
+    return StudentProfile::create([
+        'user_id' => $user->id,
+        'roll_no' => 1,
+        'current_class_id' => $class?->id,
+        'session_year' => now()->year,
+        'gender' => Gender::Male,
+        'status' => StudentStatus::Active,
+    ]);
+}
+
+/**
+ * An active teacher without any role — shared by the notice tests.
+ */
+function createNoticeTestTeacher(): TeacherProfile
+{
+    $user = User::factory()->create(['user_type' => UserType::Teacher, 'is_active' => true]);
+
+    return TeacherProfile::create([
+        'user_id' => $user->id,
+        'gender' => Gender::Male,
+        'status' => EmploymentStatus::Active,
+    ]);
+}
+
+/**
+ * An active teacher holding the student fee invoice permissions (plus any
+ * extra ones) — shared by the fee invoice tests.
+ *
+ * @param  array<int, string>  $extraPermissions
+ */
+function createInvoiceTestTeacher(string $name, array $extraPermissions = []): TeacherProfile
+{
+    $teacher = TeacherProfile::create([
+        'user_id' => User::factory()->create(['name' => $name, 'user_type' => UserType::Teacher, 'is_active' => true])->id,
+        'gender' => Gender::Male,
+        'status' => EmploymentStatus::Active,
+    ]);
+
+    Role::firstOrCreate(['name' => 'teacher', 'guard_name' => 'web']);
+
+    $permissions = array_unique([...['view_student_fee_invoices', 'create_student_fee_invoices', 'edit_student_fee_invoices', 'delete_student_fee_invoices'], ...$extraPermissions]);
+
+    foreach ($permissions as $permission) {
+        Permission::firstOrCreate(['name' => $permission, 'guard_name' => 'web']);
+    }
+
+    $teacher->user->assignRole('teacher');
+    $teacher->user->givePermissionTo($permissions);
+
+    return $teacher;
+}
+
+/**
+ * An active class, optionally with a class teacher — shared by the fee invoice tests.
+ */
+function createInvoiceTestClass(?TeacherProfile $classTeacher = null): Classes
+{
+    return Classes::create([
+        'name' => 'Class '.str()->random(4),
+        'order' => 1,
+        'is_active' => true,
+        'class_teacher_id' => $classTeacher?->id,
+    ]);
+}
+
+/**
+ * An active student on the given roll in the class — shared by the fee invoice tests.
+ */
+function createInvoiceTestStudent(Classes $class, int $rollNo): StudentProfile
+{
+    return StudentProfile::create([
+        'user_id' => User::factory()->create()->id,
+        'roll_no' => $rollNo,
+        'current_class_id' => $class->id,
+        'session_year' => now()->year,
+        'gender' => Gender::Male,
+        'status' => StudentStatus::Active,
+    ]);
 }
