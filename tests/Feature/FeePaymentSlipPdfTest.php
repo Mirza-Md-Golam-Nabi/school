@@ -112,7 +112,7 @@ it('spells out the total paid amount in words on the slip', function () {
         'payment_date' => now()->toDateString(),
     ]);
 
-    $payments = FeePayment::where('payment_batch_id', $firstPayment->payment_batch_id)->get();
+    $payments = FeePayment::with(['student.user', 'student.class', 'student.section', 'student.group', 'invoice.feeType', 'receivedBy'])->where('payment_batch_id', $firstPayment->payment_batch_id)->get();
 
     $html = view('documents.fee-payment-slip', ['payments' => $payments])->render();
 

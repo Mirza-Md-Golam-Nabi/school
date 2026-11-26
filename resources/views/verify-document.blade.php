@@ -30,12 +30,12 @@
     @if ($notFound)
         <div class="status status--bad">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z"/></svg>
-            <span>এই কোডের কোনো মার্কশিট পাওয়া যায়নি</span>
+            <span>এই কোডের কোনো মার্কশিট বা রসিদ পাওয়া যায়নি</span>
         </div>
     @endif
 
     <form class="body" method="GET" action="{{ route('verify') }}">
-        <p class="lead">মার্কশিটের QR কোডের নিচে লেখা যাচাই কোডটি দিন। স্কুলের রেকর্ডে থাকা আসল ফলাফল দেখানো হবে।</p>
+        <p class="lead">মার্কশিট বা ফি পেমেন্ট স্লিপের QR কোডের নিচে লেখা যাচাই কোডটি দিন। স্কুলের রেকর্ডে থাকা আসল তথ্য দেখানো হবে।</p>
 
         <label for="code">যাচাই কোড</label>
         <div class="row">
@@ -44,7 +44,7 @@
         </div>
 
         @if ($notFound)
-            <p class="hint">কোডটি ঠিকমতো লেখা হয়েছে কিনা দেখুন। তারপরও না পেলে মার্কশিটটি জাল বা বাতিল হতে পারে — স্কুল অফিসে যোগাযোগ করুন।</p>
+            <p class="hint">কোডটি ঠিকমতো লেখা হয়েছে কিনা দেখুন। তারপরও না পেলে ডকুমেন্টটি জাল বা বাতিল হতে পারে — স্কুল অফিসে যোগাযোগ করুন।</p>
         @endif
     </form>
 @endsection

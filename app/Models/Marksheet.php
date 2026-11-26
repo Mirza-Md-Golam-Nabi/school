@@ -59,7 +59,10 @@ class Marksheet extends Model
             $code = collect(range(1, self::VERIFICATION_CODE_LENGTH))
                 ->map(fn (): string => self::VERIFICATION_CODE_ALPHABET[random_int(0, strlen(self::VERIFICATION_CODE_ALPHABET) - 1)])
                 ->implode('');
-        } while (static::query()->where('verification_code', $code)->exists());
+        } while (
+            static::query()->where('verification_code', $code)->exists()
+            || FeePayment::query()->where('verification_code', $code)->exists()
+        );
 
         return $code;
     }

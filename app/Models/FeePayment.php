@@ -8,6 +8,7 @@ use App\Enums\PaymentMethod;
 use App\Notifications\FeePaymentReceivedNotification;
 use App\Traits\LogsRelationLabels;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Notifications\DatabaseNotification;
@@ -18,6 +19,8 @@ class FeePayment extends Model
 {
     use LogsActivity;
     use LogsRelationLabels;
+
+    public const SHOW_QR_SETTING = 'fee_slip_show_qr';
 
     protected $fillable = [
         'receipt_no',
@@ -38,8 +41,18 @@ class FeePayment extends Model
         'payment_date' => 'date',
     ];
 
+    /**
+     * Every payment gets its slip's verification code when created: the code
+     * already given to its batch (one slip, several invoices), or a new one.
+     */
     protected static function booted(): void
     {
+        static::creating(function (FeePayment $payment): void {
+            $payment->verification_code ??= (filled($payment->payment_batch_id)
+                ? static::query()->where('payment_batch_id', $payment->payment_batch_id)->whereNotNull('verification_code')->value('verification_code')
+                : null) ?? static::newVerificationCode();
+        });
+
         static::created(function (FeePayment $payment) {
             app(SyncFeePaymentAccountTransactionAction::class)->sync($payment);
         });
@@ -82,6 +95,69 @@ class FeePayment extends Model
 
             $invoice->update(['status' => $newStatus]);
         });
+    }
+
+    /**
+     * A new code no slip and no marksheet uses yet — both are typed into the
+     * same /verify page, so they share one code space and one alphabet.
+     */
+    public static function newVerificationCode(): string
+    {
+        do {
+            $code = collect(range(1, Marksheet::VERIFICATION_CODE_LENGTH))
+                ->map(fn (): string => Marksheet::VERIFICATION_CODE_ALPHABET[random_int(0, strlen(Marksheet::VERIFICATION_CODE_ALPHABET) - 1)])
+                ->implode('');
+        } while (
+            static::query()->where('verification_code', $code)->exists()
+            || Marksheet::query()->where('verification_code', $code)->exists()
+        );
+
+        return $code;
+    }
+
+    /**
+     * Every payment printed on the slip with this code, in slip order — empty
+     * when the code is unknown or all of its payments were deleted.
+     *
+     * @return Collection<int, FeePayment>
+     */
+    public static function findSlipByVerificationCode(string $code): Collection
+    {
+        $code = Marksheet::normalizeVerificationCode($code);
+
+        if (strlen($code) !== Marksheet::VERIFICATION_CODE_LENGTH) {
+            return new Collection;
+        }
+
+        return static::query()->where('verification_code', $code)->orderBy('id')->get();
+    }
+
+    /**
+     * The code split in two halves for print ("K7M4-P9QX").
+     */
+    public function formattedVerificationCode(): ?string
+    {
+        return filled($this->verification_code)
+            ? implode('-', str_split($this->verification_code, (int) ceil(strlen($this->verification_code) / 2)))
+            : null;
+    }
+
+    /**
+     * The public page the slip's QR code opens.
+     */
+    public function verificationUrl(): ?string
+    {
+        return filled($this->verification_code)
+            ? route('fee-receipts.verify', ['code' => $this->verification_code])
+            : null;
+    }
+
+    /**
+     * Whether the school prints the verification QR code on payment slips.
+     */
+    public static function showsQrCode(): bool
+    {
+        return (bool) SchoolSetting::get(self::SHOW_QR_SETTING, '1');
     }
 
     public function student(): BelongsTo

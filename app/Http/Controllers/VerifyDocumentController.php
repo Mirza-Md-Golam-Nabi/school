@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\FeePayment;
 use App\Models\Marksheet;
 use App\Models\SchoolSetting;
 use Illuminate\Http\RedirectResponse;
@@ -10,7 +11,7 @@ use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Storage;
 
 /**
- * The short link printed under a marksheet's QR code: whoever can't scan it
+ * The short link printed under a marksheet's or payment slip's QR code: whoever can't scan it
  * types the printed code here and lands on the same verification page.
  */
 class VerifyDocumentController extends Controller
@@ -21,6 +22,10 @@ class VerifyDocumentController extends Controller
 
         if ($code !== '' && $marksheet = Marksheet::findByVerificationCode($code)) {
             return redirect()->route('marksheets.verify', ['code' => $marksheet->verification_code]);
+        }
+
+        if ($code !== '' && $slipPayment = FeePayment::findSlipByVerificationCode($code)->first()) {
+            return redirect()->route('fee-receipts.verify', ['code' => $slipPayment->verification_code]);
         }
 
         $logo = SchoolSetting::get('school_logo');

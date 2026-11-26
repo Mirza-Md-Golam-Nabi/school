@@ -9,6 +9,7 @@ use App\Enums\MergedPassRule;
 use App\Enums\ResultRounding;
 use App\Enums\WeekDay;
 use App\Models\AdmitCard;
+use App\Models\FeePayment;
 use App\Models\Marksheet;
 use App\Models\ResultRule;
 use App\Models\SchoolSetting;
@@ -75,6 +76,7 @@ class SchoolSettings extends Page
             'marksheet_use_logo' => (bool) SchoolSetting::get('marksheet_use_logo', '1'),
             'marksheet_footer_text' => SchoolSetting::get('marksheet_footer_text', ''),
             Marksheet::SHOW_QR_SETTING => Marksheet::showsQrCode(),
+            FeePayment::SHOW_QR_SETTING => FeePayment::showsQrCode(),
             ResultRule::DEFAULT_FULL_MARKS_SETTING => SchoolSetting::get(ResultRule::DEFAULT_FULL_MARKS_SETTING, ResultRule::DEFAULT_FULL_MARKS),
             ...array_combine(
                 [SubjectMerge::PASS_RULE_SETTING, SubjectMerge::COMPONENT_PASS_RULE_SETTING, SubjectMerge::ABSENT_RULE_SETTING, SubjectMerge::ROUNDING_SETTING],
@@ -253,6 +255,13 @@ class SchoolSettings extends Page
                             ->helperText('স্ক্যান করলে বা কোড দিয়ে স্কুলের রেকর্ডে থাকা আসল ফলাফল দেখা যায় — জাল মার্কশিট ধরা পড়ে। পরিবর্তন নতুন জেনারেট করা মার্কশিটে প্রযোজ্য।')
                             ->columnSpanFull(),
                     ]),
+
+                Section::make('Fee Payment Slip')
+                    ->schema([
+                        Toggle::make(FeePayment::SHOW_QR_SETTING)
+                            ->label('Show Verification QR Code')
+                            ->helperText('স্ক্যান করলে বা কোড দিয়ে স্কুলের হিসাবে থাকা আসল পেমেন্ট দেখা যায় — জাল বা ঘষামাজা করা রসিদ ধরা পড়ে।'),
+                    ]),
             ])
             ->statePath('data');
     }
@@ -292,6 +301,7 @@ class SchoolSettings extends Page
         SchoolSetting::set('marksheet_use_logo', $data['marksheet_use_logo'] ? '1' : '0');
         SchoolSetting::set('marksheet_footer_text', $data['marksheet_footer_text'] ?? '');
         SchoolSetting::set(Marksheet::SHOW_QR_SETTING, ($data[Marksheet::SHOW_QR_SETTING] ?? false) ? '1' : '0');
+        SchoolSetting::set(FeePayment::SHOW_QR_SETTING, ($data[FeePayment::SHOW_QR_SETTING] ?? false) ? '1' : '0');
         SchoolSetting::set(ResultRule::DEFAULT_FULL_MARKS_SETTING, $data[ResultRule::DEFAULT_FULL_MARKS_SETTING]);
 
         $previousMergeRules = SubjectMerge::defaultRules();

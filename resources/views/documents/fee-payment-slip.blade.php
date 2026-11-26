@@ -1,4 +1,5 @@
 @php
+    use App\Models\FeePayment;
     use App\Models\SchoolSetting;
     use Carbon\Carbon;
 
@@ -6,6 +7,7 @@
     $student = $firstPayment->student;
     $baseReceiptNo = preg_replace('#/\d+$#', '', $firstPayment->receipt_no);
     $totalPaid = (float) $payments->sum('amount_paid');
+    $showsQrCode = FeePayment::showsQrCode() && filled($firstPayment->verification_code);
 
     $amountToWords = function (float $amount): string {
         $taka = (int) floor($amount);
@@ -147,6 +149,25 @@
             margin-bottom: 2px;
         }
 
+        .signatures td.qr-cell {
+            width: 34%;
+            padding-top: 0;
+            border-top: 0;
+            vertical-align: bottom;
+            line-height: 1.2;
+        }
+
+        .qr-caption {
+            font-size: 9px;
+            font-weight: bold;
+        }
+
+        .qr-link,
+        .qr-code {
+            font-size: 8px;
+            color: #444;
+        }
+
         .footer {
             margin-top: 16px;
             text-align: center;
@@ -256,6 +277,11 @@
                     @endif
                     Received By
                 </td>
+                @if ($showsQrCode)
+                    <td class="qr-cell">
+                        @include('documents.partials.fee-slip-qr')
+                    </td>
+                @endif
                 <td>Authorized Signature</td>
             </tr>
         </table>

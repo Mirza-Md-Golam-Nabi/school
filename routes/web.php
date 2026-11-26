@@ -27,6 +27,7 @@ use App\Http\Controllers\TeacherIdCardsPdfController;
 use App\Http\Controllers\TeacherListPdfController;
 use App\Http\Controllers\VerifyAdmitCardController;
 use App\Http\Controllers\VerifyDocumentController;
+use App\Http\Controllers\VerifyFeeReceiptController;
 use App\Http\Controllers\VerifyIdCardController;
 use App\Http\Controllers\VerifyMarksheetController;
 use App\Models\SchoolSetting;
@@ -75,6 +76,13 @@ Route::get('/verify/marksheet/{code}', VerifyMarksheetController::class)
     ->where('code', '[A-Za-z0-9-]{1,20}')
     ->middleware('throttle:30,1')
     ->name('marksheets.verify');
+
+// Opened by the QR code printed on fee payment slips — public (a parent or the
+// office checks a receipt without logging in) and throttled the same way.
+Route::get('/verify/receipt/{code}', VerifyFeeReceiptController::class)
+    ->where('code', '[A-Za-z0-9-]{1,20}')
+    ->middleware('throttle:30,1')
+    ->name('fee-receipts.verify');
 
 Route::get('/email/verify/{id}/{hash}', [EmailVerificationController::class, 'verify'])
     ->middleware('signed')
