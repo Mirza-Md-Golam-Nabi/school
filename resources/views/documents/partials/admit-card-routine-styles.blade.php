@@ -31,7 +31,7 @@
     }
 
     table.arc-head td {
-        padding: 8px 12px 7px 12px;
+        padding: 5px 12px 4px 12px;
         vertical-align: middle;
     }
 
@@ -53,7 +53,7 @@
     }
 
     .arc-title {
-        margin-top: 9px;
+        margin-top: 5px;
         text-align: center;
     }
 
@@ -67,20 +67,20 @@
         font-size: 12px;
         font-weight: bold;
         letter-spacing: 3px;
-        padding: 4px 0;
+        padding: 3px 0;
     }
 
     .arc-exam-name {
         font-size: 12.5px;
         font-weight: bold;
         color: #6b46c1;
-        margin-top: 5px;
+        margin-top: 3px;
     }
 
     table.arc-body {
         width: 100%;
         border-collapse: collapse;
-        margin-top: 6px;
+        margin-top: 4px;
     }
 
     table.arc-body td.arc-info-cell {
@@ -89,7 +89,7 @@
     }
 
     table.arc-body td.arc-photo-cell {
-        width: 92px;
+        width: 84px;
         padding-right: 12px;
         vertical-align: top;
         text-align: right;
@@ -101,7 +101,7 @@
     }
 
     table.arc-info td {
-        padding: 6px 4px;
+        padding: 4px 4px;
         vertical-align: top;
         border-bottom: 1px dotted #c9d9e8;
     }
@@ -139,7 +139,7 @@
     }
 
     .arc-section-title {
-        margin: 9px 12px 5px 12px;
+        margin: 6px 12px 4px 12px;
         background-color: #e3f6ec;
         border: 1px solid #a8e0c2;
         border-radius: 8px;
@@ -159,12 +159,13 @@
     table.arc-routine-wrap td.arc-routine-col {
         width: 50%;
         vertical-align: top;
-        padding: 0 12px;
+        padding: 0 8px;
     }
 
     table.arc-routine {
         width: 100%;
         border-collapse: collapse;
+        font-size: 10px;
     }
 
     table.arc-routine th {
@@ -174,12 +175,12 @@
         font-weight: bold;
         letter-spacing: 0.6px;
         text-align: left;
-        padding: 3px 6px;
+        padding: 2px 4px;
         border-bottom: 1px solid #bcd5ee;
     }
 
     table.arc-routine td {
-        padding: 3px 6px;
+        padding: 2px 4px;
         border-bottom: 1px solid #e1eaf3;
         color: #1e3550;
     }
@@ -189,7 +190,7 @@
     }
 
     table.arc-routine td.arc-serial {
-        width: 24px;
+        width: 18px;
         color: #2f74d0;
         font-weight: bold;
     }
@@ -204,7 +205,7 @@
     table.arc-signatures {
         width: 100%;
         border-collapse: collapse;
-        margin-top: 10px;
+        margin-top: 6px;
     }
 
     table.arc-signatures td {
@@ -222,8 +223,8 @@
     }
 
     .arc-footer {
-        margin-top: 6px;
-        padding: 4px 12px 7px 12px;
+        margin-top: 3px;
+        padding: 2px 12px 4px 12px;
         text-align: center;
         font-size: 8.5px;
         color: #6f8399;
@@ -236,6 +237,6 @@
 
     .arc-cut {
         border-top: 1px dashed #b8c8d8;
-        margin: 5mm 0;
+        margin: 3mm 0;
     }
 </style>

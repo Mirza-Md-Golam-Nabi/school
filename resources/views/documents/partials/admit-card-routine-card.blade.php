@@ -1,7 +1,7 @@
 @php
     /**
      * One admit card with the exam routine below it (Exam → Exam Schedule:
-     * date and subject, numbered, half on the left and the rest on the right).
+     * date and subject, numbered, in two columns — three for a long routine).
      * Shared by the single-card PDF and the class sheet.
      *
      * The student details (with the card's title) are in the card's
@@ -41,10 +41,9 @@
         'subjectHeading' => Str::upper(__('Subject')),
         'columns' => array_map(
             fn (array $column): array => array_map(fn (array $row): array => [...$row, 'serial' => BengaliNumber::localize(sprintf('%02d', $row['serial']))], $column),
-            $exam->admitCardRoutineColumns(),
+            $exam->admitCardRoutineColumns($student),
         ),
     ]);
-    [$leftRoutine, $rightRoutine] = $routine['columns'];
 @endphp
 
 <div class="arc-card">
@@ -61,7 +60,7 @@
         <tr>
             <td class="arc-logo-cell">
                 @if ($branding->logoSrc)
-                    <img src="{{ $branding->logoSrc }}" alt="Logo" width="48" height="48" style="width: 48px; height: 48px;">
+                    <img src="{{ $branding->logoSrc }}" alt="Logo" width="40" height="40" style="width: 40px; height: 40px;">
                 @endif
             </td>
             <td style="text-align: center;">
@@ -104,12 +103,12 @@
             </td>
             <td class="arc-photo-cell">
                 @if ($photoSrc)
-                    <img class="arc-photo" src="{{ $photoSrc }}" alt="Photo" width="74" height="88" style="width: 74px; height: 88px;">
+                    <img class="arc-photo" src="{{ $photoSrc }}" alt="Photo" width="66" height="78" style="width: 66px; height: 78px;">
                 @else
                     {{-- A table cell, not a div: mPDF ignores a div's size inside a table. --}}
                     <table class="arc-photo-placeholder" align="right">
                         <tr>
-                            <td style="width: 74px; height: 88px;">Photo</td>
+                            <td style="width: 66px; height: 78px;">Photo</td>
                         </tr>
                     </table>
                 @endif
@@ -121,8 +120,8 @@
 
     <table class="arc-routine-wrap">
         <tr>
-            @foreach ([$leftRoutine, $rightRoutine] as $column)
-                <td class="arc-routine-col">
+            @foreach ($routine['columns'] as $column)
+                <td class="arc-routine-col" style="width: {{ round(100 / count($routine['columns']), 2) }}%;">
                     @if ($column)
                         <table class="arc-routine">
                             <tr>
@@ -148,7 +147,7 @@
         <tr>
             <td>
                 @if ($branding->sealSrc)
-                    <img src="{{ $branding->sealSrc }}" alt="Seal" width="34" height="34" style="width: 34px; height: 34px;"><br>
+                    <img src="{{ $branding->sealSrc }}" alt="Seal" width="28" height="28" style="width: 28px; height: 28px;"><br>
                 @endif
                 <div class="arc-sign-line">School Seal</div>
             </td>

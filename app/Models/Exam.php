@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\SubjectType;
 use App\Models\StudentMeritRanking;
 use App\Support\BengaliNumber;
 use App\Traits\HasAcademicSession;
@@ -10,6 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Collection;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
@@ -19,6 +21,17 @@ class Exam extends Model
     use LogsActivity;
     use LogsRelationLabels;
     use SoftDeletes;
+
+    /**
+     * The most rows a two-column admit card routine has in a column before
+     * it is split into three columns.
+     */
+    public const ADMIT_CARD_ROUTINE_ROWS_PER_COLUMN = 8;
+
+    /**
+     * @var Collection<int, Collection<int, ClassGroupSubject>>|null
+     */
+    private ?Collection $syllabusRecordsBySubject = null;
 
     protected $fillable = [
         'exam_type_id',
@@ -108,20 +121,27 @@ class Exam extends Model
     /**
      * The exam routine as an admit card prints it: in date order, numbered,
      * split into two columns — the first half (rounded up) on the left, so
-     * 7 subjects are 4 + 3.
+     * 7 subjects are 4 + 3. Past ADMIT_CARD_ROUTINE_ROWS_PER_COLUMN rows a
+     * column, it is split into three (22 subjects are 8 + 7 + 7), so the card
+     * stays short enough for two of them on one A4 page.
      *
      * Dates and subject names follow the current locale, so in বাংলা the
      * month, the digits and the subject (name_bn) are Bengali.
      *
-     * @return array{0: list<array{serial: int, date: ?string, subject: string}>, 1: list<array{serial: int, date: ?string, subject: string}>}
+     * Given a student, only the subjects that student takes are listed (see
+     * studentTakesScheduledSubject()), so a Science student's card has no
+     * Accounting and an optional subject shows only for those who chose it.
+     *
+     * @return list<list<array{serial: int, date: ?string, subject: string}>>
      */
-    public function admitCardRoutineColumns(): array
+    public function admitCardRoutineColumns(?StudentProfile $student = null): array
     {
         // Callers eager-load the schedules already in routine order
         // (ExamSchedule::inExamDateOrder()); load them that way if they didn't.
         $this->loadMissing(['schedules' => fn ($query) => $query->inExamDateOrder()->with('subject')]);
 
         $rows = $this->schedules
+            ->filter(fn (ExamSchedule $schedule): bool => $this->studentTakesScheduledSubject($student, $schedule->subject_id))
             ->values()
             ->map(fn (ExamSchedule $schedule, int $index): array => [
                 'serial' => $index + 1,
@@ -129,9 +149,70 @@ class Exam extends Model
                 'subject' => $this->subjectDisplayName($schedule->subject),
             ]);
 
-        $leftCount = (int) ceil($rows->count() / 2);
+        $columnCount = $rows->count() > 2 * self::ADMIT_CARD_ROUTINE_ROWS_PER_COLUMN ? 3 : 2;
+        $rowsPerColumn = intdiv($rows->count(), $columnCount);
+        $longerColumns = $rows->count() % $columnCount;
 
-        return [$rows->take($leftCount)->values()->all(), $rows->slice($leftCount)->values()->all()];
+        // The first columns take one row more each, so 7 rows are 4 + 3 and 22 are 8 + 7 + 7.
+        return collect(range(0, $columnCount - 1))
+            ->map(fn (int $column): array => $rows
+                ->slice($column * $rowsPerColumn + min($column, $longerColumns), $rowsPerColumn + ($column < $longerColumns ? 1 : 0))
+                ->values()
+                ->all())
+            ->all();
+    }
+
+    /**
+     * Whether a student sits this exam's paper in a subject, by the class
+     * syllabus (class_group_subjects): a row for the student's group wins over
+     * an "All Groups" row; a compulsory subject is taken by everyone it
+     * applies to, an optional one only by students who chose it.
+     *
+     * A subject the syllabus does not list — or no student at all (the design
+     * sample) — is kept, so a routine never loses a paper by a missing setup.
+     */
+    public function studentTakesScheduledSubject(?StudentProfile $student, int|string|null $subjectId): bool
+    {
+        if (! $student?->exists || $subjectId === null || ! $this->class_id) {
+            return true;
+        }
+
+        $records = $this->syllabusRecordsBySubject()->get((int) $subjectId);
+
+        if ($records === null || $records->isEmpty()) {
+            return true;
+        }
+
+        $groupId = $student->current_group_id ? (int) $student->current_group_id : null;
+
+        $record = $records->first(fn (ClassGroupSubject $record): bool => $record->group_id !== null && (int) $record->group_id === $groupId)
+            ?? $records->first(fn (ClassGroupSubject $record): bool => $record->group_id === null);
+
+        if (! $record) {
+            return false;
+        }
+
+        if ($record->subject_type === SubjectType::Compulsory) {
+            return true;
+        }
+
+        // A paper's optional choice is stored against its main subject, the
+        // subject_id its syllabus record carries.
+        $student->loadMissing('optionalSubjects');
+
+        return $student->optionalSubjects->contains(fn (StudentOptionalSubject $choice): bool => (int) $choice->subject_id === (int) $record->subject_id
+            && (int) $choice->class_id === (int) $this->class_id);
+    }
+
+    /**
+     * The class syllabus by subject, read once per exam instance — the class
+     * sheet renders every student's card from the same eager-loaded exam.
+     *
+     * @return Collection<int, Collection<int, ClassGroupSubject>>
+     */
+    private function syllabusRecordsBySubject(): Collection
+    {
+        return $this->syllabusRecordsBySubject ??= ClassGroupSubject::recordsBySubjectForClass((int) $this->class_id);
     }
 
     public function displayLabel(): string

@@ -5,14 +5,19 @@ use App\Actions\GenerateAdmitCardsForExamAction;
 use App\Actions\GenerateAdmitCardsForExamTypeAction;
 use App\Enums\AdmitCardDesign;
 use App\Enums\Gender;
+use App\Enums\OptionalSubjectRole;
 use App\Enums\StudentStatus;
+use App\Enums\SubjectType;
 use App\Enums\UserType;
 use App\Jobs\GenerateAdmitCardPdfJob;
 use App\Models\AdmitCard;
 use App\Models\Classes;
+use App\Models\ClassGroupSubject;
 use App\Models\Exam;
 use App\Models\ExamSchedule;
 use App\Models\ExamType;
+use App\Models\Group;
+use App\Models\StudentOptionalSubject;
 use App\Models\StudentProfile;
 use App\Models\Subject;
 use App\Models\User;
@@ -93,6 +98,84 @@ it('splits an even number of subjects evenly, and a single subject to the left',
 })->with([
     'six' => [6, 3, 3],
     'one' => [1, 1, 0],
+]);
+
+it('lists on each card only the subjects that student takes', function () {
+    $class = Classes::create(['name' => 'Class Nine', 'order' => 9]);
+    $science = Group::create(['name' => 'Science', 'is_active' => true]);
+    $commerce = Group::create(['name' => 'Commerce', 'is_active' => true]);
+    $exam = makeRoutineTestExam($class);
+    addRoutineTestSchedule($exam, [
+        'Bangla' => '2026-01-02',
+        'Physics' => '2026-01-03',
+        'Accounting' => '2026-01-04',
+        'Higher Math' => '2026-01-05',
+        'Agriculture' => '2026-01-06',
+    ]);
+    $subjectId = fn (string $name): int => Subject::where('name', $name)->value('id');
+    collect([
+        ['Bangla', null, SubjectType::Compulsory],
+        ['Physics', $science->id, SubjectType::Compulsory],
+        ['Accounting', $commerce->id, SubjectType::Compulsory],
+        ['Higher Math', $science->id, SubjectType::Optional],
+        ['Agriculture', null, SubjectType::Optional],
+    ])->each(fn (array $row) => ClassGroupSubject::create(['class_id' => $class->id, 'subject_id' => $subjectId($row[0]), 'group_id' => $row[1], 'subject_type' => $row[2]]));
+
+    $scienceStudent = makeRoutineTestStudent($class, 1);
+    $scienceStudent->update(['current_group_id' => $science->id]);
+    StudentOptionalSubject::create(['student_id' => $scienceStudent->id, 'class_id' => $class->id, 'group_id' => $science->id, 'subject_id' => $subjectId('Higher Math'), 'role' => OptionalSubjectRole::MainOptional]);
+    $commerceStudent = makeRoutineTestStudent($class, 2);
+    $commerceStudent->update(['current_group_id' => $commerce->id]);
+    StudentOptionalSubject::create(['student_id' => $commerceStudent->id, 'class_id' => $class->id, 'group_id' => $commerce->id, 'subject_id' => $subjectId('Agriculture'), 'role' => OptionalSubjectRole::ExtraOptional]);
+
+    $subjectsOf = fn (StudentProfile $student): array => collect($exam->admitCardRoutineColumns($student))->flatten(1)->pluck('subject')->all();
+
+    expect($subjectsOf($scienceStudent))->toBe(['Bangla', 'Physics', 'Higher Math'])
+        ->and($subjectsOf($commerceStudent))->toBe(['Bangla', 'Accounting', 'Agriculture'])
+        ->and(collect($exam->admitCardRoutineColumns($commerceStudent))->flatten(1)->pluck('serial')->all())->toBe([1, 2, 3])
+        ->and(collect($exam->admitCardRoutineColumns())->flatten(1))->toHaveCount(5);
+
+    $card = AdmitCard::create(['student_id' => $commerceStudent->id, 'exam_id' => $exam->id, 'page_size' => 'A4', 'design' => AdmitCardDesign::WithRoutine]);
+    $html = view('documents.admit-card-routine', ['admitCard' => $card->load('exam.schedules.subject', 'student.optionalSubjects')])->render();
+
+    expect($html)->toContain('Accounting', 'Agriculture')->not->toContain('Physics', 'Higher Math');
+});
+
+it('splits a long routine into three columns', function () {
+    $exam = makeRoutineTestExam(Classes::create(['name' => 'Class Nine', 'order' => 9]));
+    addRoutineTestSchedule($exam, collect(range(1, 22))->mapWithKeys(fn (int $day): array => ["Subject {$day}" => sprintf('2026-01-%02d', $day)])->all());
+
+    $columns = $exam->admitCardRoutineColumns();
+
+    expect($columns)->toHaveCount(3)
+        ->and(array_map('count', $columns))->toBe([8, 7, 7])
+        ->and($columns[2][0]['serial'])->toBe(16);
+});
+
+it('fits two routine admit cards on each A4 page of the class sheet, even with a long routine', function (int $subjects) {
+    $class = Classes::create(['name' => 'Class Nine', 'order' => 9]);
+    $exam = makeRoutineTestExam($class);
+    $classNineSubjects = [
+        'Accounting', 'Agricultural Education', 'Bangla 1st Paper', 'Bangla 2nd Paper', 'Bangladesh and Global Studies', 'Biology',
+        'Business Entrepreneurship', 'Chemistry', 'Civics and Citizenship', 'Economics', 'English 1st Paper', 'English 2nd Paper',
+        'Finance and Banking', 'General Science', 'Geography and Environment', 'Higher Mathematics',
+        'History of Bangladesh and World Civilization', 'Home Science', 'Information & Communication Technology', 'Mathematics', 'Physics', 'Religious Studies',
+    ];
+    addRoutineTestSchedule($exam, collect(array_slice($classNineSubjects, 0, $subjects))->values()->mapWithKeys(fn (string $name, int $index): array => [$name => sprintf('2026-01-%02d', $index + 1)])->all());
+
+    collect(range(1, 4))->each(fn (int $roll) => AdmitCard::create([
+        'student_id' => makeRoutineTestStudent($class, $roll)->id,
+        'exam_id' => $exam->id,
+        'page_size' => 'A4',
+        'design' => AdmitCardDesign::WithRoutine,
+    ]));
+
+    $pdf = app(BuildCombinedClassAdmitCardsPdfAction::class)->buildBundle($exam)['pdf'];
+
+    expect(preg_match_all('/\/Type\s*\/Page[^s]/', $pdf))->toBe(2);
+})->with([
+    'twelve subjects' => [12],
+    'twenty-two subjects' => [22],
 ]);
 
 it('prints the routine with dates and subjects but no time, and Powered by Next Fusion', function () {

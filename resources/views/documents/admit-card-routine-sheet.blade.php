@@ -6,7 +6,7 @@
     <meta charset="utf-8">
     <style>
         @page {
-            margin: 8mm;
+            margin: 6mm;
         }
     </style>
     @include('documents.partials.admit-card-routine-styles')
