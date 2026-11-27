@@ -28,7 +28,7 @@ beforeEach(function () {
     Storage::fake('public');
 });
 
-function makePhotoTestStudent(?string $photo): array
+function makePhotoTestStudent(?string $photo, Gender $gender = Gender::Male): array
 {
     $class = Classes::create(['name' => 'Class One', 'order' => 1]);
     $exam = Exam::create([
@@ -45,7 +45,7 @@ function makePhotoTestStudent(?string $photo): array
         'roll_no' => 1,
         'current_class_id' => $class->id,
         'session_year' => now()->year,
-        'gender' => Gender::Male,
+        'gender' => $gender,
         'status' => StudentStatus::Active,
         'photo' => $photo,
     ]);
@@ -53,9 +53,9 @@ function makePhotoTestStudent(?string $photo): array
     return [$class, $exam, $student];
 }
 
-function renderPhotoTestMarksheet(?string $photo): string
+function renderPhotoTestMarksheet(?string $photo, Gender $gender = Gender::Male): string
 {
-    [$class, $exam, $student] = makePhotoTestStudent($photo);
+    [$class, $exam, $student] = makePhotoTestStudent($photo, $gender);
 
     $subject = Subject::create(['name' => 'Bangla', 'has_mcq' => false, 'has_written' => true, 'has_practical' => false, 'is_active' => true]);
     $subject->classes()->attach($class->id, ['subject_type' => SubjectType::Compulsory->value]);
@@ -74,25 +74,51 @@ function storePhotoTestImage(string $name, string $directory): string
     return UploadedFile::fake()->image($name, 120, 150)->store($directory, 'public');
 }
 
-it('puts the school logo in the left cell of the marksheet header, the school name in the middle', function () {
+it('puts the school logo above the school name with a border under the header', function () {
     SchoolSetting::set('school_name', 'Test School');
     SchoolSetting::set('school_logo', storePhotoTestImage('logo.png', 'school-settings'));
 
     $html = renderPhotoTestMarksheet(null);
 
-    expect($html)->toMatch('/<td class="header-side">\s*<img class="logo"[^>]*>\s*<\/td>\s*<td>\s*<div class="school-name">Test School<\/div>/');
+    expect($html)->toMatch('/<td class="header-side"><\/td>\s*<td>\s*<img class="logo"[^>]*>\s*<div class="school-name">Test School<\/div>/')
+        ->and($html)->toMatch('/\.header \{[^}]*border-bottom/');
 });
 
-it('prints the student photo on the marksheet when one is uploaded', function () {
+it('prints the student photo above the details in the left column, the title in the right', function () {
     $html = renderPhotoTestMarksheet(storePhotoTestImage('photo.jpg', 'student-profiles/photos'));
 
-    expect($html)->toContain('class="photo-cell"', 'alt="Photo"');
+    expect($html)->toMatch('/<div class="student-col">\s*<img class="photo"[^>]*alt="Photo"[^>]*>\s*<table class="info">/')
+        ->and($html)->toMatch('/<div class="title-col">\s*<div class="title">/')
+        ->and($html)->toContain('<td class="label">Student ID</td>', '<td class="label">Student Name</td>');
 });
 
-it('leaves the photo out of the marksheet when the student has none', function () {
+it('puts the grade scale under the title, apart from the details, with a rounded title box', function () {
     $html = renderPhotoTestMarksheet(null);
 
-    expect($html)->not->toContain('class="photo-cell"', 'alt="Photo"');
+    expect($html)->toMatch('/<div class="title-col">\s*<div class="title">.*?<\/div>\s*<table class="grade-scale">/s')
+        ->and($html)->toMatch('/\.title \{[^}]*border-radius/');
+});
+
+it('prints a boy or girl silhouette when the student has no photo', function (Gender $gender, string $placeholder) {
+    $html = renderPhotoTestMarksheet(null, $gender);
+
+    expect($html)->toMatch('/<div class="student-col">\s*<img class="photo" src="[^"]*'.preg_quote($placeholder, '/').'"/');
+})->with([
+    'male' => [Gender::Male, 'student-male.svg'],
+    'female' => [Gender::Female, 'student-female.svg'],
+    'other' => [Gender::Other, 'student-male.svg'],
+]);
+
+it('prints the uploaded photo, not the silhouette, when the student has one', function () {
+    $html = renderPhotoTestMarksheet(storePhotoTestImage('photo.jpg', 'student-profiles/photos'), Gender::Female);
+
+    expect($html)->not->toContain('student-female.svg', 'student-male.svg');
+});
+
+it('prints class and roll no side by side in the student details', function () {
+    $html = renderPhotoTestMarksheet(null);
+
+    expect($html)->toMatch('/<td class="label">Class<\/td>\s*<td\s*>Class One<\/td>\s*<td class="label">Roll No<\/td>\s*<td\s*>01<\/td>/');
 });
 
 it('prints the student photo on the simple admit card, or a box to paste one', function (bool $hasPhoto) {
@@ -112,3 +138,10 @@ it('prints the student photo on the simple admit card, or a box to paste one', f
     'with a photo' => [true],
     'without a photo' => [false],
 ]);
+
+it('prints a full marks column after the subject, then written, mcq and marks', function () {
+    $html = renderPhotoTestMarksheet(null);
+
+    expect($html)->toMatch('/>Subject<\/th>\s*<th[^>]*>Full Marks<\/th>\s*<th[^>]*>Written<\/th>\s*<th[^>]*>MCQ<\/th>\s*<th[^>]*>Marks<\/th>\s*<th[^>]*>Best<\/th>\s*<th[^>]*>Grade<\/th>\s*<th[^>]*>GP<\/th>/')
+        ->and($html)->toMatch('/<td[^>]*>Bangla<\/td>\s*<td[^>]*>100<\/td>\s*<td[^>]*>80<\/td>\s*<td[^>]*>-<\/td>/');
+});

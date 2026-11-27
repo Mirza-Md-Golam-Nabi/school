@@ -53,8 +53,9 @@ class BuildStudentMarksDetail
 
         // Subject order from the Subjects page, except the student's main
         // optional subject goes second-to-last and the additional one last.
+        // full_marks stays: the marksheet prints it as its own column.
         $rows = $placedRows
-            ->map(fn (array $row): array => collect($row)->except(['position_group', 'obtained_marks', 'full_marks'])->all())
+            ->map(fn (array $row): array => collect($row)->except(['position_group', 'obtained_marks'])->all())
             ->values();
 
         $additionalGradePoint = (float) ($placedRows->firstWhere('position_group', 2)['grade_point'] ?? 0);
@@ -109,7 +110,7 @@ class BuildStudentMarksDetail
 
     /**
      * The student's subject rows in marksheet order, still carrying
-     * position_group, obtained_marks and full_marks for the summary.
+     * position_group and obtained_marks for the summary.
      *
      * @param  array<string, mixed>  $context
      * @param  Collection<int, GradeScale>  $gradeScales
@@ -263,8 +264,8 @@ class BuildStudentMarksDetail
 
         $papers = collect([[$first, __('1st')], [$second, __('2nd')]])
             ->map(fn (array $paper): array => $paper[0]
-                ? ['paper_label' => $paper[1], ...$this->paperColumns($paper[0])]
-                : ['paper_label' => $paper[1], 'is_absent' => true, 'is_theory_absent' => true, 'is_practical_absent' => true, 'mcq_marks' => null, 'written_marks' => null, 'practical_marks' => null, 'total_marks' => null, 'components' => []])
+                ? ['paper_label' => $paper[1], 'full_marks' => $this->paperFullMarks($paper[0], $context), ...$this->paperColumns($paper[0])]
+                : ['paper_label' => $paper[1], 'full_marks' => null, 'is_absent' => true, 'is_theory_absent' => true, 'is_practical_absent' => true, 'mcq_marks' => null, 'written_marks' => null, 'practical_marks' => null, 'total_marks' => null, 'components' => []])
             ->all();
 
         return [

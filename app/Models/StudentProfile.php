@@ -178,6 +178,17 @@ class StudentProfile extends Model
     }
 
     /**
+     * Local path of the stand-in silhouette printed when the student has no
+     * photo: a girl's for a female student, a boy's for everyone else.
+     */
+    public function placeholderPhotoPath(): string
+    {
+        return public_path($this->gender === Gender::Female
+            ? 'images/placeholders/student-female.svg'
+            : 'images/placeholders/student-male.svg');
+    }
+
+    /**
      * The number printed and barcoded on the student's ID card: their Student
      * ID. Unlike session_year or roll no it never changes on promotion, so a
      * card stays valid for the student's whole time at the school.

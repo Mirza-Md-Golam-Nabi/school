@@ -27,15 +27,24 @@
 
     $imageSrc = fn (?string $path): ?string => PdfImage::path($path);
 
-    // The logo sits left of the school name and the verification QR right of
-    // it, in side cells of equal width, so the name stays centred on the page.
+    // The logo sits above the school name and the verification QR in the right
+    // cell; the left cell stays empty at equal width so the name stays centred.
     $verificationUrl = Marksheet::showsQrCode() ? $marksheet->verificationUrl() : null;
 
     $logoSrc = $useLogo ? $imageSrc(SchoolSetting::get('school_logo')) : null;
-    $studentPhotoSrc = $imageSrc($student->photo);
+    // A student without a photo gets a boy's or girl's silhouette instead.
+    $studentPhotoSrc = $imageSrc($student->photo) ?? $student->placeholderPhotoPath();
     $sealSrc = $imageSrc(SchoolSetting::get('school_seal'));
     $signatureSrc = $imageSrc(SchoolSetting::get('principal_signature'));
     $classTeacherSignatureSrc = $imageSrc($exam->class?->classTeacher?->signature);
+
+    // Class / Roll No and Group / Section print two to a row, like the printed marksheet.
+    $pairedInfoFields = collect([
+        ['label' => __('Class'), 'value' => $student->class?->display_name],
+        ['label' => __('Roll No'), 'value' => BengaliNumber::localize(sprintf('%02d', $student->roll_no))],
+        $student->group ? ['label' => __('Group'), 'value' => $student->group->display_name] : null,
+        $student->section ? ['label' => __('Section'), 'value' => $student->section->name] : null,
+    ])->filter()->values();
 
     // A merged subject (e.g. Bangla 1st + 2nd paper) prints one line per paper.
     $markLines = $rows->flatMap(fn (array $row): array => $row['papers'] ?? [$row]);
@@ -49,7 +58,7 @@
     $subjectColspan = $hasMergedSubjects ? 2 : 1;
 
     // Fixed widths keep the "1st / 2nd" paper column narrow so the marks columns get the room.
-    $markColumnCount = 6 + ($hasPractical ? 1 : 0) + $componentNames->count() + ($hasMergedSubjects ? 1 : 0);
+    $markColumnCount = 7 + ($hasPractical ? 1 : 0) + $componentNames->count() + ($hasMergedSubjects ? 1 : 0);
     $paperColumnWidth = $hasMergedSubjects ? 6 : 0;
     $markColumnWidth = round(min(8, 66 / $markColumnCount), 2);
 @endphp
@@ -138,54 +147,53 @@
             color: #444;
         }
 
+        .top-section {
+            margin-bottom: 10px;
+        }
+
+        .student-col {
+            float: left;
+            width: 62%;
+        }
+
+        .title-col {
+            float: right;
+            width: 38%;
+        }
+
+        .top-section-end {
+            clear: both;
+        }
+
+        /* The negative margin pulls the title out of its column to the middle of the page:
+           page centre (93mm) - half the box (34mm) - the left column (62% = 115mm). */
         .title {
-            width: 220px;
-            margin: 10px auto;
+            width: 64mm;
+            margin-left: -56mm;
+            margin-bottom: 8px;
             font-size: 14px;
             font-weight: bold;
             text-transform: uppercase;
             text-align: center;
-            padding: 6px 12px;
+            padding: 6px 8px;
             border: 1px solid #1a1a1a;
             border-radius: 8px;
-        }
-
-        table.top-section {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 10px;
-        }
-
-        table.top-section td.info-col {
-            width: 62%;
-            vertical-align: top;
-            padding-right: 10px;
-        }
-
-        table.top-section td.grade-scale-col {
-            width: 38%;
-            vertical-align: top;
         }
 
         table.info {
             width: 100%;
             border-collapse: collapse;
+            margin-top: 6px;
         }
 
         table.info td {
-            padding: 4px 6px;
+            padding: 4px 6px 4px 0;
             vertical-align: top;
         }
 
         table.info td.label {
             font-weight: bold;
-            width: 110px;
-        }
-
-        td.photo-cell {
-            width: 84px;
-            vertical-align: top;
-            text-align: right;
+            width: 30mm;
         }
 
         .photo {
@@ -335,12 +343,11 @@
         <div class="header">
             <table class="header-layout">
                 <tr>
-                    <td class="header-side">
+                    <td class="header-side"></td>
+                    <td>
                         @if ($logoSrc)
                             <img class="logo" src="{{ $logoSrc }}" alt="Logo">
                         @endif
-                    </td>
-                    <td>
                         <div class="school-name">{{ $schoolName }}</div>
                         @if ($schoolEiinLine)
                             <div class="school-address">{{ $schoolEiinLine }}</div>
@@ -358,59 +365,41 @@
             </table>
         </div>
 
-        <div class="title">{{ __('Marksheet') }} - {{ $exam->examType?->name }} {{ BengaliNumber::localize($exam->session_label) }}</div>
-
-        <table class="top-section">
-            <tr>
-                <td class="info-col">
-                    {{-- The student's photo, when the school uploaded one, beside their details. --}}
-                    <table style="width: 100%; border-collapse: collapse;">
-                        <tr>
-                            <td style="vertical-align: top; padding: 0;">
+        {{--
+            Two floated columns that flow on their own: the photo, then the student's details on
+            the left; the title, then the grade scale on the right. Each side's height comes from
+            its own content, so the grade scale always starts just under the title (however many
+            lines it wraps to) and the details just under the photo. Floated divs, not table
+            cells, because mPDF only draws the title's rounded corners on a block.
+        --}}
+        <div class="top-section">
+            <div class="student-col">
+                <img class="photo" src="{{ $studentPhotoSrc }}" alt="Photo" width="96" height="114" style="width: 96px; height: 114px;">
                     <table class="info">
                         <tr>
                             <td class="label">{{ __('Student ID') }}</td>
-                            <td>{{ BengaliNumber::localize($student->idCardNumber()) }}</td>
+                            <td colspan="3">{{ BengaliNumber::localize($student->idCardNumber()) }}</td>
                         </tr>
                         <tr>
                             <td class="label">{{ __('Student Name') }}</td>
                             <td colspan="3">{{ $student->user?->name }}</td>
                         </tr>
-                        <tr>
-                            <td class="label">{{ __('Class') }}</td>
-                            <td>{{ $student->class?->display_name }}</td>
-                        </tr>
-                        <tr>
-                            <td class="label">{{ __('Roll No') }}</td>
-                            <td>{{ BengaliNumber::localize(sprintf('%02d', $student->roll_no)) }}</td>
-                        </tr>
-                        @if ($student->group)
+                        @foreach ($pairedInfoFields->chunk(2) as $fieldPair)
                             <tr>
-                                <td class="label">{{ __('Group') }}</td>
-                                <td colspan="3">{{ $student->group?->display_name }}</td>
+                                @foreach ($fieldPair as $field)
+                                    <td class="label">{{ $field['label'] }}</td>
+                                    <td @if ($fieldPair->count() === 1) colspan="3" @endif>{{ $field['value'] }}</td>
+                                @endforeach
                             </tr>
-                        @endif
-                        @if ($student->section)
-                            <tr>
-                                <td class="label">{{ __('Section') }}</td>
-                                <td colspan="3">{{ $student->section?->name }}</td>
-                            </tr>
-                        @endif
+                        @endforeach
                         <tr>
                             <td class="label">{{ __('Session') }}</td>
                             <td colspan="3">{{ BengaliNumber::localize($student->session_label) }}</td>
                         </tr>
                     </table>
-                            </td>
-                            @if ($studentPhotoSrc)
-                                <td class="photo-cell">
-                                    <img class="photo" src="{{ $studentPhotoSrc }}" alt="Photo" width="74" height="88" style="width: 74px; height: 88px;">
-                                </td>
-                            @endif
-                        </tr>
-                    </table>
-                </td>
-                <td class="grade-scale-col">
+            </div>
+            <div class="title-col">
+                <div class="title">{{ __('Marksheet') }} - {{ $exam->examType?->name }}<br>{{ BengaliNumber::localize($exam->session_label) }}</div>
                     @if ($gradeScales->isNotEmpty())
                         <table class="grade-scale">
                             <thead>
@@ -431,16 +420,17 @@
                             </tbody>
                         </table>
                     @endif
-                </td>
-            </tr>
-        </table>
+            </div>
+            <div class="top-section-end"></div>
+        </div>
 
         <table class="subjects">
             <thead>
                 <tr>
                     <th style="text-align: left;" colspan="{{ $subjectColspan }}">{{ __('Subject') }}</th>
-                    <th style="width: {{ $markColumnWidth }}%;">{{ __('MCQ') }}</th>
+                    <th style="width: {{ $markColumnWidth }}%;">{{ __('Full Marks') }}</th>
                     <th style="width: {{ $markColumnWidth }}%;">{{ __('Written') }}</th>
+                    <th style="width: {{ $markColumnWidth }}%;">{{ __('MCQ') }}</th>
                     @if ($hasPractical)
                         <th style="width: {{ $markColumnWidth }}%;">{{ __('Practical') }}</th>
                     @endif
@@ -473,8 +463,9 @@
                             @endif
                             {{-- Absent in only the theory or the practical exam: that part shows Absent. --}}
                             @php $isPartlyAbsent = ! $line['is_absent'] && (($line['is_theory_absent'] ?? false) || ($line['is_practical_absent'] ?? false)); @endphp
-                            <td style="text-align: center;">{{ $isPartlyAbsent && $line['is_theory_absent'] ? __('Absent') : BengaliNumber::localize((string) ($line['mcq_marks'] ?? '-')) }}</td>
+                            <td style="text-align: center;">{{ ($line['full_marks'] ?? null) === null ? '-' : BengaliNumber::localize($formatMark((float) $line['full_marks'])) }}</td>
                             <td style="text-align: center;">{{ $isPartlyAbsent && $line['is_theory_absent'] ? __('Absent') : BengaliNumber::localize((string) ($line['written_marks'] ?? '-')) }}</td>
+                            <td style="text-align: center;">{{ $isPartlyAbsent && $line['is_theory_absent'] ? __('Absent') : BengaliNumber::localize((string) ($line['mcq_marks'] ?? '-')) }}</td>
                             @if ($hasPractical)
                                 <td style="text-align: center;">{{ $isPartlyAbsent && $line['is_practical_absent'] ? __('Absent') : BengaliNumber::localize((string) ($line['practical_marks'] ?? '-')) }}</td>
                             @endif
