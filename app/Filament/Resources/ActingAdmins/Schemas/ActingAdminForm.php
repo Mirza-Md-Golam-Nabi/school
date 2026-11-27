@@ -21,7 +21,7 @@ class ActingAdminForm
             ->components([
                 Select::make('user_id')
                     ->label('Acting User')
-                    ->options(ActingAdmin::activeUser())
+                    ->options(fn () => ActingAdmin::activeUser())
                     ->getOptionLabelFromRecordUsing(fn (User $record) => "{$record->name} ({$record->user_type->getLabel()})")
                     ->searchable()
                     ->preload()

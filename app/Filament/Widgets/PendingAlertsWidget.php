@@ -2,14 +2,13 @@
 
 namespace App\Filament\Widgets;
 
+use App\Actions\CalculateFeeDuesAction;
 use App\Enums\LeaveApplicationStatus;
 use App\Filament\Resources\Exams\ExamResource;
 use App\Filament\Resources\LeaveApplications\LeaveApplicationResource;
 use App\Filament\Resources\StudentFeeInvoices\StudentFeeInvoiceResource;
 use App\Models\Exam;
-use App\Models\FeePayment;
 use App\Models\LeaveApplication;
-use App\Models\StudentFeeInvoice;
 use Filament\Widgets\Widget;
 
 class PendingAlertsWidget extends Widget
@@ -39,12 +38,9 @@ class PendingAlertsWidget extends Widget
             ->where('status', LeaveApplicationStatus::Pending)
             ->count();
 
-        $overdueInvoices = StudentFeeInvoice::payable()->count();
-        $netDue = (float) StudentFeeInvoice::payable()->sum('net_amount');
-        $paid = (float) FeePayment::query()
-            ->whereIn('invoice_id', StudentFeeInvoice::payable()->select('id'))
-            ->sum('amount_paid');
-        $totalDue = max(0, $netDue - $paid);
+        $dues = app(CalculateFeeDuesAction::class)->handle();
+        $overdueInvoices = $dues['payable_count'];
+        $totalDue = $dues['total_due'];
 
         $alerts = [];
 

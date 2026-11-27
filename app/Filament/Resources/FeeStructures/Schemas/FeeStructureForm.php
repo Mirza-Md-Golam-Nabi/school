@@ -20,7 +20,7 @@ class FeeStructureForm
             ->components([
                 Select::make('class_id')
                     ->label('Class')
-                    ->options(Classes::active()->pluck('name', 'id'))
+                    ->options(fn () => Classes::active()->pluck('name', 'id'))
                     ->searchable()
                     ->required()
                     ->native(false)
@@ -33,7 +33,7 @@ class FeeStructureForm
                     ->default(fn () => request()->integer('class_id') ?: null),
                 Select::make('fee_type_id')
                     ->label('Fee Type')
-                    ->options(FeeType::where('is_active', true)->pluck('name', 'id'))
+                    ->options(fn () => FeeType::where('is_active', true)->pluck('name', 'id'))
                     ->searchable()
                     ->required()
                     ->native(false),

@@ -72,7 +72,7 @@ class StudentFeeInvoicesTable
                     ->options(InvoiceStatus::class),
                 SelectFilter::make('fee_type_id')
                     ->label('Fee Type')
-                    ->options(FeeType::pluck('name', 'id')),
+                    ->options(fn () => FeeType::pluck('name', 'id')),
             ])
             ->recordActions([
                 ViewAction::make()

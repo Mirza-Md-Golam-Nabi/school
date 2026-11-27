@@ -42,6 +42,8 @@ class GenerateOneTimeFeeInvoicesAction
      */
     public function generateWithoutSms(FeeStructure $structure): array
     {
+        $structure->loadMissing(['feeType', 'class']);
+
         $feeType = $structure->feeType;
 
         if (! $feeType || $feeType->is_monthly) {

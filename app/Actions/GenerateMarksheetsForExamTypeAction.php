@@ -23,7 +23,8 @@ class GenerateMarksheetsForExamTypeAction
         $regenerated = 0;
         $skippedNoRanking = 0;
 
-        $exams = Exam::where('exam_type_id', $examType->id)->get();
+        $exams = Exam::where('exam_type_id', $examType->id)->with('class')->get()
+            ->each(fn (Exam $exam) => $exam->setRelation('examType', $examType));
 
         foreach ($exams as $exam) {
             $result = app(GenerateMarksheetsForExamAction::class)->handle($exam, $generatedBy);

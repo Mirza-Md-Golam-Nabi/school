@@ -103,7 +103,7 @@ class NoticeForm
                         // Class filter — only for IndividualStudent to narrow down students
                         Select::make('class_filter_id')
                             ->label('Filter by Class')
-                            ->options(Classes::orderBy('order', 'asc')->pluck('name', 'id')->toArray())
+                            ->options(fn () => Classes::orderBy('order', 'asc')->pluck('name', 'id')->toArray())
                             ->placeholder('All classes')
                             ->nullable()
                             ->native(false)

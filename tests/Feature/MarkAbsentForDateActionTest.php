@@ -25,6 +25,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Notification;
+use Spatie\Activitylog\Models\Activity;
 
 uses(RefreshDatabase::class);
 
@@ -318,4 +319,25 @@ it('runs from the console for a specific date and rejects a malformed one', func
         ->assertSuccessful();
 
     $this->artisan('attendance:mark-absent', ['--date' => 'not-a-date'])->assertFailed();
+});
+
+it('names every absent person in the activity log without loading them one by one', function () {
+    $device = absentTestDevice();
+    $present = absentTestStudent(1);
+    absentTestEnroll($device, $present, '1');
+    absentTestEnroll($device, absentTestStudent(2), '2');
+    absentTestEnroll($device, absentTestStudent(3), '3');
+    $teachers = TeacherProfile::factory()->count(2)->create();
+    $staff = StaffProfile::factory()->count(2)->create();
+    $teachers->concat($staff)->each(fn (Model $person, int $i) => absentTestEnroll($device, $person, (string) (100 + $i)));
+    absentTestPunch($device, '1');
+
+    $lookups = singleRowLookupsDuring(
+        ['users', 'student_profiles', 'teacher_profiles', 'staff_profiles'],
+        fn () => expect(absentTestRun())->toBe(6),
+    );
+
+    expect($lookups)->toBe([])
+        ->and(Activity::where('subject_type', Attendance::class)->latest('id')->first()->description)
+        ->toContain($staff->last()->user->name);
 });

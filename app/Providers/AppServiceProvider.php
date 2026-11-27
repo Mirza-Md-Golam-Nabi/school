@@ -14,6 +14,7 @@ use App\Observers\DeviceEnrollmentObserver;
 use App\Support\ActivityLogLabelCache;
 use App\Support\SchoolSettingStore;
 use Filament\Auth\Http\Responses\Contracts\LogoutResponse as LogoutResponseContract;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -40,6 +41,10 @@ class AppServiceProvider extends ServiceProvider
                 return true;
             }
         });
+
+        // A lazy-loaded relation inside a loop is an N+1 query. Outside
+        // production it throws, so it is caught in development and tests.
+        Model::preventLazyLoading(! $this->app->isProduction());
 
         Attendance::observe(AttendanceObserver::class);
         ActingAdmin::observe(ActingAdminObserver::class);

@@ -11,6 +11,7 @@ use App\Models\ResultRule;
 use App\Models\StudentProfile;
 use App\Models\TeacherProfile;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -197,4 +198,33 @@ function createInvoiceTestStudent(Classes $class, int $rollNo): StudentProfile
         'gender' => Gender::Male,
         'status' => StudentStatus::Active,
     ]);
+}
+
+/**
+ * Runs the callback and returns every single-row primary key lookup it made
+ * on the given tables: the shape of a lazy-loaded belongsTo / morphTo.
+ *
+ * @param  list<string>  $tables
+ * @return list<string>
+ */
+function singleRowLookupsDuring(array $tables, Closure $callback): array
+{
+    DB::flushQueryLog();
+    DB::enableQueryLog();
+
+    try {
+        $callback();
+    } finally {
+        $queries = DB::getQueryLog();
+        DB::disableQueryLog();
+    }
+
+    $tablePattern = implode('|', array_map(fn (string $table): string => preg_quote($table, '/'), $tables));
+    $lookupPattern = '/from "('.$tablePattern.')" where "\1"\."id" = \?( and "\1"\."deleted_at" is null)? limit 1/';
+
+    return collect($queries)
+        ->pluck('query')
+        ->filter(fn (string $query): bool => (bool) preg_match($lookupPattern, $query))
+        ->values()
+        ->all();
 }

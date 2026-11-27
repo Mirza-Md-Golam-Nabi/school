@@ -76,6 +76,7 @@ class MarkAbsentForDateAction
                     ->whereNull('removed_at'))
                 ->whereDoesntHave('attendances', fn ($attendance) => $attendance->where('date', $day->toDateString()))
                 ->whereNotIn('id', $onLeave->get($type, []))
+                ->with('user')
                 ->chunkById(200, function (Collection $people) use ($day, &$marked, &$smsItems): void {
                     foreach ($people as $person) {
                         $attendance = $this->markAbsent($person, $day);
@@ -136,7 +137,7 @@ class MarkAbsentForDateAction
 
     private function markAbsent(Model $person, Carbon $day): Attendance
     {
-        return Attendance::create([
+        $attendance = new Attendance([
             'attendable_type' => $person->getMorphClass(),
             'attendable_id' => $person->getKey(),
             'date' => $day->toDateString(),
@@ -145,5 +146,11 @@ class MarkAbsentForDateAction
             'status' => AttendanceStatus::Absent,
             'source' => AttendanceSource::Device,
         ]);
+
+        // The activity log describes the person — it is already loaded.
+        $attendance->setRelation('attendable', $person);
+        $attendance->save();
+
+        return $attendance;
     }
 }

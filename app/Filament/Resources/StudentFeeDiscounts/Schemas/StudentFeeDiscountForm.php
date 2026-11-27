@@ -66,14 +66,14 @@ class StudentFeeDiscountForm
 
                         Select::make('fee_type_id')
                             ->label('Fee Type')
-                            ->options(FeeType::where('is_active', true)->pluck('name', 'id'))
+                            ->options(fn () => FeeType::where('is_active', true)->pluck('name', 'id'))
                             ->required()
                             ->native(false),
 
                         Select::make('discount_id')
                             ->label('Discount')
                             ->options(
-                                FeeDiscount::all()
+                                fn () => FeeDiscount::all()
                                     ->mapWithKeys(fn ($d) => [$d->id => $d->name.' ('.$d->discount_type->getLabel().': '.$d->discount_value.')'])
                             )
                             ->searchable()

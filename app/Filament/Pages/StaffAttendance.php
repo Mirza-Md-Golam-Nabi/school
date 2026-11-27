@@ -124,6 +124,10 @@ class StaffAttendance extends Page
 
             $attendance = $existing ?? new Attendance($keys);
 
+            // The activity log describes the person — hand it the already-loaded
+            // model instead of letting every row lazy-load it again.
+            $attendance->setRelation('attendable', $member);
+
             $attendance->fill([
                 'status' => $newStatus,
                 'source' => AttendanceSource::Manual,

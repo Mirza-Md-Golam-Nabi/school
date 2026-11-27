@@ -53,10 +53,10 @@ class StudentFeeDiscountsTable
             ->filters([
                 SelectFilter::make('fee_type_id')
                     ->label('Fee Type')
-                    ->options(FeeType::pluck('name', 'id')),
+                    ->options(fn () => FeeType::pluck('name', 'id')),
                 SelectFilter::make('discount_id')
                     ->label('Discount')
-                    ->options(FeeDiscount::pluck('name', 'id')),
+                    ->options(fn () => FeeDiscount::pluck('name', 'id')),
             ])
             ->recordActions([
                 EditAction::make()->iconButton(),

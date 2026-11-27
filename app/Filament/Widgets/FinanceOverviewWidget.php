@@ -2,12 +2,11 @@
 
 namespace App\Filament\Widgets;
 
+use App\Actions\CalculateFeeDuesAction;
 use App\Enums\TransactionType;
 use App\Filament\Resources\AccountTransactions\AccountTransactionResource;
 use App\Filament\Resources\StudentFeeInvoices\StudentFeeInvoiceResource;
 use App\Models\AccountTransaction;
-use App\Models\FeePayment;
-use App\Models\StudentFeeInvoice;
 use Filament\Widgets\Widget;
 
 class FinanceOverviewWidget extends Widget
@@ -39,18 +38,15 @@ class FinanceOverviewWidget extends Widget
         $income = (float) ($totals[TransactionType::Income->value] ?? 0);
         $expense = (float) ($totals[TransactionType::Expense->value] ?? 0);
 
-        $netDue = (float) StudentFeeInvoice::payable()->sum('net_amount');
-        $paid = (float) FeePayment::query()
-            ->whereIn('invoice_id', StudentFeeInvoice::payable()->select('id'))
-            ->sum('amount_paid');
+        $dues = app(CalculateFeeDuesAction::class)->handle();
 
         return [
             'monthLabel' => now()->format('F Y'),
             'income' => $income,
             'expense' => $expense,
             'balance' => $income - $expense,
-            'totalDue' => max(0, $netDue - $paid),
-            'totalDefaulted' => (float) StudentFeeInvoice::defaulted()->sum('default_amount'),
+            'totalDue' => $dues['total_due'],
+            'totalDefaulted' => $dues['total_defaulted'],
             'transactionsUrl' => AccountTransactionResource::getUrl('index', [
                 'from' => $start->toDateString(),
                 'until' => now()->toDateString(),

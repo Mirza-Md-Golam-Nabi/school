@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\StudentProfiles\Schemas;
 
+use App\Actions\BuildStudentFeeSummaryAction;
+use App\Actions\BuildStudentSubjectListAction;
 use App\Models\StudentProfile;
 use Filament\Infolists\Components\ImageEntry;
 use Filament\Infolists\Components\TextEntry;
@@ -156,7 +158,8 @@ class StudentProfileInfolist
         return [
             ViewEntry::make('fee_summary')
                 ->hiddenLabel()
-                ->view('filament.resources.student-profiles.infolists.fee-summary'),
+                ->view('filament.resources.student-profiles.infolists.fee-summary')
+                ->viewData(fn (StudentProfile $record): array => app(BuildStudentFeeSummaryAction::class)->handle($record)),
         ];
     }
 
@@ -168,7 +171,8 @@ class StudentProfileInfolist
         return [
             ViewEntry::make('subjects')
                 ->hiddenLabel()
-                ->view('filament.resources.student-profiles.infolists.subjects-list'),
+                ->view('filament.resources.student-profiles.infolists.subjects-list')
+                ->viewData(fn (StudentProfile $record): array => ['sections' => app(BuildStudentSubjectListAction::class)->handle($record)]),
         ];
     }
 }

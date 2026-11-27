@@ -65,10 +65,10 @@ class FeeStructuresTable
             ->filters([
                 SelectFilter::make('class_id')
                     ->label('Class')
-                    ->options(Classes::pluck('name', 'id')),
+                    ->options(fn () => Classes::pluck('name', 'id')),
                 SelectFilter::make('fee_type_id')
                     ->label('Fee Type')
-                    ->options(FeeType::pluck('name', 'id')),
+                    ->options(fn () => FeeType::pluck('name', 'id')),
                 SelectFilter::make('session_year')
                     ->label('Session Year')
                     ->multiple()

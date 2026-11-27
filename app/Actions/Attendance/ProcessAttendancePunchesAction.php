@@ -13,7 +13,9 @@ use App\Models\AttendanceDevice;
 use App\Models\AttendancePunch;
 use App\Models\AttendanceSetting;
 use App\Models\DeviceUser;
+use App\Models\StaffProfile;
 use App\Models\StudentProfile;
+use App\Models\TeacherProfile;
 use App\Notifications\StudentDevicePunchNotification;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
@@ -59,7 +61,11 @@ class ProcessAttendancePunchesAction
         }
 
         $deviceUsers = $device->deviceUsers()
-            ->with(['enrollable' => fn (MorphTo $morph) => $morph->morphWith([StudentProfile::class => ['user']])])
+            ->with(['enrollable' => fn (MorphTo $morph) => $morph->morphWith([
+                StudentProfile::class => ['user'],
+                TeacherProfile::class => ['user'],
+                StaffProfile::class => ['user'],
+            ])])
             ->whereIn('enroll_id', $pending->pluck('enroll_id')->unique())
             ->get()
             ->keyBy('enroll_id');
@@ -209,6 +215,9 @@ class ProcessAttendancePunchesAction
 
         $existing = Attendance::where($keys)->first();
         $attendance = $existing ?? new Attendance($keys);
+
+        // The activity log describes the person — it is already loaded.
+        $attendance->setRelation('attendable', $person);
 
         $isNewEntry = ! $existing || $existing->entry_time === null;
         $isNewExit = $exit !== null && ($existing?->exit_time === null);

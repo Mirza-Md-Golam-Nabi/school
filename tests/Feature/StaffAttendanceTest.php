@@ -12,6 +12,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Livewire\Livewire;
+use Spatie\Activitylog\Models\Activity;
 
 uses(RefreshDatabase::class);
 
@@ -125,4 +126,17 @@ it('renders the history page with a link back to the mark-attendance page', func
     $response->assertOk();
     $response->assertSee('Staff Attendance History');
     $response->assertSee('href="'.route('filament.admin.pages.staff-attendance').'"', false);
+});
+
+it('names every staff member in the activity log without loading them one by one', function () {
+    $this->actingAs(grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true])));
+
+    $staff = collect(range(1, 3))->map(fn () => createAttendanceTestStaff());
+    $page = Livewire::test(StaffAttendance::class)->set('presentIds', [(string) $staff->first()->id]);
+
+    $lookups = singleRowLookupsDuring(['users', 'staff_profiles'], fn () => $page->call('save'));
+
+    expect($lookups)->toBe([])
+        ->and(Activity::where('subject_type', Attendance::class)->latest('id')->first()->description)
+        ->toContain($staff->last()->user->name);
 });

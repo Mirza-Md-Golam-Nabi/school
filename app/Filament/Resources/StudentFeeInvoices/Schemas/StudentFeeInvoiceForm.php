@@ -66,7 +66,7 @@ class StudentFeeInvoiceForm
 
                         Select::make('fee_type_id')
                             ->label('Fee Type')
-                            ->options(FeeType::where('is_active', true)->pluck('name', 'id'))
+                            ->options(fn () => FeeType::where('is_active', true)->pluck('name', 'id'))
                             ->required()
                             ->live()
                             ->native(false)

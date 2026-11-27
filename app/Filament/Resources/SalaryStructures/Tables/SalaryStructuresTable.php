@@ -21,7 +21,7 @@ class SalaryStructuresTable
     public static function configure(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn (Builder $query): Builder => $query->withSum('components', 'amount'))
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query->withSum('components', 'amount')->with('profileable.user'))
             ->defaultSort(fn (Builder $query): Builder => self::orderByOpenEndedFirst($query))
             ->columns([
                 TextColumn::make('profileable.user.name')

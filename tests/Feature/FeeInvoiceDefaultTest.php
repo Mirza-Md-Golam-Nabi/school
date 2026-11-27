@@ -1,5 +1,7 @@
 <?php
 
+use App\Actions\BuildStudentFeeSummaryAction;
+use App\Actions\CalculateFeeDuesAction;
 use App\Actions\CalculateFeeReconciliationAction;
 use App\Actions\MarkFeeInvoicesAsDefaultAction;
 use App\Actions\ProcessFeePaymentAction;
@@ -13,6 +15,7 @@ use App\Enums\UserType;
 use App\Filament\Resources\StudentFeeInvoices\Pages\EditStudentFeeInvoice;
 use App\Filament\Resources\StudentFeeInvoices\Pages\ManageClassStudentFeeInvoices;
 use App\Filament\Resources\StudentProfiles\Pages\EditStudentProfile;
+use App\Filament\Resources\StudentProfiles\StudentProfileResource;
 use App\Models\AccountTransaction;
 use App\Models\Classes;
 use App\Models\FeePayment;
@@ -25,6 +28,7 @@ use App\Models\User;
 use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Spatie\Permission\PermissionRegistrar;
 
@@ -296,4 +300,81 @@ it('shows old defaulted dues on the student profile and recovers them on re-admi
 
     expect($invoice->fresh()->status)->toBe(InvoiceStatus::Unpaid)
         ->and($student->defaultedDueAmount())->toBe(0.0);
+});
+
+it('reconciles a single year with two queries', function () {
+    $student = defaultTestStudent();
+
+    $partial = defaultTestInvoice($student, 1);
+    defaultTestPay($partial, 300, 'RCPT-1');
+    $partial->update(['waiver_amount' => 100]);
+    defaultTestInvoice($student, 2, 500, InvoiceStatus::Waived);
+    defaultTestInvoice($student, 3, 700)->update(['year' => now()->year - 1]);
+
+    DB::flushQueryLog();
+    DB::enableQueryLog();
+    $thisYear = app(CalculateFeeReconciliationAction::class)->handle(now()->year);
+    $queryCount = count(DB::getQueryLog());
+    DB::disableQueryLog();
+
+    expect($thisYear)->toBe([
+        'billed' => 1600.0,
+        'collected' => 300.0,
+        'waived' => 600.0,
+        'defaulted' => 0.0,
+        'receivable' => 700.0,
+    ])->and($queryCount)->toBe(2)
+        ->and(app(CalculateFeeReconciliationAction::class)->handle())->toBe([
+            'billed' => 2300.0,
+            'collected' => 300.0,
+            'waived' => 600.0,
+            'defaulted' => 0.0,
+            'receivable' => 1400.0,
+        ]);
+});
+
+it('calculates the dashboard dues with two queries', function () {
+    $admin = defaultTestAdmin();
+    $student = defaultTestStudent();
+
+    defaultTestInvoice($student, 1);
+    defaultTestPay(defaultTestInvoice($student, 2), 250, 'RCPT-1');
+    defaultTestPay(defaultTestInvoice($student, 3), 1000, 'RCPT-2');
+    defaultTestInvoice($student, 4, 500, InvoiceStatus::Waived);
+    $toDefault = defaultTestInvoice($student, 5);
+    app(MarkFeeInvoicesAsDefaultAction::class)->handle([$toDefault], $admin->id, 'test');
+
+    DB::flushQueryLog();
+    DB::enableQueryLog();
+    $dues = app(CalculateFeeDuesAction::class)->handle();
+    $queryCount = count(DB::getQueryLog());
+    DB::disableQueryLog();
+
+    expect($dues)->toBe([
+        'payable_count' => 2,
+        'total_due' => 1750.0,
+        'total_defaulted' => 1000.0,
+    ])->and($queryCount)->toBe(2);
+});
+
+it('summarises a student\'s fees on the profile view page', function () {
+    $student = defaultTestStudent();
+
+    defaultTestPay(defaultTestInvoice($student, 1), 1000, 'RCPT-FULL');
+    defaultTestPay(defaultTestInvoice($student, 2, 800), 300, 'RCPT-PART');
+    defaultTestInvoice($student, 3, 400);
+
+    $summary = app(BuildStudentFeeSummaryAction::class)->handle($student);
+
+    expect($summary['totalPaid'])->toBe(1300.0)
+        ->and($summary['totalDue'])->toBe(900.0)
+        ->and($summary['pendingInvoiceCount'])->toBe(2)
+        ->and($summary['recentPayments']->pluck('receipt_no')->sort()->values()->all())->toBe(['RCPT-FULL', 'RCPT-PART']);
+
+    $this->actingAs(grantSuperAdmin(defaultTestAdmin()))
+        ->get(StudentProfileResource::getUrl('view', ['record' => $student]))
+        ->assertOk()
+        ->assertSee('৳1,300.00')
+        ->assertSee('৳900.00')
+        ->assertSee('RCPT-PART');
 });

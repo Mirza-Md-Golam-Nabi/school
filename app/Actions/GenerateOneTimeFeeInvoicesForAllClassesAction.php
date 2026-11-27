@@ -34,7 +34,9 @@ class GenerateOneTimeFeeInvoicesForAllClassesAction
             ->where('session_year', $year)
             ->where('is_active', true)
             ->whereHas('class', fn ($q) => $q->active())
-            ->get();
+            ->with('class')
+            ->get()
+            ->each(fn (FeeStructure $structure) => $structure->setRelation('feeType', $feeType));
 
         $generated = 0;
         $skipped = 0;

@@ -32,7 +32,7 @@ class ClassesForm
                     ->default(0),
                 Select::make('class_teacher_id')
                     ->label('Class Teacher')
-                    ->options(TeacherProfile::dropdownOptions())
+                    ->options(fn () => TeacherProfile::dropdownOptions())
                     ->searchable()
                     ->helperText('This teacher is authorized to mark attendance for this class. If another teacher marks it instead, admins and this teacher are notified.'),
                 Radio::make('has_section')

@@ -22,6 +22,7 @@ use App\Notifications\StudentDevicePunchNotification;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
+use Spatie\Activitylog\Models\Activity;
 
 uses(RefreshDatabase::class);
 
@@ -398,4 +399,24 @@ it('does not send student notifications for teachers', function () {
     punchRuleProcess($device);
 
     Notification::assertNothingSent();
+});
+
+it('names every punching teacher and staff member in the activity log without loading them one by one', function () {
+    $device = AttendanceDevice::factory()->create();
+    $people = TeacherProfile::factory()->count(2)->create()->concat(StaffProfile::factory()->count(2)->create());
+
+    $people->each(function (Model $person, int $i) use ($device): void {
+        punchRuleEnroll($device, $person, (string) (5000 + $i));
+        punchRulePunch($device, '2026-09-28 07:45:00', (string) (5000 + $i));
+    });
+
+    $lookups = singleRowLookupsDuring(
+        ['users', 'teacher_profiles', 'staff_profiles'],
+        fn () => punchRuleProcess($device),
+    );
+
+    expect($lookups)->toBe([])
+        ->and(Attendance::count())->toBe(4)
+        ->and(Activity::where('subject_type', Attendance::class)->latest('id')->first()->description)
+        ->toContain($people->last()->user->name);
 });

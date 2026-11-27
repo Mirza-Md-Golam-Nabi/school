@@ -45,7 +45,8 @@ class GenerateAdmitCardsForExamTypeAction
         $skipped = 0;
         $classesWithoutRoutine = [];
 
-        $exams = Exam::where('exam_type_id', $examType->id)->with('class:id,name')->get();
+        $exams = Exam::where('exam_type_id', $examType->id)->with('class:id,name')->get()
+            ->each(fn (Exam $exam) => $exam->setRelation('examType', $examType));
 
         foreach ($exams as $exam) {
             $result = app(GenerateAdmitCardsForExamAction::class)->handle($exam, $generatedBy, $pageSize, $design, $routineLanguage, $studentInfoLanguage);

@@ -18,20 +18,26 @@
 
 **লক্ষ্য করুন:** class card পেজগুলোতে এখন প্রতিটি Livewire request-এ (যেমন header action-এর modal খোলা) ২টি query চলে (classes + একটি grouped query)। আগে এখানে ১টি query চলত, কিন্তু card-এর হিসাব হারিয়ে যেত। এটা ইচ্ছাকৃত।
 
-## ধাপ ২: পরে করলেও চলবে (code)
+## ধাপ ২: code-এর ছোট কাজ (২০২৬-১১-২৬)
 
-| # | কাজ | কেন পরে | আনুমানিক কাজ |
-|---|---|---|---|
-| L1 | `GenerateOneTimeFeeInvoicesAction`-এর caller-এ `feeType` ও `class` eager load | মাসে কয়েকবার চলে, প্রতিবার মাত্র ২টি query | ছোট |
-| L2 | `Exam::displayLabel()`-এর যেসব caller eager load ছাড়া ডাকে, সেগুলো খুঁজে ঠিক করা | প্রতি জায়গায় ১-২টি query | ছোট |
-| L3 | `FeePayment` deleted event ও `Attendance` activity label-এ bulk ক্ষেত্রে `load()` | শুধু bulk delete-এ প্রভাব পড়ে | ছোট |
-| L4 | প্রায় ১৫টি `->options(Model::pluck(...))` জায়গায় `fn () =>` closure দেওয়া | ছোট table, প্রতিটি query দ্রুত | ছোট, অনেক ফাইল |
-| L5 | `CalculateFeeReconciliationAction`-এর প্রায় ১০টি `SUM` একটি conditional aggregate query-তে আনা | R1-এর পর polling না থাকায় এখন শুধু পেজ load-এ চলে | মাঝারি, হিসাব মেলাতে test জরুরি |
-| L6 | `PendingAlertsWidget` ও `FinanceOverviewWidget`-এর একই due হিসাব শেয়ার করা | dashboard load-এ ২-৩টি বাড়তি query | ছোট |
-| L7 | `Model::preventLazyLoading(! app()->isProduction())` স্থায়ীভাবে চালু করা | L1–L3 ও compiled view-এর অজানা ২-৩টি জায়গা আগে ঠিক না করলে local-এ exception আসবে | ছোট, L1–L3-এর পরে |
-| L8 | Panel-গুলোর `databaseNotifications()` polling ৩০ থেকে ৬০ সেকেন্ড করা | সিদ্ধান্ত লাগবে: নোটিফিকেশন কত দ্রুত দেখাতে হবে | এক লাইন |
-| L9 | StudentProfilesTable-এ `ui-avatars.com`-এর বদলে local avatar | external dependency, ডিজাইনের সিদ্ধান্ত লাগবে | ছোট |
-| L10 | `fee-summary.blade.php` ও `subjects-list.blade.php`-এর query PHP-তে সরানো | একক record-এর পেজ, প্রভাব কম | ছোট |
+| # | কাজ | অবস্থা | কী করা হয়েছে | Test |
+|---|---|---|---|---|
+| L1 | One-time fee invoice তৈরিতে `feeType` ও `class` eager load | ✅ | `generateWithoutSms()`-এ `loadMissing(['feeType', 'class'])`। সব class-এর জন্য চালালে `with('class')`, আর আগে থেকে load করা fee type `setRelation` দিয়ে দেওয়া হয়। ৩টি class-এ lookup ৭টি থেকে ১টি। | `GenerateOneTimeFeeInvoicesForAllClassesActionTest`: "does not look up the fee type or class again…" |
+| L2 | `Exam::displayLabel()`-এর caller | ✅ যাচাই, পরিবর্তন লাগেনি | সব caller (merit ranking, admit card, marksheet, question bank, result notification) একটি exam-এর জন্য একবার ডাকে। Question bank-এ আগেই eager load আছে। কোনো loop-এ N+1 নেই। | — |
+| L3 | Attendance activity log-এর নামের জন্য প্রতি row-এ query | ✅ | Teacher ও Staff attendance পেজ, auto-absent (`MarkAbsentForDateAction`) আর device punch (`ProcessAttendancePunchesAction`)-এ আগে থেকে load করা ব্যক্তিকে `setRelation('attendable', …)` দিয়ে দেওয়া হয়, আর `user` eager load হয়। আগে প্রতি ব্যক্তির জন্য ২টি বাড়তি query হতো। `FeePayment`-এর deleted event বদলানো হয়নি: প্রতিটি payment-এ এমনিতেই ৫-৬টি দরকারি query হয়, `invoice` load তার মাত্র একটি, আর এটা শুধু bulk delete-এ ঘটে। | `MarkAbsentForDateActionTest`, `ProcessAttendancePunchesActionTest`, `StaffAttendanceTest`: "…without loading them one by one" (নতুন helper `singleRowLookupsDuring()`, `tests/Pest.php`-এ) |
+| L4 | Dropdown-এর `->options(Model::…)` closure-এ | ✅ | ১৩টি ফাইলে ১৯টি জায়গায় `fn () =>` দেওয়া হয়েছে। এখন query শুধু তখনই চলে, যখন field বা filter আসলে render হয়। | বিদ্যমান resource test |
+| L5 | `CalculateFeeReconciliationAction` | ✅ | ৯টি query থেকে ২টি: invoice-এর যোগফল status অনুযায়ী `groupBy`, আর পরিশোধ invoice-এর status-এর সাথে `joinSub` করে। | `FeeInvoiceDefaultTest`: "reconciles a single year with two queries" (বছর filter, waiver, আংশিক পরিশোধ) + পুরনো reconciliation test |
+| L6 | Dashboard-এর due হিসাব শেয়ার | ✅ | নতুন `CalculateFeeDuesAction`, যেখানে সংখ্যা, বকেয়া আর default হওয়া অংশ একটি conditional aggregate-এ আসে। `PendingAlertsWidget` ও `FinanceOverviewWidget` দুটোই এটা ব্যবহার করে। dashboard-এ ৬টি query থেকে ৪টি। | `FeeInvoiceDefaultTest`: "calculates the dashboard dues with two queries" |
+| L7 | `Model::preventLazyLoading()` স্থায়ীভাবে | ✅ | `AppServiceProvider`-এ production ছাড়া অন্য সব জায়গায় চালু, তাই local আর test-এ কোনো lazy load হলে সাথে সাথে exception আসে। চালু করার পর পুরো suite-এ নতুন ৫টি N+1 ধরা পড়েছিল, সবগুলো ঠিক করা হয়েছে: exam type ধরে admit card ও marksheet তৈরি (`examType`/`class`), leave application table (`applicant.user`), salary structure table (`profileable.user`)। | বিদ্যমান test (lazy load হলে fail করে) |
+| L8 | `databaseNotifications()` polling ৩০ থেকে ৬০ সেকেন্ড | ⏸ সিদ্ধান্ত লাগবে | নোটিফিকেশন কত দ্রুত দেখাতে হবে, সেটা আপনার সিদ্ধান্ত। | — |
+| L9 | `ui-avatars.com`-এর বদলে local avatar | ⏸ সিদ্ধান্ত লাগবে | ডিজাইনের সিদ্ধান্ত লাগবে। | — |
+| L10 | Profile পেজের fee summary ও subject list-এর query Blade থেকে PHP-তে | ✅ | নতুন `BuildStudentFeeSummaryAction` ও `BuildStudentSubjectListAction`, `ViewEntry::viewData()` দিয়ে view-এ পাঠানো হয়। বকেয়ার হিসাব এখন প্রতিটি invoice-এর সব payment load না করে `withSum` দিয়ে হয়। | `FeeInvoiceDefaultTest`: "summarises a student's fees…", `ViewStudentProfileSubjectsTabTest` |
+
+**যাচাই:** lazy loading বন্ধ রেখে পুরো test suite চালানো হয়েছে, ১৪৯০টি test-এর সবগুলো pass।
+
+**বাকি:** শুধু L8 আর L9। দুটোর জন্যই আপনার সিদ্ধান্ত লাগবে।
+
+**খেয়াল রাখুন (L7-এর পর):** local-এ এমন কোনো পেজ, যেটা test-এ cover হয়নি, সেখানে যদি "Attempted to lazy load … but lazy loading is disabled" error আসে, তার মানে ওই জায়গায় N+1 আছে। Error-কে বন্ধ করবেন না। query-তে `with()` যোগ করুন, অথবা আগে থেকে load করা model `setRelation()` দিয়ে দিন। Production-এ এই চেক বন্ধ থাকে, তাই সেখানে কোনো ব্যবহারকারী এই error দেখবেন না।
 
 ## ধাপ ৩: Infrastructure / deploy (সিদ্ধান্ত লাগবে, code নয়)
 

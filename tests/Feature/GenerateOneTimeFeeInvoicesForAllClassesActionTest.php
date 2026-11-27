@@ -134,3 +134,31 @@ it('refuses to generate for a monthly fee type', function () {
 
     app(GenerateOneTimeFeeInvoicesForAllClassesAction::class)->handle($feeType->id, now()->year);
 })->throws(InvalidArgumentException::class);
+
+it('does not look up the fee type or class again for every class', function () {
+    Notification::fake();
+
+    $feeType = FeeType::create(['name' => 'Admission Fee', 'is_monthly' => false, 'is_active' => true]);
+
+    foreach (range(1, 3) as $order) {
+        $class = Classes::create(['name' => "Class {$order}", 'order' => $order, 'is_active' => true]);
+        FeeStructure::create([
+            'class_id' => $class->id,
+            'fee_type_id' => $feeType->id,
+            'amount' => 1500,
+            'due_day' => 10,
+            'session_year' => now()->year,
+            'is_active' => true,
+        ]);
+        createAllClassesOneTimeInvoiceTestStudent($class->id);
+    }
+
+    $lookups = singleRowLookupsDuring(
+        ['fee_types', 'classes'],
+        fn () => expect(app(GenerateOneTimeFeeInvoicesForAllClassesAction::class)->handle($feeType->id, now()->year))
+            ->toBe(['generated' => 3, 'skipped' => 0]),
+    );
+
+    // FeeType::findOrFail() at the start is the only one.
+    expect($lookups)->toHaveCount(1);
+});

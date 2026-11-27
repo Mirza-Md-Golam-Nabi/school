@@ -50,10 +50,10 @@ class LateFeeRulesTable
             ->filters([
                 SelectFilter::make('class_id')
                     ->label('Class')
-                    ->options(Classes::pluck('name', 'id')),
+                    ->options(fn () => Classes::pluck('name', 'id')),
                 SelectFilter::make('fee_type_id')
                     ->label('Fee Type')
-                    ->options(FeeType::pluck('name', 'id')),
+                    ->options(fn () => FeeType::pluck('name', 'id')),
                 TernaryFilter::make('is_active'),
             ])
             ->recordActions([

@@ -1,24 +1,3 @@
-@php
-    use App\Enums\InvoiceStatus;
-
-    $student = $getRecord();
-
-    $pendingInvoices = $student->feeInvoices()
-        ->whereIn('status', [InvoiceStatus::Unpaid, InvoiceStatus::Partial])
-        ->with('payments')
-        ->get();
-
-    $totalDue = $pendingInvoices->sum(fn ($invoice) => max(0, (float) $invoice->net_amount - $invoice->payments->sum('amount_paid')));
-
-    $totalPaid = (float) $student->feePayments()->sum('amount_paid');
-
-    $recentPayments = $student->feePayments()
-        ->with('invoice.feeType')
-        ->latest('payment_date')
-        ->take(5)
-        ->get();
-@endphp
-
 <div class="space-y-4">
     <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <div class="rounded-lg border border-gray-100 p-3 dark:border-white/10 sm:p-4">
@@ -42,7 +21,7 @@
         <div class="rounded-lg border border-gray-100 p-3 dark:border-white/10 sm:p-4">
             <div class="text-[11px] font-medium text-gray-500 dark:text-gray-400 sm:text-xs">Pending Invoices</div>
             <div class="mt-1 text-base font-bold text-gray-800 dark:text-gray-200 sm:text-lg">
-                {{ $pendingInvoices->count() }}
+                {{ $pendingInvoiceCount }}
             </div>
         </div>
     </div>
