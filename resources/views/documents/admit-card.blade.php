@@ -111,14 +111,32 @@
             width: 130px;
         }
 
+        table.body {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        table.body td.photo-cell {
+            width: 92px;
+            vertical-align: top;
+            text-align: right;
+        }
+
         .photo {
-            position: absolute;
-            top: 70px;
-            right: 16px;
-            width: 80px;
-            height: 100px;
             border: 1px solid #1a1a1a;
-            object-fit: cover;
+            padding: 2px;
+        }
+
+        table.photo-placeholder {
+            border-collapse: collapse;
+        }
+
+        table.photo-placeholder td {
+            border: 1px dashed #777;
+            color: #777;
+            font-size: 10px;
+            text-align: center;
+            vertical-align: middle;
         }
 
         table.subjects {
@@ -176,6 +194,9 @@
 
         <div class="title">{{ $info['title'] }}</div>
 
+        <table class="body">
+            <tr>
+                <td style="vertical-align: top; padding: 0;">
         <table class="info">
             <tr>
                 <td class="label">{{ $label['Student ID'] }}</td>
@@ -216,6 +237,21 @@
             <tr>
                 <td class="label">{{ $label['Exam Period'] }}</td>
                 <td colspan="3">{{ $info['period'] }}</td>
+            </tr>
+        </table>
+                </td>
+                <td class="photo-cell">
+                    @if ($studentPhotoSrc)
+                        <img class="photo" src="{{ $studentPhotoSrc }}" alt="Photo" width="80" height="96" style="width: 80px; height: 96px;">
+                    @else
+                        {{-- A table cell, not a div: mPDF ignores a div's size inside a table. --}}
+                        <table class="photo-placeholder" align="right">
+                            <tr>
+                                <td style="width: 80px; height: 96px;">Photo</td>
+                            </tr>
+                        </table>
+                    @endif
+                </td>
             </tr>
         </table>
 

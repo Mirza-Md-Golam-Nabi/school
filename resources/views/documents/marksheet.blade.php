@@ -27,11 +27,12 @@
 
     $imageSrc = fn (?string $path): ?string => PdfImage::path($path);
 
-    // The verification QR sits right of the school name; an equal empty cell
-    // on the left keeps the name centred on the page.
+    // The logo sits left of the school name and the verification QR right of
+    // it, in side cells of equal width, so the name stays centred on the page.
     $verificationUrl = Marksheet::showsQrCode() ? $marksheet->verificationUrl() : null;
 
     $logoSrc = $useLogo ? $imageSrc(SchoolSetting::get('school_logo')) : null;
+    $studentPhotoSrc = $imageSrc($student->photo);
     $sealSrc = $imageSrc(SchoolSetting::get('school_seal'));
     $signatureSrc = $imageSrc(SchoolSetting::get('principal_signature'));
     $classTeacherSignatureSrc = $imageSrc($exam->class?->classTeacher?->signature);
@@ -94,8 +95,7 @@
         }
 
         .header img.logo {
-            height: 50px;
-            margin-bottom: 4px;
+            height: 60px;
         }
 
         table.header-layout {
@@ -180,6 +180,17 @@
         table.info td.label {
             font-weight: bold;
             width: 110px;
+        }
+
+        td.photo-cell {
+            width: 84px;
+            vertical-align: top;
+            text-align: right;
+        }
+
+        .photo {
+            border: 1px solid #1a1a1a;
+            padding: 2px;
         }
 
         table.grade-scale {
@@ -322,30 +333,29 @@
 
     <div class="sheet">
         <div class="header">
-            @if ($verificationUrl)
-                <table class="header-layout">
-                    <tr>
-                        <td class="header-side"></td>
-                        <td>
-            @endif
-            @if ($logoSrc)
-                <img class="logo" src="{{ $logoSrc }}" alt="Logo">
-            @endif
-            <div class="school-name">{{ $schoolName }}</div>
-            @if ($schoolEiinLine)
-                <div class="school-address">{{ $schoolEiinLine }}</div>
-            @endif
-            @if ($schoolAddressLine)
-                <div class="school-address">{{ $schoolAddressLine }}</div>
-            @endif
-            @if ($verificationUrl)
-                        </td>
-                        <td class="header-side">
+            <table class="header-layout">
+                <tr>
+                    <td class="header-side">
+                        @if ($logoSrc)
+                            <img class="logo" src="{{ $logoSrc }}" alt="Logo">
+                        @endif
+                    </td>
+                    <td>
+                        <div class="school-name">{{ $schoolName }}</div>
+                        @if ($schoolEiinLine)
+                            <div class="school-address">{{ $schoolEiinLine }}</div>
+                        @endif
+                        @if ($schoolAddressLine)
+                            <div class="school-address">{{ $schoolAddressLine }}</div>
+                        @endif
+                    </td>
+                    <td class="header-side">
+                        @if ($verificationUrl)
                             @include('documents.partials.marksheet-qr', ['verificationUrl' => $verificationUrl, 'marksheet' => $marksheet])
-                        </td>
-                    </tr>
-                </table>
-            @endif
+                        @endif
+                    </td>
+                </tr>
+            </table>
         </div>
 
         <div class="title">{{ __('Marksheet') }} - {{ $exam->examType?->name }} {{ BengaliNumber::localize($exam->session_label) }}</div>
@@ -353,6 +363,10 @@
         <table class="top-section">
             <tr>
                 <td class="info-col">
+                    {{-- The student's photo, when the school uploaded one, beside their details. --}}
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <tr>
+                            <td style="vertical-align: top; padding: 0;">
                     <table class="info">
                         <tr>
                             <td class="label">{{ __('Student ID') }}</td>
@@ -385,6 +399,14 @@
                         <tr>
                             <td class="label">{{ __('Session') }}</td>
                             <td colspan="3">{{ BengaliNumber::localize($student->session_label) }}</td>
+                        </tr>
+                    </table>
+                            </td>
+                            @if ($studentPhotoSrc)
+                                <td class="photo-cell">
+                                    <img class="photo" src="{{ $studentPhotoSrc }}" alt="Photo" width="74" height="88" style="width: 74px; height: 88px;">
+                                </td>
+                            @endif
                         </tr>
                     </table>
                 </td>
