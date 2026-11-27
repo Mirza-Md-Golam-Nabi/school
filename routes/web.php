@@ -31,6 +31,7 @@ use App\Http\Controllers\VerifyFeeReceiptController;
 use App\Http\Controllers\VerifyIdCardController;
 use App\Http\Controllers\VerifyMarksheetController;
 use App\Models\SchoolSetting;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 
@@ -83,6 +84,12 @@ Route::get('/verify/receipt/{code}', VerifyFeeReceiptController::class)
     ->where('code', '[A-Za-z0-9-]{1,20}')
     ->middleware('throttle:30,1')
     ->name('fee-receipts.verify');
+
+// The short receipt link sent in the fee payment SMS.
+Route::get('/r/{code}', fn (string $code): RedirectResponse => redirect()->route('fee-receipts.verify', ['code' => $code]))
+    ->where('code', '[A-Za-z0-9]{1,20}')
+    ->middleware('throttle:30,1')
+    ->name('fee-receipts.short');
 
 Route::get('/email/verify/{id}/{hash}', [EmailVerificationController::class, 'verify'])
     ->middleware('signed')

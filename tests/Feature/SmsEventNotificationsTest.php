@@ -8,11 +8,13 @@ use App\Enums\InvoiceStatus;
 use App\Enums\NoticeTargetType;
 use App\Enums\PaymentMethod;
 use App\Enums\SmsEvent;
+use App\Enums\SmsLanguage;
 use App\Enums\SmsStatus;
 use App\Enums\StudentStatus;
 use App\Enums\UserType;
 use App\Jobs\PublishNoticeJob;
 use App\Models\Classes;
+use App\Models\FeePayment;
 use App\Models\FeeStructure;
 use App\Models\FeeType;
 use App\Models\Notice;
@@ -192,7 +194,37 @@ it('sends one payment SMS per receipt however many invoices it pays', function (
 
     expect(SmsLog::sole())
         ->event->toBe(SmsEvent::FeePaymentReceived)
-        ->message->toContain('600 টাকা')->toContain('RCPT-77');
+        ->message->toContain('600 টাকা')
+        ->message->toContain(FeePayment::first()->shortVerificationUrl());
+});
+
+it('leaves the receipt link out when a custom template has no {receipt_link}', function () {
+    enableSmsEvents([SmsEvent::FeePaymentReceived]);
+    SmsSetting::current()->forceFill(['templates' => [SmsEvent::FeePaymentReceived->value => '{name}: {amount} taka paid, receipt {receipt_no}']])->save();
+    $student = createSmsTestStudent(null, '01711111111');
+    $invoice = StudentFeeInvoice::create([
+        'student_id' => $student->id,
+        'fee_type_id' => FeeType::create(['name' => 'Tuition Fee', 'is_monthly' => true, 'is_active' => true])->id,
+        'month' => 1,
+        'year' => now()->year,
+        'original_amount' => 300,
+        'discount_amount' => 0,
+        'fine_amount' => 0,
+        'waiver_amount' => 0,
+        'net_amount' => 300,
+        'status' => InvoiceStatus::Unpaid,
+    ]);
+
+    app(ProcessFeePaymentAction::class)->handle([
+        'invoice_ids' => [$invoice->id],
+        'amount_paid' => 300,
+        'receipt_no' => 'RCPT-78',
+        'student_id' => $student->id,
+        'payment_method' => PaymentMethod::Cash,
+        'payment_date' => now()->toDateString(),
+    ]);
+
+    expect(SmsLog::sole()->message)->toContain('RCPT-78')->not->toContain('/r/');
 });
 
 it('texts the guardians of a class when a notice with SMS publishes', function () {
@@ -238,4 +270,37 @@ it('does not text a notice that did not ask for SMS', function () {
     (new PublishNoticeJob($notice->id))->handle();
 
     expect(SmsLog::count())->toBe(0);
+});
+
+it('texts the payment in English with the receipt link when the SMS language is English', function () {
+    enableSmsEvents([SmsEvent::FeePaymentReceived]);
+    SmsSetting::current()->forceFill(['language' => SmsLanguage::English])->save();
+    $student = createSmsTestStudent(null, '01711111111');
+    $invoice = StudentFeeInvoice::create([
+        'student_id' => $student->id,
+        'fee_type_id' => FeeType::create(['name' => 'Tuition Fee', 'is_monthly' => true, 'is_active' => true])->id,
+        'month' => 1,
+        'year' => now()->year,
+        'original_amount' => 300,
+        'discount_amount' => 0,
+        'fine_amount' => 0,
+        'waiver_amount' => 0,
+        'net_amount' => 300,
+        'status' => InvoiceStatus::Unpaid,
+    ]);
+
+    app(ProcessFeePaymentAction::class)->handle([
+        'invoice_ids' => [$invoice->id],
+        'amount_paid' => 300,
+        'receipt_no' => 'RCPT-79',
+        'student_id' => $student->id,
+        'payment_method' => PaymentMethod::Cash,
+        'payment_date' => now()->toDateString(),
+    ]);
+
+    $sms = SmsLog::sole();
+
+    expect($sms->message)->toStartWith('Dear guardian, fee of Tk 300 for Rahim')
+        ->toContain(FeePayment::first()->shortVerificationUrl())
+        ->and($sms->parts)->toBe(1);
 });

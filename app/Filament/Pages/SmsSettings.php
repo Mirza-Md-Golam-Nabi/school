@@ -4,12 +4,14 @@ namespace App\Filament\Pages;
 
 use App\Enums\Permissions\SmsPermission;
 use App\Enums\SmsEvent;
+use App\Enums\SmsLanguage;
 use App\Filament\Concerns\HasSmsPermission;
 use App\Filament\Resources\SmsRechargeRequests\SmsRechargeRequestResource;
 use App\Models\SmsSetting;
 use App\Support\Sms\SmsSegments;
 use BackedEnum;
 use Filament\Actions\Action;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Toggle;
 use Filament\Infolists\Components\TextEntry;
@@ -20,6 +22,7 @@ use Filament\Schemas\Components\Form;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use UnitEnum;
@@ -58,6 +61,7 @@ class SmsSettings extends Page
 
         $this->form->fill([
             'is_enabled' => $setting->is_enabled,
+            'language' => $setting->smsLanguage()->value,
             'events' => collect(SmsEvent::cases())->mapWithKeys(fn (SmsEvent $event): array => [$event->value => in_array($event->value, $enabled, true)])->all(),
             'templates' => collect(SmsEvent::cases())->mapWithKeys(fn (SmsEvent $event): array => [$event->value => $setting->template($event)])->all(),
         ]);
@@ -106,6 +110,14 @@ class SmsSettings extends Page
                             Toggle::make('is_enabled')
                                 ->label('Enable SMS')
                                 ->helperText('বন্ধ থাকলে কোনো ঘটনাতেই SMS যাবে না।'),
+                            Select::make('language')
+                                ->label('SMS Language')
+                                ->options(SmsLanguage::class)
+                                ->required()
+                                ->native(false)
+                                ->live()
+                                ->afterStateUpdated(fn (Set $set, Get $get, mixed $old, mixed $state) => $this->switchDefaultTemplates($set, $get, $old, $state))
+                                ->helperText('ডিফল্ট টেমপ্লেট এই ভাষায় থাকবে। ভাষা বদলালে যে টেমপ্লেট আপনি নিজে বদলাননি সেগুলো নতুন ভাষায় বদলে যাবে; নিজে লেখা টেমপ্লেট যেমন আছে তেমনই থাকবে। ইংরেজিতে ১ SMS = ১৬০ অক্ষর, বাংলায় ৭০ — ইংরেজিতে খরচ কম।'),
                         ]),
 
                     Section::make('Events & Templates')
@@ -153,10 +165,14 @@ class SmsSettings extends Page
         $state = $this->form->getState();
         $setting = SmsSetting::current();
         $templates = $setting->templates ?? [];
+        $language = self::toSmsLanguage($state['language'] ?? null);
 
         foreach (SmsEvent::cases() as $event) {
             if (array_key_exists($event->value, $state['templates'] ?? [])) {
-                $templates[$event->value] = trim((string) $state['templates'][$event->value]);
+                $template = trim((string) $state['templates'][$event->value]);
+
+                // An untouched default is stored empty, so it keeps following the default when that changes.
+                $templates[$event->value] = $template === $event->defaultTemplate($language) ? '' : $template;
             }
         }
 
@@ -164,6 +180,7 @@ class SmsSettings extends Page
             'is_enabled' => (bool) ($state['is_enabled'] ?? false),
             'enabled_events' => collect($state['events'] ?? [])->filter()->keys()->values()->all(),
             'templates' => $templates,
+            'language' => $language,
         ]);
 
         $setting->save();
@@ -172,5 +189,32 @@ class SmsSettings extends Page
             ->success()
             ->title('SMS settings saved')
             ->send();
+    }
+
+    /**
+     * When the SMS language changes, every template still showing the old
+     * language's default switches to the new language's default; templates
+     * the school wrote itself are kept.
+     */
+    private function switchDefaultTemplates(Set $set, Get $get, mixed $old, mixed $state): void
+    {
+        $previousLanguage = self::toSmsLanguage($old);
+        $language = self::toSmsLanguage($state);
+
+        foreach (SmsEvent::cases() as $event) {
+            $template = trim((string) $get("templates.{$event->value}"));
+
+            if ($template === '' || $template === $event->defaultTemplate($previousLanguage)) {
+                $set("templates.{$event->value}", $event->defaultTemplate($language));
+            }
+        }
+    }
+
+    /**
+     * The Select may hand over the enum or its raw value.
+     */
+    private static function toSmsLanguage(mixed $language): SmsLanguage
+    {
+        return $language instanceof SmsLanguage ? $language : (SmsLanguage::tryFrom((string) $language) ?? SmsLanguage::Bangla);
     }
 }

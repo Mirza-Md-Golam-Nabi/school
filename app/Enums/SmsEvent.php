@@ -53,15 +53,32 @@ enum SmsEvent: string implements HasLabel
         };
     }
 
-    public function defaultTemplate(): string
+    /**
+     * The template used while the school hasn't written its own, in the
+     * school's SMS language. English defaults stay plain ASCII so they bill
+     * at 160 characters per part.
+     */
+    public function defaultTemplate(SmsLanguage $language = SmsLanguage::Bangla): string
     {
+        if ($language === SmsLanguage::English) {
+            return match ($this) {
+                self::AttendancePresent => 'Dear guardian, {name} is present at school on {date}. - {school}',
+                self::AttendanceAbsent => 'Dear guardian, {name} is absent from school on {date}. - {school}',
+                self::DeviceEntry => 'Dear guardian, {name} entered school at {time}. - {school}',
+                self::DeviceExit => 'Dear guardian, {name} left school at {time}. - {school}',
+                self::FeeInvoiceGenerated => 'Dear guardian, fee of Tk {amount} for {fee_types} is due for {name} (ID: {student_id}). - {school}',
+                self::FeePaymentReceived => 'Dear guardian, fee of Tk {amount} for {name} (ID: {student_id}) received. Receipt: {receipt_link} - {school}',
+                self::Notice => '{school}: New notice - {title}',
+            };
+        }
+
         return match ($this) {
             self::AttendancePresent => 'প্রিয় অভিভাবক, {name} {date} তারিখে স্কুলে উপস্থিত। - {school}',
             self::AttendanceAbsent => 'প্রিয় অভিভাবক, {name} {date} তারিখে স্কুলে অনুপস্থিত। - {school}',
             self::DeviceEntry => 'প্রিয় অভিভাবক, {name} {time} সময়ে স্কুলে প্রবেশ করেছে। - {school}',
             self::DeviceExit => 'প্রিয় অভিভাবক, {name} {time} সময়ে স্কুল থেকে বের হয়েছে। - {school}',
             self::FeeInvoiceGenerated => 'প্রিয় অভিভাবক, {name} (ID: {student_id})-এর {fee_types} বাবদ {amount} টাকা ফি ধার্য হয়েছে। - {school}',
-            self::FeePaymentReceived => 'প্রিয় অভিভাবক, {name} (ID: {student_id})-এর {amount} টাকা ফি গ্রহণ করা হয়েছে। রসিদ নং: {receipt_no} - {school}',
+            self::FeePaymentReceived => '{name} (ID: {student_id})-এর {amount} টাকা ফি গ্রহণ করা হয়েছে। রসিদ: {receipt_link} - {school}',
             self::Notice => '{school}: নতুন নোটিশ - {title}',
         };
     }
@@ -85,7 +102,7 @@ enum SmsEvent: string implements HasLabel
             self::AttendancePresent, self::AttendanceAbsent => $student + ['{class}' => 'ক্লাস', '{date}' => 'তারিখ'] + $school,
             self::DeviceEntry, self::DeviceExit => $student + ['{class}' => 'ক্লাস', '{date}' => 'তারিখ', '{time}' => 'সময়'] + $school,
             self::FeeInvoiceGenerated => $student + ['{amount}' => 'মোট টাকা', '{fee_types}' => 'ফি-এর ধরন'] + $school,
-            self::FeePaymentReceived => $student + ['{amount}' => 'পরিশোধিত টাকা', '{receipt_no}' => 'রসিদ নং', '{date}' => 'তারিখ'] + $school,
+            self::FeePaymentReceived => $student + ['{amount}' => 'পরিশোধিত টাকা', '{receipt_no}' => 'রসিদ নং', '{receipt_link}' => 'রসিদ যাচাইয়ের লিংক', '{date}' => 'তারিখ'] + $school,
             self::Notice => ['{title}' => 'নোটিশের শিরোনাম', '{body}' => 'নোটিশের লেখা'] + $school,
         };
     }

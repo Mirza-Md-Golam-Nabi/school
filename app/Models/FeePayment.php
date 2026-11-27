@@ -153,6 +153,17 @@ class FeePayment extends Model
     }
 
     /**
+     * The shortest link to the slip's verification page (…/r/K7M4P9QX), for
+     * the payment SMS where every character costs.
+     */
+    public function shortVerificationUrl(): ?string
+    {
+        return filled($this->verification_code)
+            ? route('fee-receipts.short', ['code' => $this->verification_code])
+            : null;
+    }
+
+    /**
      * Whether the school prints the verification QR code on payment slips.
      */
     public static function showsQrCode(): bool

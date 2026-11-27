@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\SmsEvent;
+use App\Enums\SmsLanguage;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
@@ -21,9 +22,11 @@ class SmsSetting extends Model
         'rate_per_sms',
         'enabled_events',
         'templates',
+        'language',
     ];
 
     protected $casts = [
+        'language' => SmsLanguage::class,
         'is_enabled' => 'boolean',
         'rate_per_sms' => 'decimal:4',
         'balance' => 'decimal:4',
@@ -56,7 +59,15 @@ class SmsSetting extends Model
     {
         $template = trim((string) ($this->templates[$event->value] ?? ''));
 
-        return $template !== '' ? $template : $event->defaultTemplate();
+        return $template !== '' ? $template : $event->defaultTemplate($this->smsLanguage());
+    }
+
+    /**
+     * The language of the school's default SMS templates.
+     */
+    public function smsLanguage(): SmsLanguage
+    {
+        return $this->language instanceof SmsLanguage ? $this->language : (SmsLanguage::tryFrom((string) $this->language) ?? SmsLanguage::Bangla);
     }
 
     /**

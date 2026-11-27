@@ -38,6 +38,7 @@ class SendFeePaymentSmsAction
             message: $setting->render(SmsEvent::FeePaymentReceived, $this->studentPlaceholders($student) + [
                 'amount' => $this->formatTaka((float) array_sum(array_map(fn (FeePayment $payment): float => (float) $payment->amount_paid, $payments))),
                 'receipt_no' => $receiptNo,
+                'receipt_link' => $first->shortVerificationUrl() ?? '',
                 'date' => Carbon::parse($first->payment_date)->format('d/m/Y'),
             ]),
             event: SmsEvent::FeePaymentReceived,

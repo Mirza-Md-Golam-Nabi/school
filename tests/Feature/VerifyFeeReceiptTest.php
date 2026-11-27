@@ -152,3 +152,12 @@ it('renders the payment slip pdf with the QR code', function () {
 
     expect($pdf)->toStartWith('%PDF');
 });
+
+it('sends the short SMS link on to the receipt verification page', function () {
+    $payment = makeVerifiableFeeSlip()->first();
+
+    expect($payment->shortVerificationUrl())->toEndWith('/r/'.$payment->verification_code);
+
+    $this->get($payment->shortVerificationUrl())
+        ->assertRedirect($payment->verificationUrl());
+});
