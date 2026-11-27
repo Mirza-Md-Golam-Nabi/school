@@ -264,3 +264,20 @@ it('puts a green check mark next to a pattern whose bundle is ready in the chose
         ->and((string) $englishOptions[MarksheetBundleType::All->value])->not->toContain('title="তৈরি আছে"')
         ->and((string) $patternOptions('bn')[MarksheetBundleType::Failed->value])->not->toContain('title="তৈরি আছে"');
 });
+
+it('opens the generate modal when the class has several exams without lazy loading their class', function () {
+    $class = Classes::create(['name' => 'Marksheet Several Exams Class', 'order' => 1]);
+    makeManageClassMarksheetsTestExam($class->id);
+
+    Exam::create([
+        'exam_type_id' => ExamType::create(['name' => 'Annual', 'is_active' => true])->id,
+        'class_id' => $class->id,
+        'session_year' => now()->year,
+        'start_date' => now()->addMonth()->toDateString(),
+        'end_date' => now()->addMonth()->addDays(5)->toDateString(),
+    ]);
+
+    Livewire::test(ManageClassMarksheets::class, ['classId' => $class->id])
+        ->mountAction('generateMarksheets')
+        ->assertSchemaComponentExists('exam_id', checkComponentUsing: fn ($select): bool => count($select->getOptions()) === 2);
+});

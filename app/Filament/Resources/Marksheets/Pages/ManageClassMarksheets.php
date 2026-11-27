@@ -300,7 +300,7 @@ class ManageClassMarksheets extends ListRecords
     private function examOptions(): Collection
     {
         return Exam::query()
-            ->with('examType')
+            ->with(['examType', 'class'])
             ->where('class_id', $this->classId)
             ->orderByDesc('start_date')
             ->get()

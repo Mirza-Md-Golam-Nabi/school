@@ -51,7 +51,7 @@ class AdmitCardsTable
             ->filters([
                 SelectFilter::make('exam_id')
                     ->label('Exam')
-                    ->relationship('exam', 'id')
+                    ->relationship('exam', 'id', fn (Builder $query) => $query->with(['examType', 'class']))
                     ->getOptionLabelFromRecordUsing(fn (Exam $record): string => "{$record->examType?->name} — {$record->session_label}")
                     ->searchable(),
                 TernaryFilter::make('is_generated'),
