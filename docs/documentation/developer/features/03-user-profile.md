@@ -27,7 +27,7 @@
 | Student concerns | `Concerns/HasStudentImportActions`, `HasStudentCredentialsModal`, `HasResetPasswordAction` |
 | Teacher resource | `app/Filament/Resources/TeacherProfiles/` — `TeacherProfileForm`, `TeacherProfilesTable`, `ListTeacherProfiles` (import, PDF list), Create/Edit |
 | Staff resource | `app/Filament/Resources/StaffProfiles/` — একই কাঠামো |
-| Shared | `app/Filament/Resources/Concerns/HasProfileableFields.php` (address), `ResponsiveText` |
+| Shared | `app/Filament/Resources/Concerns/ResponsiveText` (address field প্রতিটা form-এ inline; `same_address` toggle) |
 | Promotion pages | `app/Filament/Pages/PromoteStudents` (landing, `?year=`), `PromoteStudentsForClass` (`?classId=&year=`, row action + fee collection), `BulkPromoteStudentsForClass` |
 | Actions | `CreateStudentProfileAction`, `UpdateStudentProfileAction`, `CreateTeacherProfileAction`, `CreateStaffProfileAction`, `ImportStudentsFromSpreadsheetAction`, `ImportTeachersFromSpreadsheetAction`, `BuildStudentImportTemplateAction`, `BuildTeacherImportTemplateAction`, `PromoteStudentsAction`, `CollectPromotionFeesAction`, `ResolveDefaultPromotionOptionalSubjects`, `FindDuplicateRollsAction`, `BuildStudentSubjectListAction`, `BuildStudentFeeSummaryAction`, `BuildClassStudentListPdfAction`, `BuildTeacherListPdfAction` |
 | Controllers | `ClassStudentListPdfController`, `TeacherListPdfController` |
