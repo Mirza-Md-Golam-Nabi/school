@@ -61,6 +61,7 @@
 
                 {{-- Teacher Checkboxes: 2 cols mobile, 3 tablet, 4 laptop --}}
                 @php $yesterdayAttendance = $this->getYesterdayAttendance(); @endphp
+                @php $manualEntryLabels = $this->getManualEntryLabels(); @endphp
                 <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                     @foreach ($teachers as $teacher)
                         @php $yesterdayStatus = $yesterdayAttendance->get($teacher->id); @endphp
@@ -78,8 +79,15 @@
                             </div>
 
                             <div class="flex items-center justify-between pl-6">
-                                <span class="truncate text-xs text-gray-500 dark:text-gray-400">
-                                    {{ $teacher->designation }}
+                                <span class="flex min-w-0 flex-col">
+                                    <span class="truncate text-xs text-gray-500 dark:text-gray-400">
+                                        {{ $teacher->designation }}
+                                    </span>
+                                    @if ($manualEntryLabels->has($teacher->id))
+                                        <span class="truncate text-xs text-warning-600 dark:text-warning-400">
+                                            {{ $manualEntryLabels->get($teacher->id) }}
+                                        </span>
+                                    @endif
                                 </span>
 
                                 <div class="flex items-center gap-x-2">

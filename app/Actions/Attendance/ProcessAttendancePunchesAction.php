@@ -222,12 +222,15 @@ class ProcessAttendancePunchesAction
         $isNewEntry = ! $existing || $existing->entry_time === null;
         $isNewExit = $exit !== null && ($existing?->exit_time === null);
 
-        // A manual mark (including a Leave entered by hand) is a deliberate human
-        // decision — the device may only add a missing exit time, never rewrite
-        // the status or entry time. System-written rows (auto Absent, approved
-        // leave's Leave) are device-sourced, so a punch still shows the person
-        // came in.
-        $isProtected = $existing && $existing->source === AttendanceSource::Manual;
+        // A manual mark by someone else (an admin or class teacher, including a
+        // Leave entered by hand) is a deliberate decision — the device may only
+        // add a missing exit time, never rewrite the status or entry time.
+        // System-written rows (auto Absent, approved leave's Leave) and a
+        // person's own self-mark yield to the punch: the machine is the proof
+        // of arrival, so marking yourself Present cannot hide a Late.
+        $isProtected = $existing
+            && $existing->source === AttendanceSource::Manual
+            && ! $existing->isSelfMarked($person->user_id);
 
         if ($isProtected) {
             $isNewEntry = false;

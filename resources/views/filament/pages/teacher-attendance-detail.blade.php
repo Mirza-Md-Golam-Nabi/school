@@ -124,6 +124,10 @@
                         >
                             {{ $record->status->getLabel() }}
                         </x-filament::badge>
+
+                        @if ($label = $record->manualEntryLabel($teacher?->user_id))
+                            <p class="text-xs text-warning-600 dark:text-warning-400">{{ $label }}</p>
+                        @endif
                     </div>
                 @endforeach
             </div>

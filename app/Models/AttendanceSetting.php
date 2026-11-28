@@ -24,6 +24,7 @@ class AttendanceSetting extends Model
         'entry_time',
         'exit_time',
         'teacher_late_after',
+        'teachers_may_self_mark_absence',
     ];
 
     protected $casts = [
@@ -32,6 +33,7 @@ class AttendanceSetting extends Model
         'count_late_students' => 'boolean',
         'count_late_teachers' => 'boolean',
         'count_late_staff' => 'boolean',
+        'teachers_may_self_mark_absence' => 'boolean',
     ];
 
     /**
@@ -43,6 +45,7 @@ class AttendanceSetting extends Model
         'count_late_students' => true,
         'count_late_teachers' => true,
         'count_late_staff' => true,
+        'teachers_may_self_mark_absence' => false,
     ];
 
     /**

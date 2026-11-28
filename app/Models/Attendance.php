@@ -152,6 +152,30 @@ class Attendance extends Model
         return $this->belongsTo(User::class, 'marked_by');
     }
 
+    /**
+     * Whether the person marked this themselves (by hand, from their own panel).
+     */
+    public function isSelfMarked(?int $personUserId): bool
+    {
+        return $this->source === AttendanceSource::Manual
+            && $personUserId !== null
+            && (int) $this->marked_by === $personUserId;
+    }
+
+    /**
+     * Who entered a manual record, for admins checking attendance: "নিজে
+     * (ম্যানুয়াল)" when the person marked it themselves, otherwise "অ্যাডমিন
+     * (ম্যানুয়াল)". A device record returns null — it shows nothing.
+     */
+    public function manualEntryLabel(?int $personUserId): ?string
+    {
+        if ($this->source !== AttendanceSource::Manual) {
+            return null;
+        }
+
+        return $this->isSelfMarked($personUserId) ? 'নিজে (ম্যানুয়াল)' : 'অ্যাডমিন (ম্যানুয়াল)';
+    }
+
     public function notifications(): HasMany
     {
         return $this->hasMany(AttendanceNotification::class);

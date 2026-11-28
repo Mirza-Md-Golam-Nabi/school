@@ -47,7 +47,7 @@
 | টেবিল | নোট |
 |---|---|
 | `attendances` | polymorphic `attendable_type` / `attendable_id` (Student/Teacher/StaffProfile), `date`, `class_id` (student-এর জন্য; employee-র null), `subject_id` (ClassWise mode; Daily-তে null), `status`, `source`, `entry_time`, `exit_time`, `marked_by` |
-| `attendance_settings` | single row (`AttendanceSetting::current()`): `attendance_mode`, `late_threshold_minutes` (default ১৫), `entry_time`, `exit_time`, `teacher_late_after`, `count_late_students/teachers/staff` |
+| `attendance_settings` | single row (`AttendanceSetting::current()`): `attendance_mode`, `late_threshold_minutes` (default ১৫), `entry_time`, `exit_time`, `teacher_late_after`, `count_late_students/teachers/staff`, `teachers_may_self_mark_absence` |
 | `attendance_status_changes` | backdated পরিবর্তনের log — `batch_id`, `old_status`, `new_status` (AttendanceModificationDetails পেজ) |
 | `attendance_devices` | `name`, `serial_number`, `driver`, `is_active`, `api_token_hash`, capacity কলাম, `log_retention_days`, `last_synced_at`, শেষ report |
 | `device_users` | `attendance_device_id`, polymorphic `enrollable`, `enroll_id`, `card_number`, `fingerprint_count`, `removal_status`, `removal_due_at`, `removed_at`, `last_seen_on_device_at` |
@@ -84,6 +84,10 @@
 - class teacher ছাড়া অন্য teacher mark করলে admin ও class teacher-কে notification (block করে না)
 
 Student list (`ManagesClassAttendance::loadStudents`): `current_class_id` = class, active ও non-trashed, **অথবা** সেই তারিখে যার attendance row আছে (withTrashed) — পুরনো তারিখ সংশোধনে প্রাক্তন শিক্ষার্থী হারায় না।
+
+Teacher-এর নিজের উপস্থিতি (`Teacher\Pages\MyAttendance::markAs()`, `source = manual`, `marked_by` = নিজে): কোনো permission লাগে না। Present সবসময়; Absent / Leave শুধু `AttendanceSetting.teachers_may_self_mark_absence` (Settings → "Teacher Self Attendance", ডিফল্ট বন্ধ) চালু থাকলে (`selfMarkableStatuses()`)। আজকের row device-এর হলে বাটন থাকে না আর server-ও বদলায় না। পরে device punch এলে self-mark বদলে device row হয় (তাই নিজে Present দিয়ে Late লুকানো যায় না)।
+
+Admin দেখেন কে দিয়েছে: `Attendance::manualEntryLabel($personUserId)` — device হলে `null` (কিছু দেখায় না), নিজে দিলে "নিজে (ম্যানুয়াল)", অন্য কেউ দিলে "অ্যাডমিন (ম্যানুয়াল)"; Teacher Attendance পেজে (`getManualEntryLabels()`) আর Teacher Attendance Detail-এ দেখায় (`TeacherSelfAttendanceTest`)।
 
 Teacher / Staff page: একই প্যাটার্ন inline (`TeacherAttendance::save()`, `StaffAttendance::save()`), `class_id = null`; backdated হলে `admin` ও `super-admin` role-এর ইউজারদের database notification "Backdated Attendance Marked"। Teacher list = `EmploymentStatus::Active`; Staff list = active + সেই তারিখে row আছে এমন।
 
@@ -125,7 +129,7 @@ Device-agnostic রাখা হয়েছে, যাতে ভবিষ্য
 - প্রথম punch = entry
 - Exit: দিনে check-in ও check-out দুই state থাকলে state বিশ্বাসযোগ্য → entry-র পরের শেষ check-out; সব punch একই state হলে শেষ punch, শুধু যদি entry থেকে `attendance.exit_after_minutes` (২৫) দূরে
 - Status: entry > `lateAfterFor()` → `Late`, না হলে `Present`
-- **Manual row (হাতে দেওয়া Leave-সহ) device কখনো overwrite করে না** — শুধু ফাঁকা `exit_time` পূরণ করতে পারে; Device-sourced row (auto Absent, approved ছুটির Leave) recompute হয়
+- **অন্য কারো দেওয়া manual row (হাতে দেওয়া Leave-সহ) device কখনো overwrite করে না** — শুধু ফাঁকা `exit_time` পূরণ করতে পারে; Device-sourced row (auto Absent, approved ছুটির Leave) আর ব্যক্তির নিজের self-mark recompute হয়
 - শুধু আজকের punch notify করে (laptop অনেকদিন বন্ধ থাকার পর প্রথম sync-এ পুরনো punch notify হয় না)
 - guardian SMS একটা batch-এ (`DeviceEntry` / `DeviceExit`)
 

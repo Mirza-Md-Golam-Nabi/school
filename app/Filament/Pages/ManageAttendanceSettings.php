@@ -117,6 +117,14 @@ class ManageAttendanceSettings extends Page
                                     ->seconds(false),
                             ]),
                         ]),
+
+                    Section::make(__('Teacher Self Attendance'))
+                        ->description(__('Teachers can always mark themselves Present from their own panel, and a device record can never be changed there. Tick this to also let them mark themselves Absent or Leave.'))
+                        ->icon('heroicon-o-user-circle')
+                        ->schema([
+                            Checkbox::make('teachers_may_self_mark_absence')
+                                ->label(__('Teachers may mark themselves Absent or Leave')),
+                        ]),
                 ])->livewireSubmitHandler('save')
                     ->footer([
                         Actions::make([

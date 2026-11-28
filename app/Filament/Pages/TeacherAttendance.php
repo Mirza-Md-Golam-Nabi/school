@@ -182,6 +182,30 @@ class TeacherAttendance extends Page
             ->get();
     }
 
+    /**
+     * Who entered each teacher's manual record on the selected date (teacher
+     * id => "নিজে (ম্যানুয়াল)" / "অ্যাডমিন (ম্যানুয়াল)"); device records and
+     * unmarked teachers are left out, so they show nothing.
+     *
+     * @return Collection<int, string>
+     */
+    public function getManualEntryLabels(): Collection
+    {
+        $teachers = $this->getTeachers()->keyBy('id');
+
+        return Attendance::query()
+            ->where('attendable_type', TeacherProfile::class)
+            ->whereIn('attendable_id', $teachers->keys())
+            ->where('date', $this->date)
+            ->whereNull('class_id')
+            ->whereNull('subject_id')
+            ->get(['attendable_id', 'source', 'marked_by'])
+            ->mapWithKeys(fn (Attendance $attendance): array => [
+                $attendance->attendable_id => $attendance->manualEntryLabel($teachers->get($attendance->attendable_id)?->user_id),
+            ])
+            ->filter();
+    }
+
     public function getYesterdayAttendance(): Collection
     {
         $yesterday = Carbon::parse($this->date)->subDay()->toDateString();

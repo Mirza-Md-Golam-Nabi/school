@@ -111,7 +111,7 @@ Middleware: `EnsurePasswordIsChanged` — `must_change_password` থাকলে
 
 ## ১৪.৬ জানা সমস্যা ও সতর্কতা
 
-1. **Teacher self-attendance:** `Teacher\Pages\MyAttendance::markAs()` শিক্ষককে আজকের জন্য নিজেকে Present / Absent / Leave দিতে দেয় (`updateOrCreate`, `source = manual`)। কোনো permission বা approval নেই, আর device-এর তৈরি row-ও manual দিয়ে overwrite হয় (তারপর device আর সেটা বদলাতে পারে না)। স্কুল device ব্যবহার করলে এটা উপস্থিতির নির্ভরযোগ্যতা নষ্ট করে।
+1. ~~Teacher self-attendance-এ কোনো নিয়ন্ত্রণ নেই~~ — ঠিক করা হয়েছে, বিস্তারিত [Attendance ২.৪](features/02-attendance.md)।
 2. ~~Admin dashboard widget-এ `canView()` নেই~~ — ঠিক করা হয়েছে: `FinanceOverviewWidget` ও `IncomeExpenseChartWidget` শুধু `view_account_transactions` থাকলে দেখায়; `PendingAlertsWidget`-এর প্রতিটা alert শুধু তার লিংকের পেজ (`Exam`, `LeaveApplication`, `StudentFeeInvoice`) দেখার অনুমতি থাকলে দেখায় (`DashboardWidgetPermissionTest`)।
 3. Teacher `StudentAttendance` সব active class দেখায় (শুধু নিজের নয়); wrong-teacher notification দিয়ে নজরদারি।
 4. Teacher Exams resource-এ permission নেই, শুধু taught-class scope।

@@ -5,6 +5,7 @@ namespace App\Filament\Teacher\Pages;
 use App\Enums\AttendanceSource;
 use App\Enums\AttendanceStatus;
 use App\Models\Attendance;
+use App\Models\AttendanceSetting;
 use App\Models\TeacherProfile;
 use BackedEnum;
 use Filament\Notifications\Notification;
@@ -28,6 +29,11 @@ class MyAttendance extends Page
 
     public ?string $todayStatus = null;
 
+    /**
+     * Today's record came from the attendance device — it can't be changed here.
+     */
+    public bool $todayFromDevice = false;
+
     public function mount(): void
     {
         $this->loadTodayStatus();
@@ -35,19 +41,40 @@ class MyAttendance extends Page
 
     private function loadTodayStatus(): void
     {
+        $today = $this->todayAttendance();
+
+        $this->todayStatus = $today?->status?->value;
+        $this->todayFromDevice = $today?->source === AttendanceSource::Device;
+    }
+
+    private function todayAttendance(): ?Attendance
+    {
         $profile = $this->resolveProfile();
 
         if (! $profile) {
-            return;
+            return null;
         }
 
-        $this->todayStatus = Attendance::query()
+        return Attendance::query()
             ->where('attendable_type', TeacherProfile::class)
             ->where('attendable_id', $profile->id)
             ->where('date', today()->toDateString())
             ->whereNull('class_id')
             ->whereNull('subject_id')
-            ->value('status')?->value;
+            ->first();
+    }
+
+    /**
+     * Present is always allowed; Absent and Leave only when the attendance
+     * settings let teachers mark those themselves.
+     *
+     * @return array<int, AttendanceStatus>
+     */
+    public static function selfMarkableStatuses(): array
+    {
+        return AttendanceSetting::current()->teachers_may_self_mark_absence
+            ? AttendanceStatus::manualCases()
+            : [AttendanceStatus::Present];
     }
 
     public function markAs(string $status): void
@@ -55,7 +82,21 @@ class MyAttendance extends Page
         $profile = $this->resolveProfile();
 
         // Late Present comes only from a device punch; it can't be chosen by hand.
-        if (! $profile || ! in_array(AttendanceStatus::tryFrom($status), AttendanceStatus::manualCases(), true)) {
+        if (! $profile || ! in_array(AttendanceStatus::tryFrom($status), self::selfMarkableStatuses(), true)) {
+            return;
+        }
+
+        $today = $this->todayAttendance();
+
+        // The device's record is the proof of arrival — never overwritten by hand.
+        if ($today?->source === AttendanceSource::Device) {
+            $this->loadTodayStatus();
+
+            Notification::make()
+                ->warning()
+                ->title('আজকের উপস্থিতি মেশিনে দেওয়া হয়েছে, এখান থেকে বদলানো যাবে না।')
+                ->send();
+
             return;
         }
 
@@ -150,7 +191,10 @@ class MyAttendance extends Page
         $current = $this->todayStatus ? $statusConfig[$this->todayStatus] : null;
 
         // Every status can be shown as today's status, but only the manual ones get a button.
-        $manualConfig = Arr::only($statusConfig, array_column(AttendanceStatus::manualCases(), 'value'));
+        // Nothing to press once the device has recorded today.
+        $manualConfig = $this->todayFromDevice
+            ? []
+            : Arr::only($statusConfig, array_column(self::selfMarkableStatuses(), 'value'));
 
         $buttons = array_map(function (string $value, array $cfg): array {
             $isSelected = $this->todayStatus === $value;

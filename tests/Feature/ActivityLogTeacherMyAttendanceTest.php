@@ -6,6 +6,7 @@ use App\Enums\Gender;
 use App\Enums\UserType;
 use App\Filament\Teacher\Pages\MyAttendance;
 use App\Models\Attendance;
+use App\Models\AttendanceSetting;
 use App\Models\TeacherProfile;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -42,6 +43,7 @@ it('logs an update when a teacher changes their attendance status the same day',
     ]);
 
     test()->actingAs($teacherUser);
+    AttendanceSetting::current()->update(['teachers_may_self_mark_absence' => true]);
 
     $page = new MyAttendance;
     $page->markAs('present');
@@ -62,6 +64,7 @@ it('does not let a teacher mark themselves late by hand', function () {
     ]);
 
     test()->actingAs($teacherUser);
+    AttendanceSetting::current()->update(['teachers_may_self_mark_absence' => true]);
 
     $page = new MyAttendance;
     $page->markAs('present');

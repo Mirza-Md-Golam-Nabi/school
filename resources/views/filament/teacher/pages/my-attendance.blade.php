@@ -29,7 +29,11 @@
                             <x-filament::icon :icon="$current['icon']" class="{{ $current['iconClass'] }} md:!h-18 md:!w-18" />
                         </div>
                         <p class="{{ $current['textClass'] }} md:text-3xl">{{ $current['label'] }}</p>
-                        <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">Tap below to update</p>
+                        @if ($todayFromDevice)
+                            <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">মেশিনে দেওয়া হয়েছে — বদলানো যাবে না</p>
+                        @else
+                            <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">Tap below to update</p>
+                        @endif
                     @else
                         <x-filament::badge color="gray" size="sm" class="mb-4">Today's Attendance</x-filament::badge>
                         <div class="flex h-24 w-24 items-center justify-center rounded-full bg-gray-100 shadow-inner md:h-36 md:w-36 dark:bg-gray-800">
@@ -40,22 +44,24 @@
                     @endif
                 </div>
 
-                <div class="border-t border-gray-100 dark:border-gray-800"></div>
+                @if (count($buttons) > 0)
+                    <div class="border-t border-gray-100 dark:border-gray-800"></div>
 
-                {{-- ACTION BUTTONS --}}
-                <div class="flex divide-x divide-gray-100 dark:divide-gray-800">
-                    @foreach ($buttons as $button)
-                        <button
-                            wire:click="markAs('{{ $button['value'] }}')"
-                            wire:loading.attr="disabled"
-                            class="group flex flex-1 flex-col items-center gap-y-1.5 py-4 text-xs font-semibold transition-all duration-150 focus:outline-none md:py-5 md:text-sm {{ $button['btnClass'] }}"
-                        >
-                            <x-filament::icon :icon="$button['cfg']['icon']" class="h-6 w-6 transition-transform duration-150 group-hover:scale-110 md:h-7 md:w-7" />
-                            {{ $button['cfg']['label'] }}
-                            <span class="{{ $button['dotClass'] }}"></span>
-                        </button>
-                    @endforeach
-                </div>
+                    {{-- ACTION BUTTONS --}}
+                    <div class="flex divide-x divide-gray-100 dark:divide-gray-800">
+                        @foreach ($buttons as $button)
+                            <button
+                                wire:click="markAs('{{ $button['value'] }}')"
+                                wire:loading.attr="disabled"
+                                class="group flex flex-1 flex-col items-center gap-y-1.5 py-4 text-xs font-semibold transition-all duration-150 focus:outline-none md:py-5 md:text-sm {{ $button['btnClass'] }}"
+                            >
+                                <x-filament::icon :icon="$button['cfg']['icon']" class="h-6 w-6 transition-transform duration-150 group-hover:scale-110 md:h-7 md:w-7" />
+                                {{ $button['cfg']['label'] }}
+                                <span class="{{ $button['dotClass'] }}"></span>
+                            </button>
+                        @endforeach
+                    </div>
+                @endif
             </div>
 
             {{-- RECENT HISTORY (right, 2/5 on md+) --}}
