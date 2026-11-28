@@ -5,7 +5,7 @@
         </x-filament::empty-state>
     @else
         <div class="overflow-x-auto rounded-xl bg-white shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10">
-            <table class="w-full text-sm">
+            <table class="w-full text-xs sm:text-sm">
                 <thead>
                     <tr class="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800">
                         <th class="px-3 py-2.5 text-left font-semibold text-gray-700 dark:text-gray-300">Leave Type</th>
@@ -25,7 +25,12 @@
                             </td>
                             <td class="px-3 py-2.5 text-center text-gray-700 dark:text-gray-300">{{ $row['allowed'] }}</td>
                             <td class="px-3 py-2.5 text-center font-semibold text-danger-600 dark:text-danger-400">{{ $row['taken'] }}</td>
-                            <td class="px-3 py-2.5 text-center font-semibold text-success-600 dark:text-success-400">{{ $row['remaining'] }}</td>
+                            <td class="px-3 py-2.5 text-center font-semibold text-success-600 dark:text-success-400">
+                                {{ $row['remaining'] }}
+                                @if ($row['excess'] > 0)
+                                    <p class="text-xs font-medium text-danger-600 dark:text-danger-400">সীমা {{ $row['excess'] }} দিন পার</p>
+                                @endif
+                            </td>
                         </tr>
                     @endforeach
                 </tbody>

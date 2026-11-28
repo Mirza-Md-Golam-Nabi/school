@@ -72,7 +72,8 @@ Cancelled — enum-এ আছে
 - `total_days` = `WorkingDaysCalculator::count(from, to)` (weekend + public holiday বাদ)
 - `ApproveLeaveApplicationAction` (transaction): status, `actioned_by`, `action_remarks`, `actioned_at`; working day প্রতি `LeaveAttendanceLog` upsert (`on_leave`, `is_within_approved_range = true`)
 - Approved application edit বন্ধ (table action hidden, edit page forbidden — `LeaveApplicationEditRestrictionTest`)
-- `MyLeave` (teacher): `remaining = max(0, allowed_days_per_year − taken)`
+- বছরের সীমা শুধু সতর্কতা, কখনো আটকায় না — `ResolveLeaveUsageAction`: taken = ওই বছরে (`from_date`) approved ওই ধরনের `total_days` − Joined Early দিন; pending আবেদনের দিন `after`-এ যোগ হয়
+- দেখায়: admin list-এর "Used / Limit (Year)" কলাম (পার হলে লাল + "সীমা N দিন পার"), Approve modal, admin form ও teacher-এর Apply form (`LeaveApplicationForm::usageEntry()`), আর `MyLeave` (taken, remaining, পার হলে excess)
 
 ## ৮.৬ Leave ও attendance
 
@@ -98,13 +99,13 @@ Cancelled — enum-এ আছে
 
 ## ৮.৯ টেস্ট
 
-`LeaveApplicationTest`, `LeaveApplicationEditRestrictionTest`, `LeaveTypeAssignmentTest`, `ActingAdminTest`, `DeactivateExpiredActingAdminsJobTest`, `ActivityLogLeaveHolidayActingAdminTest`, `ActivityLogTeacherLeaveApplicationTest`, `LeaveAttendanceRecordingTest`।
+`LeaveApplicationTest`, `LeaveApplicationEditRestrictionTest`, `LeaveTypeAssignmentTest`, `ActingAdminTest`, `DeactivateExpiredActingAdminsJobTest`, `ActivityLogLeaveHolidayActingAdminTest`, `ActivityLogTeacherLeaveApplicationTest`, `LeaveAttendanceRecordingTest`, `LeaveLimitWarningTest`।
 
 ## ৮.১০ জানা সমস্যা ও সতর্কতা
 
 1. ~~HR resource-এ authorization নেই~~ — ঠিক করা হয়েছে (৮.৩); `ActingAdminResource`-এর privilege escalation-ও ঠিক করা হয়েছে।
 2. ~~ভবিষ্যৎ `from_date`-এর acting admin নিজে থেকে চালু হয় না~~ — ঠিক করা হয়েছে (৮.৭, daily job)।
 3. ~~Approve হলে `attendances`-এ `Leave` row তৈরি হয় না~~ — ঠিক করা হয়েছে (৮.৬, `LeaveAttendanceRecordingTest`)। Approved ছুটি পরে মুছে ফেললে আগে লেখা Leave row থেকে যায়।
-4. `allowed_days_per_year` apply বা approve-এ enforce হয় না — শুধু teacher-এর MyLeave-এ দেখানো।
+4. ~~`allowed_days_per_year` চেক হয় না~~ — সিদ্ধান্ত: আটকাবে না, শুধু সতর্ক করবে; ঠিক করা হয়েছে (৮.৫, `LeaveLimitWarningTest`)।
 5. `Cancelled` status-এর জন্য কোনো UI action নেই।
 6. Approve / reject-এ আবেদনকারীকে notification যায় না।

@@ -2,8 +2,7 @@
 
 namespace App\Filament\Teacher\Pages;
 
-use App\Enums\LeaveApplicationStatus;
-use App\Models\LeaveApplication;
+use App\Actions\Leave\ResolveLeaveUsageAction;
 use App\Models\LeaveType;
 use App\Models\TeacherProfile;
 use BackedEnum;
@@ -31,30 +30,23 @@ class MyLeave extends Page
             return ['rows' => collect()];
         }
 
-        $takenByType = LeaveApplication::query()
-            ->where('applicant_type', TeacherProfile::class)
-            ->where('applicant_id', $profile->id)
-            ->where('status', LeaveApplicationStatus::Approved)
-            ->where('from_date', '>=', now()->startOfYear()->toDateString())
-            ->where('from_date', '<', now()->startOfYear()->addYear()->toDateString())
-            ->selectRaw('leave_type_id, sum(total_days) as taken_days')
-            ->groupBy('leave_type_id')
-            ->pluck('taken_days', 'leave_type_id');
+        $resolveUsage = app(ResolveLeaveUsageAction::class);
 
         $rows = LeaveType::query()
             ->active()
             ->availableFor($profile)
             ->orderBy('name')
             ->get()
-            ->map(function (LeaveType $leaveType) use ($takenByType) {
-                $taken = (int) ($takenByType[$leaveType->id] ?? 0);
+            ->map(function (LeaveType $leaveType) use ($profile, $resolveUsage) {
+                $usage = $resolveUsage->handle(TeacherProfile::class, $profile->id, $leaveType, now()->year);
 
                 return [
                     'name' => $leaveType->name,
                     'applicable_gender' => $leaveType->applicable_gender,
-                    'allowed' => $leaveType->allowed_days_per_year,
-                    'taken' => $taken,
-                    'remaining' => max(0, $leaveType->allowed_days_per_year - $taken),
+                    'allowed' => $usage['allowed'],
+                    'taken' => $usage['taken'],
+                    'remaining' => max(0, $usage['allowed'] - $usage['taken']),
+                    'excess' => $usage['excess'],
                 ];
             });
 

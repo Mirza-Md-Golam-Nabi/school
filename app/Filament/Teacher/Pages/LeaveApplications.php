@@ -3,6 +3,7 @@
 namespace App\Filament\Teacher\Pages;
 
 use App\Enums\LeaveApplicationStatus;
+use App\Filament\Resources\LeaveApplications\Schemas\LeaveApplicationForm;
 use App\Models\LeaveApplication;
 use App\Models\LeaveType;
 use App\Models\TeacherProfile;
@@ -46,6 +47,7 @@ class LeaveApplications extends Page
                         ->label('Leave Type')
                         ->options(fn (): Collection => $this->availableLeaveTypes()->pluck('name', 'id'))
                         ->helperText('অবশিষ্ট quota "My Leave" পেজে দেখুন।')
+                        ->live()
                         ->required(),
 
                     Grid::make(2)->schema([
@@ -65,6 +67,14 @@ class LeaveApplications extends Page
                         ->numeric()
                         ->required()
                         ->readOnly(),
+
+                    LeaveApplicationForm::usageEntry(fn (Get $get): ?array => LeaveApplicationForm::resolveUsage(
+                        TeacherProfile::class,
+                        $this->resolveProfile()?->id,
+                        $get('leave_type_id'),
+                        $get('from_date'),
+                        (int) $get('total_days'),
+                    )),
 
                     Textarea::make('reason')
                         ->required()

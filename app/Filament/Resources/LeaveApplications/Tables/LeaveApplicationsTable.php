@@ -4,6 +4,7 @@ namespace App\Filament\Resources\LeaveApplications\Tables;
 
 use App\Actions\Leave\ApproveLeaveApplicationAction;
 use App\Actions\Leave\RejectLeaveApplicationAction;
+use App\Actions\Leave\ResolveLeaveUsageAction;
 use App\Enums\LeaveApplicationStatus;
 use App\Enums\Permissions\HrPermission;
 use App\Filament\Resources\LeaveApplications\LeaveApplicationResource;
@@ -24,13 +25,32 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use WeakMap;
 
 class LeaveApplicationsTable
 {
+    /**
+     * @var WeakMap<LeaveApplication, array{allowed: int, taken: int, after: int, exceeds: bool, excess: int}>|null
+     */
+    private static ?WeakMap $usageCache = null;
+
+    /**
+     * Leave usage for a row, worked out once per loaded record — the column's
+     * text, note and colour all read it.
+     *
+     * @return array{allowed: int, taken: int, after: int, exceeds: bool, excess: int}
+     */
+    private static function usage(LeaveApplication $record): array
+    {
+        self::$usageCache ??= new WeakMap;
+
+        return self::$usageCache[$record] ??= app(ResolveLeaveUsageAction::class)->forApplication($record);
+    }
+
     public static function configure(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with('applicant.user'))
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with(['applicant.user', 'leaveType']))
             ->recordUrl(null)
             ->recordAction(ViewAction::class)
             ->columns([
@@ -66,6 +86,21 @@ class LeaveApplicationsTable
                     ->numeric()
                     ->sortable(),
 
+                TextColumn::make('leave_usage')
+                    ->label('Used / Limit (Year)')
+                    ->state(function (LeaveApplication $record): string {
+                        $usage = self::usage($record);
+
+                        return "{$usage['after']} / {$usage['allowed']}";
+                    })
+                    ->description(function (LeaveApplication $record): ?string {
+                        $usage = self::usage($record);
+
+                        return $usage['exceeds'] ? "সীমা {$usage['excess']} দিন পার" : null;
+                    })
+                    ->badge()
+                    ->color(fn (LeaveApplication $record): string => self::usage($record)['exceeds'] ? 'danger' : 'gray'),
+
                 TextColumn::make('status')
                     ->badge()
                     ->sortable(),
@@ -98,6 +133,13 @@ class LeaveApplicationsTable
                     ->color('success')
                     ->visible(fn (LeaveApplication $record): bool => LeaveApplicationResource::canDecide($record, HrPermission::APPROVE_LEAVE_APPLICATIONS))
                     ->schema([
+                        TextEntry::make('leave_usage')
+                            ->label('Leave Used This Year')
+                            ->state(fn (LeaveApplication $record): string => ResolveLeaveUsageAction::summary(
+                                self::usage($record),
+                            ))
+                            ->color(fn (LeaveApplication $record): string => self::usage($record)['exceeds'] ? 'danger' : 'success')
+                            ->helperText('সীমা পার হলেও অনুমোদন করা যাবে।'),
                         Textarea::make('action_remarks')
                             ->label('Remarks (optional)')
                             ->rows(2),
