@@ -69,6 +69,6 @@ Document setting বদলালে আগে generate করা PDF বদল�
 
 ## ১৩.৭ জানা সমস্যা ও সতর্কতা
 
-1. `SchoolSettings`, `GradeScaleSettings`, `QuestionBankSettings` — কোনোটাতেই `canAccess()` নেই; `view_school_settings` / `edit_school_settings` কোথাও চেক হয় না ([User Management ১১.৪](11-user-management.md#১১৪-authorization-audit--পুরো-অ্যাপ))।
+1. ঠিক করা হয়েছে — তিনটা পেজই `App\Filament\Concerns\HasSchoolSettingsPermission` ব্যবহার করে: `view_school_settings` না থাকলে পেজ 403; `edit_school_settings` না থাকলে ফর্ম read-only, Save বাটন লুকানো, আর `save()` / `saveAndConnect()` সরাসরি ডাকলেও 403। Acting Super Admin seeder-এ edit permission পায় না, তাই শুধু দেখতে পারে।
 2. Branding helper text-এ "transfer certificates" উল্লেখ আছে, কিন্তু TC feature নেই।
 3. `school_code` বদলালে বিদ্যমান Student ID বদলায় না — একই স্কুলে দুই prefix-এর ID থাকতে পারে।

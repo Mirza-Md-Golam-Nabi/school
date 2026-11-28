@@ -116,7 +116,7 @@ composer run dev            # serve + queue:listen + vite একসাথে
 | Provider | `AdminPanelProvider` | `TeacherPanelProvider` | `StudentPanelProvider` |
 | Path | `/admin` (default panel) | `/teacher` | `/student` |
 | Login | ইমেইল + পাসওয়ার্ড | ইমেইল + পাসওয়ার্ড | Student ID + পাসওয়ার্ড |
-| Registration | **চালু** (`Admin\Pages\Auth\Register`) | বন্ধ | বন্ধ |
+| Registration | বন্ধ | বন্ধ | বন্ধ |
 | Password reset | ইমেইল লিংক | ইমেইল লিংক | Recovery PIN (`RequestPinPasswordReset`) |
 | Email verification | হ্যাঁ | হ্যাঁ | হ্যাঁ (স্টুডেন্ট তৈরির সময় `email_verified_at` সেট হয়ে যায়) |
 | `databaseTransactions()` | হ্যাঁ | না | — |
@@ -451,8 +451,7 @@ API ও JSON রিকোয়েস্টের exception সবসময় J
 
 ## ০.১৮ জানা সমস্যা ও সতর্কতা
 
-1. **Admin প্যানেলে public registration চালু।** `AdminPanelProvider`-এ `->registration(Register::class)` আছে। `Admin\Pages\Auth\Register::handleRegistration()` যে কেউ রেজিস্টার করলে তাকে `UserType::Admin` ও `admin` role দেয়, আর `phone` hardcoded `'01812345678'`। প্রোডাকশনে এটা নিরাপত্তা ঝুঁকি — admin role-এ permission থাকলে অচেনা ব্যক্তি সেগুলো পেয়ে যাবে। Registration বন্ধ রাখা বা invite-ভিত্তিক করার কথা বিবেচনা করুন।
-2. `Register`-এ `'status' => true` দেওয়া আছে, কিন্তু `User` মডেলে `status` fillable নয় (কলাম `is_active`) — ফলে মানটা উপেক্ষিত হয়।
-3. `Teacher\Pages\Auth\Register` ও `Student\Pages\Auth\Register` ক্লাস আছে, কিন্তু প্যানেলে `->registration()` চালু নয় — অব্যবহৃত।
-4. প্রোডাকশন seeder Super Admin-কে `password` পাসওয়ার্ড দেয় — প্রথম লগইনের পরেই বদলাতে হবে।
-5. Payment gateway (bKash ইত্যাদি) এখনো নেই — ইচ্ছাকৃতভাবে স্থগিত।
+1. ~~Admin প্যানেলে public registration চালু~~ — **ঠিক করা হয়েছে:** `AdminPanelProvider` থেকে `->registration()` সরানো হয়েছে ও `Admin\Pages\Auth\Register` মুছে ফেলা হয়েছে; `/admin/register` এখন 404 (`AdminAccessControlTest`)। নতুন admin শুধু Super Admin User Management থেকে তৈরি করে।
+2. `Teacher\Pages\Auth\Register` ও `Student\Pages\Auth\Register` ক্লাস আছে, কিন্তু প্যানেলে `->registration()` চালু নয় — অব্যবহৃত।
+3. প্রোডাকশন seeder Super Admin-কে `password` পাসওয়ার্ড দেয় — প্রথম লগইনের পরেই বদলাতে হবে।
+4. Payment gateway (bKash ইত্যাদি) এখনো নেই — ইচ্ছাকৃতভাবে স্থগিত।

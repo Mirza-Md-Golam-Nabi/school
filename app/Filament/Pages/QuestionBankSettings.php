@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Actions\QuestionBank\ConnectToQuestionBankAction;
+use App\Filament\Concerns\HasSchoolSettingsPermission;
 use App\Support\QuestionBankConnection;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -27,6 +28,8 @@ use UnitEnum;
  */
 class QuestionBankSettings extends Page
 {
+    use HasSchoolSettingsPermission;
+
     protected string $view = 'filament.pages.question-bank-settings';
 
     /** @var array<string, mixed>|null */
@@ -91,12 +94,15 @@ class QuestionBankSettings extends Page
             Action::make('saveAndConnect')
                 ->label(__('Save and connect'))
                 ->icon(Heroicon::OutlinedLink)
+                ->visible(fn (): bool => static::canEditSettings())
                 ->action('saveAndConnect'),
         ];
     }
 
     public function saveAndConnect(ConnectToQuestionBankAction $connect): void
     {
+        $this->authorizeSettingsEdit();
+
         $data = $this->form->getState();
 
         QuestionBankConnection::save($data['url'], $data['code'], $data['secret'] ?? null);

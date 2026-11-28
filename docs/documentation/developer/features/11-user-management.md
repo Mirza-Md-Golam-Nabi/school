@@ -52,25 +52,25 @@ Model Policy একটাও নেই। Policy না থাকলে এব�
 
 নিচের তালিকা permission ছাড়া একজন `staff` ইউজার দিয়ে যাচাই করা (`canViewAny()` / `canCreate()` = `true`) অথবা code-এ `canAccess()` না থাকা থেকে।
 
-**গুরুত্বপূর্ণ (privilege escalation):**
+**গুরুত্বপূর্ণ (privilege escalation) — ঠিক করা হয়েছে:**
 
-| Class | ঝুঁকি |
-|---|---|
-| `RoleResource` | যেকোনো admin-panel ইউজার নিজের role (`staff`)-এ সব permission দিতে পারে |
-| `ActingAdminResource` | নিজেকে Acting Super Admin বানাতে পারে |
-| `Pages\SchoolSettings` | `view/edit_school_settings` কোথাও চেক হয় না; acting super admin-এর জন্য বাদ দেওয়াটাও তাই অকার্যকর |
+| Class | আগের ঝুঁকি | এখন |
+|---|---|---|
+| `RoleResource` | যেকোনো admin-panel ইউজার নিজের role (`staff`)-এ সব permission দিতে পারত | প্রতিটা কাজে `*_roles` permission; Super Admin role ও নিজের role শুধু Super Admin বদলাতে পারে |
+| `ActingAdminResource` | নিজেকে Acting Super Admin বানাতে পারত | প্রতিটা কাজে `*_acting_admins`; Acting Super Admin level শুধু Super Admin দেয়; নিজেকে বা নিজের assignment বদলানো যায় না |
+| `SchoolSettings`, `GradeScaleSettings`, `QuestionBankSettings` | `view/edit_school_settings` কোথাও চেক হতো না | `HasSchoolSettingsPermission` — view ছাড়া 403, edit ছাড়া read-only ও save 403 |
 
 **ডেটা পরিবর্তন:**
 
-`SubjectResource`, `GroupResource`, `ClassesResource`, `ExamTypeResource`, `ExamResource`, `ResultRuleResource`, `LeaveTypeResource`, `LeaveApplicationResource` (approve/reject action সহ), `PublicHolidayResource`, `StudentFeeDiscountResource`, `AttendanceDeviceResource`; Pages: `EnterStudentMarks` (admin), `GradeScaleSettings`, `QuestionBankSettings`, `PromoteStudents`, `PromoteStudentsForClass`, `BulkPromoteStudentsForClass`।
+`SubjectResource`, `GroupResource`, `ClassesResource`, `ExamTypeResource`, `ExamResource`, `ResultRuleResource`, `LeaveTypeResource`, `LeaveApplicationResource` (approve/reject action সহ), `PublicHolidayResource`, `StudentFeeDiscountResource`, `AttendanceDeviceResource`; Pages: `EnterStudentMarks` (admin), `PromoteStudents`, `PromoteStudentsForClass`, `BulkPromoteStudentsForClass`।
 
 **ডেটা প্রকাশ:**
 
 Pages: `SeatPlan`, `StudentIdCards`, `TeacherIdCards`, `StaffIdCards`, `StudentAttendanceReport`। এবং web.php-র সব PDF route শুধু `auth` — student বা teacher-ও URL দিয়ে অন্য class-এর student list, ID card, attendance report, marksheet, tabulation sheet ডাউনলোড করতে পারে (controller-এ কোনো check নেই, যেমন `ClassStudentListPdfController`)।
 
-**Registration:** admin panel-এ public registration চালু, নতুন ইউজার `admin` role পায় ([architecture](../00-architecture.md#০১৮-জানা-সমস্যা-ও-সতর্কতা))।
+**Registration:** ঠিক করা হয়েছে — admin panel-এ public registration বন্ধ, `/admin/register` 404 ([architecture](../00-architecture.md#০১৮-জানা-সমস্যা-ও-সতর্কতা))।
 
-প্রস্তাবিত সমাধান ক্রম: registration বন্ধ → Role/ActingAdmin/SchoolSettings গেট → PDF controller-এ panel + permission + ownership চেক → বাকি resource-এ `HasEntityPermissions` বা academic permission → Pest টেস্ট (`RolePermissionEnforcementTest` বাড়ানো)।
+বাকি সমাধানের প্রস্তাবিত ক্রম: PDF controller-এ panel + permission + ownership চেক → বাকি resource-এ `HasEntityPermissions` বা academic permission → Pest টেস্ট (`RolePermissionEnforcementTest` বাড়ানো)।
 
 ## ১১.৫ নতুন permission যোগ করার নিয়ম
 
@@ -82,4 +82,4 @@ Pages: `SeatPlan`, `StudentIdCards`, `TeacherIdCards`, `StaffIdCards`, `StudentA
 
 ## ১১.৬ টেস্ট
 
-`RolePermissionEnforcementTest`, `ActivityLogRoleTest`, `ActingAdminTest`।
+`RolePermissionEnforcementTest`, `AdminAccessControlTest`, `ActivityLogRoleTest`, `ActingAdminTest`।

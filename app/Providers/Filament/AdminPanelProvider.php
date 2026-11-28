@@ -4,7 +4,6 @@ namespace App\Providers\Filament;
 
 use App\Filament\Admin\Pages\Auth\EditProfile;
 use App\Filament\Admin\Pages\Auth\Login;
-use App\Filament\Admin\Pages\Auth\Register;
 use App\Filament\Admin\Pages\Dashboard;
 use App\Filament\Plugins\PwaInstallPlugin;
 use App\Http\Middleware\SetLocale;
@@ -38,7 +37,6 @@ class AdminPanelProvider extends PanelProvider
             ->databaseNotifications()
             ->globalSearch(false)
             ->login(Login::class)
-            ->registration(Register::class)
             ->passwordReset()
             ->emailVerification()
             ->emailChangeVerification()

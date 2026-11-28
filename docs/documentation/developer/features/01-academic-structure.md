@@ -81,7 +81,7 @@ Enum: `AcademicPermission` — `view_academic`, `create_academic`, `edit_academi
 | `GroupResource` | `// use HasAcademicPermissions;` — comment করা |
 | `SubjectResource`, `ClassesResource`, `ExamTypeResource`, `ExamResource`, `ResultRuleResource` | কোনো `can*()` / `get*AuthorizationResponse()` override নেই, কোনো Policy নেই |
 | `Pages\EnterStudentMarks` (admin) | `canAccess()` নেই — শুধু query param চেক করে |
-| `Pages\GradeScaleSettings` | `canAccess()` নেই |
+| `Pages\GradeScaleSettings` | ঠিক করা হয়েছে — `HasSchoolSettingsPermission` (দেখতে `view_school_settings`, save করতে `edit_school_settings`) |
 
 ফলাফল: Admin প্যানেলে ঢুকতে পারে এমন যেকোনো ইউজার (staff সহ, কোনো permission ছাড়াই) বিষয়, ক্লাস, পরীক্ষা, Result Rule, গ্রেডিং স্কেল তৈরি, সম্পাদনা ও মুছতে পারে, আর যেকোনো মার্কস বদলাতে পারে। (যাচাই: permission ছাড়া একজন staff ইউজারের জন্য `SubjectResource::canViewAny()` ও `canCreate()` দুটোই `true`।)
 
@@ -278,7 +278,7 @@ mPDF সীমাবদ্ধতা: table cell-এ border-radius নেই, row
 
 ## ১.১৮ জানা সমস্যা ও সতর্কতা
 
-1. **Authorization নেই** (১.৩) — Academic Structure-এর সব Resource, admin `EnterStudentMarks` ও `GradeScaleSettings`।
+1. **Authorization নেই** (১.৩) — Academic Structure-এর সব Resource ও admin `EnterStudentMarks`। (`GradeScaleSettings` ঠিক করা হয়েছে।)
 2. `ClassesTable`-এ row-level Delete action নেই, কিন্তু bulk Delete/ForceDelete/Restore আছে।
 3. `Classes → SubjectsRelationManager`-এর bulk action-এ `DeleteBulkAction` আছে, যা pivot নয়, **`subjects` রেকর্ড নিজেই** soft delete করে (সব ক্লাস থেকে বিষয় হারিয়ে যায়)। সম্ভবত শুধু `DetachBulkAction` থাকা উচিত।
 4. `ExamForm`-এর Class select `Classes::pluck()` — inactive class-ও দেখায়; `ListExams` card শুধু active class দেখায়।

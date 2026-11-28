@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Filament\Concerns\HasSchoolSettingsPermission;
 use App\Models\GradeScale;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -20,6 +21,8 @@ use UnitEnum;
  */
 class GradeScaleSettings extends Page
 {
+    use HasSchoolSettingsPermission;
+
     protected string $view = 'filament.pages.grade-scale-settings';
 
     /** @var array<string, mixed>|null */
@@ -51,6 +54,7 @@ class GradeScaleSettings extends Page
     public function form(Schema $schema): Schema
     {
         return $schema
+            ->disabled(! static::canEditSettings())
             ->components([
                 Repeater::make('scales')
                     ->label('')
@@ -115,12 +119,15 @@ class GradeScaleSettings extends Page
             Action::make('save')
                 ->label('Save Grading Scale')
                 ->icon(Heroicon::OutlinedCheckCircle)
+                ->visible(fn (): bool => static::canEditSettings())
                 ->action('save'),
         ];
     }
 
     public function save(): void
     {
+        $this->authorizeSettingsEdit();
+
         $rows = $this->form->getState()['scales'] ?? [];
 
         if (empty($rows)) {

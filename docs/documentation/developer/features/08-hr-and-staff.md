@@ -51,7 +51,9 @@
 
 `HrPermission`: leave types CRUD; leave applications `view`, `create`, `approve`, `reject`; public holidays CRUD; acting admins CRUD; `view_school_settings`, `edit_school_settings`।
 
-**সতর্কতা:** `LeaveTypeResource`, `LeaveApplicationResource`, `ActingAdminResource`, `PublicHolidayResource` — চারটাতেই কোনো authorization override নেই (permission ছাড়া staff-এর জন্য `canViewAny()` / `canCreate()` `true`)। বিশেষ করে `ActingAdminResource`: **যেকোনো admin-panel ইউজার নিজেকে Acting Super Admin বানাতে পারে** — privilege escalation। Table-এর `approve` / `reject` action-এও `authorize()` বা `can()` নেই — `approve_leave_applications` / `reject_leave_applications` permission enum-এ থাকলেও কোথাও চেক হয় না।
+**সতর্কতা:** `LeaveTypeResource`, `LeaveApplicationResource`, `PublicHolidayResource` — তিনটাতেই কোনো authorization override নেই (permission ছাড়া staff-এর জন্য `canViewAny()` / `canCreate()` `true`)। Table-এর `approve` / `reject` action-এও `authorize()` বা `can()` নেই — `approve_leave_applications` / `reject_leave_applications` permission enum-এ থাকলেও কোথাও চেক হয় না।
+
+`ActingAdminResource` ঠিক করা হয়েছে: প্রতিটা কাজে `*_acting_admins` permission লাগে; Acting Super Admin level শুধু Super Admin দিতে বা বদলাতে পারে; Super Admin ছাড়া কেউ নিজেকে বেছে নিতে বা নিজের assignment বদলাতে পারে না (`AdminAccessControlTest`)।
 
 ## ৮.৪ Leave type ও assignment
 
@@ -98,7 +100,7 @@ Cancelled — enum-এ আছে
 
 ## ৮.১০ জানা সমস্যা ও সতর্কতা
 
-1. চারটা HR resource-এ authorization নেই; `ActingAdminResource` দিয়ে privilege escalation সম্ভব (৮.৩)।
+1. তিনটা HR resource-এ (Leave Type, Leave Application, Public Holiday) authorization নেই (৮.৩)। `ActingAdminResource`-এর privilege escalation ঠিক করা হয়েছে।
 2. **ভবিষ্যৎ `from_date`-এর acting admin কখনো নিজে থেকে চালু হয় না।** Role শুধু model event-এ sync হয়, আর daily job শুধু মেয়াদ শেষ হলে বন্ধ করে। Daily job-এ `from_date = today` রেকর্ডগুলোর জন্যও `syncActingRoles` চালানো দরকার।
 3. Approve হলে `attendances`-এ `AttendanceStatus::Leave` row তৈরি হয় না — শুধু `leave_attendance_logs`। ফলে attendance পেজে ছুটির দিন "Not marked" বা হাতে দেওয়া Absent দেখাতে পারে; `Leave` status কোড কোথাও লেখে না।
 4. `allowed_days_per_year` apply বা approve-এ enforce হয় না — শুধু teacher-এর MyLeave-এ দেখানো।

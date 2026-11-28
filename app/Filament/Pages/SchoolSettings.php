@@ -8,6 +8,7 @@ use App\Enums\MergedComponentPassRule;
 use App\Enums\MergedPassRule;
 use App\Enums\ResultRounding;
 use App\Enums\WeekDay;
+use App\Filament\Concerns\HasSchoolSettingsPermission;
 use App\Models\AdmitCard;
 use App\Models\FeePayment;
 use App\Models\Marksheet;
@@ -37,6 +38,8 @@ use UnitEnum;
  */
 class SchoolSettings extends Page
 {
+    use HasSchoolSettingsPermission;
+
     protected string $view = 'filament.pages.school-settings';
 
     /** @var array<string, mixed>|null */
@@ -88,6 +91,7 @@ class SchoolSettings extends Page
     public function form(Schema $schema): Schema
     {
         return $schema
+            ->disabled(! static::canEditSettings())
             ->components([
                 Section::make('General')
                     ->schema([
@@ -272,12 +276,15 @@ class SchoolSettings extends Page
             Action::make('save')
                 ->label('Save Settings')
                 ->icon(Heroicon::OutlinedCheckCircle)
+                ->visible(fn (): bool => static::canEditSettings())
                 ->action('save'),
         ];
     }
 
     public function save(): void
     {
+        $this->authorizeSettingsEdit();
+
         $data = $this->form->getState();
 
         SchoolSetting::set('school_name', $data['school_name']);

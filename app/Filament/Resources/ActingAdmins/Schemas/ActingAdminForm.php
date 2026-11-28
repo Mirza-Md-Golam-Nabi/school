@@ -2,8 +2,7 @@
 
 namespace App\Filament\Resources\ActingAdmins\Schemas;
 
-use App\Enums\ActingAdminLevel;
-use App\Enums\UserType;
+use App\Filament\Resources\ActingAdmins\ActingAdminResource;
 use App\Models\ActingAdmin;
 use App\Models\User;
 use Filament\Forms\Components\DatePicker;
@@ -21,7 +20,8 @@ class ActingAdminForm
             ->components([
                 Select::make('user_id')
                     ->label('Acting User')
-                    ->options(fn () => ActingAdmin::activeUser())
+                    ->options(fn (): array => self::assignableUsers())
+                    ->in(fn (): array => array_keys(self::assignableUsers()))
                     ->getOptionLabelFromRecordUsing(fn (User $record) => "{$record->name} ({$record->user_type->getLabel()})")
                     ->searchable()
                     ->preload()
@@ -29,7 +29,8 @@ class ActingAdminForm
 
                 Select::make('level')
                     ->label('Acting As')
-                    ->options(ActingAdminLevel::options())
+                    ->options(fn (): array => ActingAdminResource::assignableLevelOptions())
+                    ->in(fn (): array => array_keys(ActingAdminResource::assignableLevelOptions()))
                     ->required(),
 
                 DatePicker::make('from_date')
@@ -45,5 +46,23 @@ class ActingAdminForm
                 Textarea::make('remarks')
                     ->columnSpanFull(),
             ]);
+    }
+
+    /**
+     * Active teachers and staff who may be made acting admin. Only the
+     * super-admin may pick themselves; anyone else would be granting
+     * themselves more power.
+     *
+     * @return array<int, string>
+     */
+    private static function assignableUsers(): array
+    {
+        $users = ActingAdmin::activeUser();
+
+        if (! ActingAdminResource::isSuperAdmin()) {
+            unset($users[auth()->id()]);
+        }
+
+        return $users;
     }
 }
