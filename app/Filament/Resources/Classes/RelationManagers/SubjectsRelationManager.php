@@ -7,7 +7,6 @@ use App\Models\Group;
 use App\Models\Subject;
 use Filament\Actions\AttachAction;
 use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\DetachAction;
 use Filament\Actions\DetachBulkAction;
 use Filament\Actions\EditAction;
@@ -170,7 +169,6 @@ class SubjectsRelationManager extends RelationManager
                 BulkActionGroup::make([
                     DetachBulkAction::make()
                         ->label('Remove'),
-                    DeleteBulkAction::make(),
                     // ForceDeleteBulkAction::make(),
                     // RestoreBulkAction::make(),
                 ]),

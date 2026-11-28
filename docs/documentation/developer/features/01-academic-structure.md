@@ -275,7 +275,7 @@ mPDF সীমাবদ্ধতা: table cell-এ border-radius নেই, row
 
 1. ~~Authorization নেই~~ — ঠিক করা হয়েছে (১.৩): সব Academic resource `*_academic` permission চায়, admin marks entry `edit_academic` চায়।
 2. `ClassesTable`-এ row-level Delete action নেই, কিন্তু bulk Delete/ForceDelete/Restore আছে।
-3. `Classes → SubjectsRelationManager`-এর bulk action-এ `DeleteBulkAction` আছে, যা pivot নয়, **`subjects` রেকর্ড নিজেই** soft delete করে (সব ক্লাস থেকে বিষয় হারিয়ে যায়)। সম্ভবত শুধু `DetachBulkAction` থাকা উচিত।
+3. ~~`Classes → SubjectsRelationManager`-এর `DeleteBulkAction` subject নিজেই মুছে দিত~~ — ঠিক করা হয়েছে: এখন শুধু `DetachBulkAction` (Remove) আছে (`ClassSubjectsBulkRemoveTest`)।
 4. `ExamForm`-এর Class select `Classes::pluck()` — inactive class-ও দেখায়; `ListExams` card শুধু active class দেখায়।
 5. Exam publish হওয়ার পর marks entry বন্ধ হয় না — published exam-এ মার্কস বদলালে আবার Calculate Rankings না করা পর্যন্ত ranking পুরনো থাকে।
 6. `GradeScale` lookup ইচ্ছাকৃতভাবে `max_mark` উপেক্ষা করে (১.৯) — "ঠিক" করবেন না।
