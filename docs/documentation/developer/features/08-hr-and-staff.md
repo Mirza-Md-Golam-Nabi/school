@@ -49,9 +49,9 @@
 
 ## ৮.৩ Permission
 
-`HrPermission`: leave types CRUD; leave applications `view`, `create`, `approve`, `reject`; public holidays CRUD; acting admins CRUD; `view_school_settings`, `edit_school_settings`।
+`HrPermission`: leave types CRUD; leave applications `view`, `create`, `edit`, `delete`, `approve`, `reject`; public holidays CRUD; acting admins CRUD; `view_school_settings`, `edit_school_settings`। (`edit_leave_applications` ও `delete_leave_applications` নতুন — production-এ `php artisan db:seed --class=PermissionSeeder` ও `permission:cache-reset` চালাতে হবে।)
 
-**সতর্কতা:** `LeaveTypeResource`, `LeaveApplicationResource`, `PublicHolidayResource` — তিনটাতেই কোনো authorization override নেই (permission ছাড়া staff-এর জন্য `canViewAny()` / `canCreate()` `true`)। Table-এর `approve` / `reject` action-এও `authorize()` বা `can()` নেই — `approve_leave_applications` / `reject_leave_applications` permission enum-এ থাকলেও কোথাও চেক হয় না।
+**ঠিক করা হয়েছে:** `LeaveTypeResource`, `LeaveApplicationResource`, `PublicHolidayResource` এখন `HasEntityPermissions` ব্যবহার করে (`*_leave_types`, `*_leave_applications`, `*_public_holidays`)। Leave application edit-এ permission ছাড়াও আবেদনটা approved না হওয়া লাগে। Table-এর `approve` / `reject` বাটন `LeaveApplicationResource::canDecide()` দিয়ে দেখায় — আবেদন pending, ইউজারের `approve_` / `reject_leave_applications` আছে, আর আবেদনকারী নিজে নন (Super Admin ছাড়া) (`HrPermissionTest`)।
 
 `ActingAdminResource` ঠিক করা হয়েছে: প্রতিটা কাজে `*_acting_admins` permission লাগে; Acting Super Admin level শুধু Super Admin দিতে বা বদলাতে পারে; Super Admin ছাড়া কেউ নিজেকে বেছে নিতে বা নিজের assignment বদলাতে পারে না (`AdminAccessControlTest`)।
 
@@ -100,7 +100,7 @@ Cancelled — enum-এ আছে
 
 ## ৮.১০ জানা সমস্যা ও সতর্কতা
 
-1. তিনটা HR resource-এ (Leave Type, Leave Application, Public Holiday) authorization নেই (৮.৩)। `ActingAdminResource`-এর privilege escalation ঠিক করা হয়েছে।
+1. ~~HR resource-এ authorization নেই~~ — ঠিক করা হয়েছে (৮.৩); `ActingAdminResource`-এর privilege escalation-ও ঠিক করা হয়েছে।
 2. **ভবিষ্যৎ `from_date`-এর acting admin কখনো নিজে থেকে চালু হয় না।** Role শুধু model event-এ sync হয়, আর daily job শুধু মেয়াদ শেষ হলে বন্ধ করে। Daily job-এ `from_date = today` রেকর্ডগুলোর জন্যও `syncActingRoles` চালানো দরকার।
 3. Approve হলে `attendances`-এ `AttendanceStatus::Leave` row তৈরি হয় না — শুধু `leave_attendance_logs`। ফলে attendance পেজে ছুটির দিন "Not marked" বা হাতে দেওয়া Absent দেখাতে পারে; `Leave` status কোড কোথাও লেখে না।
 4. `allowed_days_per_year` apply বা approve-এ enforce হয় না — শুধু teacher-এর MyLeave-এ দেখানো।

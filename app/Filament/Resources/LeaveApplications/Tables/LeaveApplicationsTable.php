@@ -5,6 +5,8 @@ namespace App\Filament\Resources\LeaveApplications\Tables;
 use App\Actions\Leave\ApproveLeaveApplicationAction;
 use App\Actions\Leave\RejectLeaveApplicationAction;
 use App\Enums\LeaveApplicationStatus;
+use App\Enums\Permissions\HrPermission;
+use App\Filament\Resources\LeaveApplications\LeaveApplicationResource;
 use App\Models\LeaveApplication;
 use App\Models\StaffProfile;
 use App\Models\TeacherProfile;
@@ -94,7 +96,7 @@ class LeaveApplicationsTable
                     ->label('Approve')
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
-                    ->visible(fn (LeaveApplication $record) => $record->isPending())
+                    ->visible(fn (LeaveApplication $record): bool => LeaveApplicationResource::canDecide($record, HrPermission::APPROVE_LEAVE_APPLICATIONS))
                     ->schema([
                         Textarea::make('action_remarks')
                             ->label('Remarks (optional)')
@@ -112,7 +114,7 @@ class LeaveApplicationsTable
                     ->label('Reject')
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')
-                    ->visible(fn (LeaveApplication $record) => $record->isPending())
+                    ->visible(fn (LeaveApplication $record): bool => LeaveApplicationResource::canDecide($record, HrPermission::REJECT_LEAVE_APPLICATIONS))
                     ->schema([
                         Textarea::make('action_remarks')
                             ->label('Reason for rejection')
@@ -217,7 +219,7 @@ class LeaveApplicationsTable
                     ->modalCancelActionLabel('Close'),
                 EditAction::make()
                     ->iconButton()
-                    ->visible(fn (LeaveApplication $record): bool => $record->isEditable()),
+                    ->visible(fn (LeaveApplication $record): bool => LeaveApplicationResource::canEdit($record)),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

@@ -11,6 +11,8 @@ enum HrPermission: string
 
     case VIEW_LEAVE_APPLICATIONS = 'view_leave_applications';
     case CREATE_LEAVE_APPLICATIONS = 'create_leave_applications';
+    case EDIT_LEAVE_APPLICATIONS = 'edit_leave_applications';
+    case DELETE_LEAVE_APPLICATIONS = 'delete_leave_applications';
     case APPROVE_LEAVE_APPLICATIONS = 'approve_leave_applications';
     case REJECT_LEAVE_APPLICATIONS = 'reject_leave_applications';
 

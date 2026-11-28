@@ -9,6 +9,7 @@ use App\Filament\Resources\LeaveTypes\RelationManagers\AssignmentsRelationManage
 use App\Filament\Resources\LeaveTypes\Schemas\LeaveTypeForm;
 use App\Filament\Resources\LeaveTypes\Tables\LeaveTypesTable;
 use App\Models\LeaveType;
+use App\Traits\Permissions\HasEntityPermissions;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -18,6 +19,8 @@ use UnitEnum;
 
 class LeaveTypeResource extends Resource
 {
+    use HasEntityPermissions;
+
     protected static ?string $model = LeaveType::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedClipboardDocumentList;

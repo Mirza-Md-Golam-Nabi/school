@@ -98,7 +98,7 @@ it('lets a teacher apply for a gender-specific leave type once it is assigned to
 });
 
 it('auto-assigns a gender-specific leave type when an admin applies on behalf of an unassigned teacher', function () {
-    $admin = User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]);
+    $admin = grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]));
     $teacherUser = User::factory()->create(['user_type' => UserType::Teacher, 'is_active' => true]);
     $teacher = TeacherProfile::create([
         'user_id' => $teacherUser->id,

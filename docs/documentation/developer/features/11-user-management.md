@@ -62,7 +62,7 @@ Model Policy একটাও নেই। Policy না থাকলে এব�
 
 **ডেটা পরিবর্তন:**
 
-`LeaveTypeResource`, `LeaveApplicationResource` (approve/reject action সহ), `PublicHolidayResource`, `StudentFeeDiscountResource`, `AttendanceDeviceResource`; Pages: `PromoteStudents`, `PromoteStudentsForClass`, `BulkPromoteStudentsForClass`। (Academic resource ও admin marks entry ঠিক করা হয়েছে।)
+`StudentFeeDiscountResource`, `AttendanceDeviceResource`; Pages: `PromoteStudents`, `PromoteStudentsForClass`, `BulkPromoteStudentsForClass`। (Academic resource, admin marks entry ও HR resource ঠিক করা হয়েছে।)
 
 **ডেটা প্রকাশ:**
 

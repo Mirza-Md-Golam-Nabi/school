@@ -8,6 +8,7 @@ use App\Filament\Resources\PublicHolidays\Pages\ListPublicHolidays;
 use App\Filament\Resources\PublicHolidays\Schemas\PublicHolidayForm;
 use App\Filament\Resources\PublicHolidays\Tables\PublicHolidaysTable;
 use App\Models\PublicHoliday;
+use App\Traits\Permissions\HasEntityPermissions;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -17,6 +18,8 @@ use UnitEnum;
 
 class PublicHolidayResource extends Resource
 {
+    use HasEntityPermissions;
+
     protected static ?string $model = PublicHoliday::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCalendarDays;
