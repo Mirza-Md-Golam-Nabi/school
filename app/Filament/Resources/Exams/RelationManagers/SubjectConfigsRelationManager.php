@@ -2,6 +2,9 @@
 
 namespace App\Filament\Resources\Exams\RelationManagers;
 
+use App\Enums\ExamNotificationKind;
+use App\Filament\Resources\Exams\Actions\ExamNotificationActions;
+use App\Models\ExamNotificationBatch;
 use App\Models\ExamSubjectConfig;
 use App\Models\ResultRule;
 use App\Models\Subject;
@@ -33,11 +36,17 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class SubjectConfigsRelationManager extends RelationManager
 {
     protected static string $relationship = 'subjectConfigs';
+
+    /**
+     * @var EloquentCollection<int, ExamNotificationBatch>|null
+     */
+    private ?EloquentCollection $subjectMarksBatches = null;
 
     public function form(Schema $schema): Schema
     {
@@ -300,6 +309,13 @@ class SubjectConfigsRelationManager extends RelationManager
                     ->alignCenter()
                     ->placeholder('—'),
 
+                TextColumn::make('marks_last_sent_at')
+                    ->label('Marks Sent')
+                    ->state(fn (ExamSubjectConfig $record): ?string => $this->marksLastSentAt($record))
+                    ->placeholder('—')
+                    ->visible(fn (): bool => ExamNotificationActions::canSend())
+                    ->toggleable(),
+
                 IconColumn::make('check_mcq_pass')
                     ->label('MCQ Pass?')
                     ->boolean()
@@ -320,6 +336,8 @@ class SubjectConfigsRelationManager extends RelationManager
                     ->visible(fn (): bool => self::isAdminPanel()),
             ])
             ->headerActions([
+                ExamNotificationActions::sendSeveralSubjectMarks($this->getOwnerRecord()),
+
                 CreateAction::make()
                     ->modalWidth(Width::Large)
                     ->createAnother(false)
@@ -333,6 +351,8 @@ class SubjectConfigsRelationManager extends RelationManager
                     ->iconButton()
                     ->visible(fn (ExamSubjectConfig $record): bool => self::canEnterMarks($record))
                     ->url(fn (ExamSubjectConfig $record): string => self::resolveEnterMarksUrl($record)),
+
+                ExamNotificationActions::sendSubjectMarks($this->getOwnerRecord()),
 
                 EditAction::make()
                     ->modalWidth(Width::Large)
@@ -372,6 +392,24 @@ class SubjectConfigsRelationManager extends RelationManager
                     ->with('exam')
                     ->withoutGlobalScopes([SoftDeletingScope::class])
             );
+    }
+
+    /**
+     * When this subject's marks last went out, from the exam's sends
+     * (loaded once per request).
+     */
+    private function marksLastSentAt(ExamSubjectConfig $record): ?string
+    {
+        $this->subjectMarksBatches ??= ExamNotificationBatch::query()
+            ->where('exam_id', $record->exam_id)
+            ->where('kind', ExamNotificationKind::SubjectMarks)
+            ->latest('id')
+            ->get();
+
+        return $this->subjectMarksBatches
+            ->first(fn (ExamNotificationBatch $batch): bool => $batch->includesSubject((int) $record->subject_id))
+            ?->created_at
+            ?->format('d M Y, h:i A');
     }
 
     private static function isAdminPanel(): bool

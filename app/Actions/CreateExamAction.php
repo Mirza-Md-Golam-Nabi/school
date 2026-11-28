@@ -20,6 +20,9 @@ class CreateExamAction
             'start_date' => $data['start_date'],
             'end_date' => $data['end_date'],
             'is_published' => $data['is_published'] ?? false,
+            'subject_marks_channels' => $data['subject_marks_channels'] ?? null,
+            'result_channels' => $data['result_channels'] ?? null,
+            'notify_result_on_publish' => (bool) ($data['notify_result_on_publish'] ?? true),
         ]);
 
         $this->copySubjectMergesToExam->handle($exam);

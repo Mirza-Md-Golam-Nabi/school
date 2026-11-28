@@ -17,6 +17,8 @@ enum SmsEvent: string implements HasLabel
     case FeeInvoiceGenerated = 'fee_invoice_generated';
     case FeePaymentReceived = 'fee_payment_received';
     case Notice = 'notice';
+    case ExamSubjectMarks = 'exam_subject_marks';
+    case ExamResult = 'exam_result';
 
     public function getLabel(): string
     {
@@ -28,6 +30,8 @@ enum SmsEvent: string implements HasLabel
             self::FeeInvoiceGenerated => 'Fee Generated',
             self::FeePaymentReceived => 'Fee Payment Received',
             self::Notice => 'Notice',
+            self::ExamSubjectMarks => 'Exam: Subject Marks',
+            self::ExamResult => 'Exam: Result',
         };
     }
 
@@ -41,6 +45,8 @@ enum SmsEvent: string implements HasLabel
             self::FeeInvoiceGenerated => 'ফি জেনারেট হলে অভিভাবককে SMS — প্রতি শিক্ষার্থীর জন্য একটা SMS-এ মোট টাকা।',
             self::FeePaymentReceived => 'ফি পরিশোধ হলে অভিভাবককে SMS — এক রসিদে একটা SMS।',
             self::Notice => 'নোটিশ প্রকাশের সময় "Send SMS" চালু থাকলে প্রাপকদের SMS।',
+            self::ExamSubjectMarks => 'পরীক্ষার ভেতর থেকে admin বিষয়ের মার্ক পাঠালে (চ্যানেলে SMS বাছাই থাকলে) অভিভাবককে SMS — কয়েকটা বিষয় একসাথে পাঠালে এক SMS-এ।',
+            self::ExamResult => 'পরীক্ষার সম্পূর্ণ রেজাল্ট পাঠালে (চ্যানেলে SMS বাছাই থাকলে) অভিভাবককে SMS — GPA, গ্রেড, মোট নম্বর ও মেধাক্রম।',
         };
     }
 
@@ -50,6 +56,7 @@ enum SmsEvent: string implements HasLabel
             self::AttendancePresent, self::AttendanceAbsent, self::DeviceEntry, self::DeviceExit => SmsSource::Attendance,
             self::FeeInvoiceGenerated, self::FeePaymentReceived => SmsSource::Fee,
             self::Notice => SmsSource::Notice,
+            self::ExamSubjectMarks, self::ExamResult => SmsSource::Exam,
         };
     }
 
@@ -69,6 +76,8 @@ enum SmsEvent: string implements HasLabel
                 self::FeeInvoiceGenerated => 'Dear guardian, fee of Tk {amount} for {fee_types} is due for {name} (ID: {student_id}). - {school}',
                 self::FeePaymentReceived => 'Dear guardian, fee of Tk {amount} for {name} (ID: {student_id}) received. Receipt: {receipt_link} - {school}',
                 self::Notice => '{school}: New notice - {title}',
+                self::ExamSubjectMarks => 'Dear guardian, {name} ({exam}) marks: {marks} - {school}',
+                self::ExamResult => 'Dear guardian, {name} ({exam}) result: GPA {gpa} ({grade}), Total {total_marks}, Position {position}. - {school}',
             };
         }
 
@@ -80,6 +89,8 @@ enum SmsEvent: string implements HasLabel
             self::FeeInvoiceGenerated => 'প্রিয় অভিভাবক, {name} (ID: {student_id})-এর {fee_types} বাবদ {amount} টাকা ফি ধার্য হয়েছে। - {school}',
             self::FeePaymentReceived => '{name} (ID: {student_id})-এর {amount} টাকা ফি গ্রহণ করা হয়েছে। রসিদ: {receipt_link} - {school}',
             self::Notice => '{school}: নতুন নোটিশ - {title}',
+            self::ExamSubjectMarks => 'প্রিয় অভিভাবক, {name}-এর {exam} পরীক্ষার নম্বর: {marks} - {school}',
+            self::ExamResult => 'প্রিয় অভিভাবক, {name}-এর {exam} পরীক্ষার ফলাফল: GPA {gpa} ({grade}), মোট নম্বর {total_marks}, মেধাক্রম {position}। - {school}',
         };
     }
 
@@ -104,6 +115,8 @@ enum SmsEvent: string implements HasLabel
             self::FeeInvoiceGenerated => $student + ['{amount}' => 'মোট টাকা', '{fee_types}' => 'ফি-এর ধরন'] + $school,
             self::FeePaymentReceived => $student + ['{amount}' => 'পরিশোধিত টাকা', '{receipt_no}' => 'রসিদ নং', '{receipt_link}' => 'রসিদ যাচাইয়ের লিংক', '{date}' => 'তারিখ'] + $school,
             self::Notice => ['{title}' => 'নোটিশের শিরোনাম', '{body}' => 'নোটিশের লেখা'] + $school,
+            self::ExamSubjectMarks => $student + ['{class}' => 'ক্লাস', '{roll}' => 'রোল', '{exam}' => 'পরীক্ষার নাম', '{marks}' => 'বিষয়ের নম্বর (যেমন: গণিত 72/100 (A))'] + $school,
+            self::ExamResult => $student + ['{class}' => 'ক্লাস', '{roll}' => 'রোল', '{exam}' => 'পরীক্ষার নাম', '{gpa}' => 'GPA', '{grade}' => 'গ্রেড', '{total_marks}' => 'মোট নম্বর', '{position}' => 'মেধাক্রম'] + $school,
         };
     }
 }

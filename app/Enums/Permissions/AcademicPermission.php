@@ -10,4 +10,5 @@ enum AcademicPermission: string
     case DELETE_ACADEMIC = 'delete_academic';
     case FORCE_DELETE_ACADEMIC = 'force_delete_academic';
     case RESTORE_ACADEMIC = 'restore_academic';
+    case SEND_EXAM_NOTIFICATIONS = 'send_exam_notifications';
 }

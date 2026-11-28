@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\ExamNotificationChannel;
+use App\Enums\ExamNotificationKind;
 use App\Enums\SubjectType;
 use App\Models\StudentMeritRanking;
 use App\Support\BengaliNumber;
@@ -40,14 +42,24 @@ class Exam extends Model
         'start_date',
         'end_date',
         'is_published',
+        'subject_marks_channels',
+        'result_channels',
+        'notify_result_on_publish',
         'has_custom_subject_merges',
         'result_rule_snapshot',
+    ];
+
+    protected $attributes = [
+        'notify_result_on_publish' => true,
     ];
 
     protected $casts = [
         'start_date' => 'date:Y-m-d',
         'end_date' => 'date:Y-m-d',
         'is_published' => 'boolean',
+        'subject_marks_channels' => 'array',
+        'result_channels' => 'array',
+        'notify_result_on_publish' => 'boolean',
         'has_custom_subject_merges' => 'boolean',
         'session_year' => 'integer',
         'result_rule_snapshot' => 'array',
@@ -102,6 +114,45 @@ class Exam extends Model
     public function meritRankings(): HasMany
     {
         return $this->hasMany(StudentMeritRanking::class);
+    }
+
+    public function notificationBatches(): HasMany
+    {
+        return $this->hasMany(ExamNotificationBatch::class);
+    }
+
+    /**
+     * The channels this exam's subject marks go out through — push only
+     * until the admin chooses otherwise.
+     *
+     * @return list<ExamNotificationChannel>
+     */
+    public function subjectMarksChannels(): array
+    {
+        return $this->subject_marks_channels === null
+            ? [ExamNotificationChannel::Push]
+            : ExamNotificationChannel::listFrom($this->subject_marks_channels);
+    }
+
+    /**
+     * The channels this exam's complete result goes out through — push and
+     * SMS until the admin chooses otherwise.
+     *
+     * @return list<ExamNotificationChannel>
+     */
+    public function resultChannels(): array
+    {
+        return $this->result_channels === null
+            ? [ExamNotificationChannel::Push, ExamNotificationChannel::Sms]
+            : ExamNotificationChannel::listFrom($this->result_channels);
+    }
+
+    /**
+     * @return list<ExamNotificationChannel>
+     */
+    public function channelsFor(ExamNotificationKind $kind): array
+    {
+        return $kind === ExamNotificationKind::SubjectMarks ? $this->subjectMarksChannels() : $this->resultChannels();
     }
 
     /**

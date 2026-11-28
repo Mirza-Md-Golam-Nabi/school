@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Exams\Pages;
 use App\Actions\CalculateExamRankings;
 use App\Actions\CopySubjectMergesToExamAction;
 use App\Filament\Pages\ExamAttendanceTotals;
+use App\Filament\Resources\Exams\Actions\ExamNotificationActions;
 use App\Filament\Resources\Exams\ExamResource;
 use App\Models\Exam;
 use App\Notifications\Concerns\NotifiesExamResultPublished;
@@ -47,6 +48,8 @@ class EditExam extends EditRecord
                     $livewire->dispatch('$refresh');
                 }),
 
+            ExamNotificationActions::sendResult(),
+
             Action::make('attendanceTotals')
                 ->label('Attendance Totals')
                 ->icon(Heroicon::OutlinedCalculator)
@@ -72,6 +75,9 @@ class EditExam extends EditRecord
             'start_date' => $data['start_date'],
             'end_date' => $data['end_date'],
             'is_published' => $willBePublished,
+            'subject_marks_channels' => $data['subject_marks_channels'] ?? $record->subject_marks_channels,
+            'result_channels' => $data['result_channels'] ?? $record->result_channels,
+            'notify_result_on_publish' => (bool) ($data['notify_result_on_publish'] ?? $record->notify_result_on_publish),
         ]);
 
         // The old class's merges name subjects the new class may not have.
