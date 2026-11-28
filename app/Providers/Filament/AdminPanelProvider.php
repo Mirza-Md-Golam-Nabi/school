@@ -6,6 +6,7 @@ use App\Filament\Admin\Pages\Auth\EditProfile;
 use App\Filament\Admin\Pages\Auth\Login;
 use App\Filament\Admin\Pages\Auth\Register;
 use App\Filament\Admin\Pages\Dashboard;
+use App\Filament\Plugins\PwaInstallPlugin;
 use App\Http\Middleware\SetLocale;
 use App\Support\QuestionBankConnection;
 use Filament\Actions\Action;
@@ -53,6 +54,7 @@ class AdminPanelProvider extends PanelProvider
                 PanelsRenderHook::HEAD_END,
                 fn (): string => '<link rel="manifest" href="/manifest/admin.json">',
             )
+            ->plugin(PwaInstallPlugin::make())
             ->renderHook(
                 PanelsRenderHook::BODY_END,
                 fn (): string => auth()->check() ? view('filament.shared.webpush-subscribe')->render() : '',

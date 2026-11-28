@@ -9,7 +9,7 @@ use Filament\Support\Icons\Heroicon;
 use Filament\View\PanelsRenderHook;
 
 /**
- * Lets students and teachers install their panel as an app (PWA) from
+ * Lets admins, students and teachers install their panel as an app (PWA) from
  * anywhere: the login page, a topbar button, the user menu and a
  * dismissible banner. Every entry point links to the public install guide.
  */

@@ -50,7 +50,7 @@ Route::get('/', function () {
 // Kept inside each panel's path (= the PWA manifest scope) so the browser
 // can offer its native install prompt on the guide page as well.
 Route::get('/{panel}/install', InstallGuideController::class)
-    ->whereIn('panel', ['student', 'teacher'])
+    ->whereIn('panel', ['admin', 'student', 'teacher'])
     ->name('install-guide');
 
 // Opened by the QR code printed on admit cards: public (exam-hall invigilators

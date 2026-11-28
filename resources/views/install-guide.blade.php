@@ -127,7 +127,7 @@
 
     <main class="wrap" data-pwa-guide>
         <section class="hero">
-            <span class="hero__icon">{{ $panelId === 'student' ? '🎓' : '👩‍🏫' }}</span>
+            <span class="hero__icon">{{ ['admin' => '🛠️', 'student' => '🎓'][$panelId] ?? '👩‍🏫' }}</span>
             <h1>{{ $appLabel }} অ্যাপ ইন্সটল করুন</h1>
             <p>Play Store লাগবে না — কয়েক সেকেন্ডেই ফোন বা কম্পিউটারে অ্যাপটি যুক্ত হবে। এরপর হোম স্ক্রিনের আইকনে ট্যাপ করলেই সরাসরি {{ $appLabel }} প্যানেল খুলবে।</p>
 

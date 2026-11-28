@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 /**
- * Public, step-by-step guide for installing the student or teacher panel
+ * Public, step-by-step guide for installing the admin, student or teacher panel
  * as an app. It lives inside the panel's path so the browser treats it as
  * part of that app and can offer the native install prompt here too.
  */
@@ -18,6 +18,7 @@ class InstallGuideController extends Controller
      * @var array<string, string>
      */
     private const APP_LABELS = [
+        'admin' => 'অ্যাডমিন',
         'student' => 'শিক্ষার্থী',
         'teacher' => 'শিক্ষক',
     ];

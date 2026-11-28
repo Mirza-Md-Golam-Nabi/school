@@ -20,28 +20,23 @@ it('serves a public install guide inside each app panel path', function (string 
         ->assertSee('data-pwa-steps="inapp"', false)
         ->assertSee("navigator.serviceWorker.register('/sw.js')", false);
 })->with([
+    'admin' => ['admin', 'অ্যাডমিন'],
     'student' => ['student', 'শিক্ষার্থী'],
     'teacher' => ['teacher', 'শিক্ষক'],
 ]);
 
-it('has no install guide for the admin panel', function () {
-    test()->get('/admin/install')->assertNotFound();
+it('has no install guide for an unknown panel', function () {
+    test()->get('/staff/install')->assertNotFound();
 });
 
-it('offers the install button on the student and teacher login pages', function (string $panel) {
+it('offers the install button on every panel login page', function (string $panel) {
     test()->get("/{$panel}/login")
         ->assertOk()
         ->assertSee('class="pwa-login"', false)
         ->assertSee(route('install-guide', ['panel' => $panel]), false)
         ->assertSee("navigator.serviceWorker.register('/sw.js')", false)
         ->assertDontSee('class="pwa-banner"', false);
-})->with(['student', 'teacher']);
-
-it('does not offer an app install on the admin login page', function () {
-    test()->get('/admin/login')
-        ->assertOk()
-        ->assertDontSee('data-pwa-install', false);
-});
+})->with(['admin', 'student', 'teacher']);
 
 it('shows the topbar button, user menu item and banner inside the student panel', function () {
     $student = makeStudent(['must_change_password' => false]);
@@ -91,6 +86,18 @@ it('shows the topbar button and banner inside the teacher panel', function () {
         ->assertSee(route('install-guide', ['panel' => 'teacher']), false);
 });
 
+it('shows the topbar button and banner inside the admin panel', function () {
+    $admin = grantSuperAdmin(User::factory()->create(['user_type' => UserType::Admin, 'is_active' => true]));
+
+    test()->actingAs($admin)
+        ->get('/admin')
+        ->assertOk()
+        ->assertSee('/manifest/admin.json', false)
+        ->assertSee('class="pwa-topbar-btn"', false)
+        ->assertSee('class="pwa-banner"', false)
+        ->assertSee(route('install-guide', ['panel' => 'admin']), false);
+});
+
 it('links to both app install guides from the home page', function () {
     test()->get(route('home'))
         ->assertOk()
@@ -106,4 +113,4 @@ it('scopes each app manifest to its own panel so both install separately', funct
         ->scope->toBe("/{$panel}")
         ->start_url->toBe("/{$panel}")
         ->display->toBe('standalone');
-})->with(['student', 'teacher']);
+})->with(['admin', 'student', 'teacher']);

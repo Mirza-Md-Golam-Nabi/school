@@ -1,5 +1,5 @@
 {{--
-    Shared "install the app" controller for the student and teacher PWAs.
+    Shared "install the app" controller for the admin, student and teacher PWAs.
 
     Every install button is a plain link to the install guide page carrying
     `data-pwa-install`. Where the browser offers a native install prompt
@@ -7,7 +7,7 @@
     is shown; elsewhere (iPhone Safari, in-app browsers, Firefox) the link
     simply opens the guide with step-by-step instructions.
 
-    Expects: $panelId ('student' | 'teacher'), $guideUrl.
+    Expects: $panelId ('admin' | 'student' | 'teacher'), $guideUrl.
 --}}
 @once
     <script>
