@@ -42,6 +42,7 @@ class TeacherIdCardsPdfController extends Controller
 
         if ($teacher->user_id !== $user->id) {
             $this->ensureSchoolStaff($user);
+            abort_unless($user->can('view_teacher_profiles'), 403);
         }
 
         return $this->pdfResponse($action->handle($teacher), "teacher-id-card-{$teacher->id}.pdf", 'inline');

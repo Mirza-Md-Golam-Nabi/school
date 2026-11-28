@@ -239,13 +239,13 @@ it('is empty until rankings have been calculated', function () {
         ->and(fn () => app(BuildExamResultReportPdfAction::class)->handle($exam))->toThrow(NotFoundHttpException::class);
 });
 
-it('downloads the exam result report PDF for an authenticated user', function () {
+it('downloads the exam result report PDF for a user allowed to view exams', function () {
     [$exam, $subjects] = makeResultReportExam();
     addResultReportStudent($exam, $subjects, [85, 90, 95]);
     addResultReportStudent($exam, $subjects, [85, 85, 10]);
     app(CalculateExamRankings::class)->execute($exam);
 
-    $response = $this->actingAs(User::factory()->create())
+    $response = $this->actingAs(grantSuperAdmin(User::factory()->create()))
         ->get(route('exams.result-report.download', ['exam' => $exam]));
 
     $response->assertOk();

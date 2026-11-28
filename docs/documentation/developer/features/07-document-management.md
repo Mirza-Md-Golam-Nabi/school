@@ -53,7 +53,9 @@
 
 `DocumentPermission`: admit cards ও marksheets-এর view / create / edit / delete — দুই resource `HasEntityPermissions` ব্যবহার করে।
 
-**সতর্কতা:** `SeatPlan`, `StudentIdCards`, `TeacherIdCards`, `StaffIdCards`, `StudentAttendanceReport` page-এ `canAccess()` নেই। PDF route-গুলো শুধু `auth` middleware-এর পেছনে, কোনো permission বা panel চেক নয় — **যেকোনো লগইন করা ইউজার (শিক্ষার্থী সহ)** URL জানলে অন্য class-এর ID card, student list, attendance report ইত্যাদি ডাউনলোড করতে পারে (যেমন `/classes/{id}/student-list/download` — এতে guardian phone, birth certificate no থাকতে পারে)। প্রতিটা PDF controller-এ authorization যোগ করা দরকার।
+**সতর্কতা:** `SeatPlan`, `StudentIdCards`, `TeacherIdCards`, `StaffIdCards`, `StudentAttendanceReport` page-এ `canAccess()` নেই।
+
+**PDF route-এর অনুমতি (ঠিক করা হয়েছে):** `routes/web.php`-এ প্রতিটা PDF route `auth` + `can:` middleware-এর পেছনে — admit card ও seat plan `view_admit_cards`; marksheet `view_marksheets`; class student list ও student ID card `view_student_profiles`; teacher list ও teacher ID card `view_teacher_profiles`; staff ID card `view_staff_profiles`; subject list ও exam schedule / tabulation / result report `view_academic`; attendance report `view_attendance`; fee slip `view_fee_payments`। ব্যতিক্রম `teacher-id-cards.teacher.view`: শিক্ষক নিজের কার্ড সবসময় পান, অন্যের কার্ডে admin panel + `view_teacher_profiles` লাগে (`PdfRouteAuthorizationTest`)। বাকি: teacher-এর `view_fee_payments` থাকলে যেকোনো batch-এর fee slip খুলতে পারে (নিজের class-এ সীমাবদ্ধ নয়)।
 
 ## ৭.৪ Admit card
 
@@ -119,6 +121,6 @@
 
 ## ৭.১৩ জানা সমস্যা ও সতর্কতা
 
-1. PDF route ও document page-গুলোতে authorization নেই (৭.৩) — data exposure ঝুঁকি।
+1. Document page-গুলোতে authorization নেই (৭.৩)। PDF route-এর অনুমতি ঠিক করা হয়েছে।
 2. CLAUDE.md-তে `transfer_certificates` ও `document_settings` টেবিল তালিকাভুক্ত, কিন্তু Transfer Certificate (TC) feature বাস্তবায়িত নয় (কোনো model / resource নেই); document settings `school_settings`-এ রাখা হয়।
 3. বাকি QR পরিকল্পনা `docs/qr-code-plan.md`-এ।

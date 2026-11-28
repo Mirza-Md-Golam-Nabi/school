@@ -99,55 +99,55 @@ Route::get('/locale/{locale}', [LocaleController::class, 'switch'])
     ->name('locale.switch');
 
 Route::get('/admit-cards/sample/{design}', AdmitCardSamplePdfController::class)
-    ->middleware('auth')
+    ->middleware(['auth', 'can:view_admit_cards'])
     ->name('admit-cards.sample');
 
 Route::get('/admit-cards/{admitCard}/view', AdmitCardPdfController::class)
-    ->middleware('auth')
+    ->middleware(['auth', 'can:view_admit_cards'])
     ->name('admit-cards.view');
 
 Route::get('/marksheets/{marksheet}/view', MarksheetPdfController::class)
-    ->middleware('auth')
+    ->middleware(['auth', 'can:view_marksheets'])
     ->name('marksheets.view');
 
 Route::get('/classes/{class}/marksheets/{exam}/download', ClassMarksheetsPdfController::class)
-    ->middleware('auth')
+    ->middleware(['auth', 'can:view_marksheets'])
     ->name('marksheets.class.download');
 
 Route::get('/classes/{class}/admit-cards/{exam}/download', ClassAdmitCardsPdfController::class)
-    ->middleware('auth')
+    ->middleware(['auth', 'can:view_admit_cards'])
     ->name('admit-cards.class.download');
 
 Route::get('/classes/{class}/seat-plan/download', ClassSeatPlanPdfController::class)
-    ->middleware('auth')
+    ->middleware(['auth', 'can:view_admit_cards'])
     ->name('seat-plan.class.download');
 
 Route::get('/classes/{class}/student-id-cards/view', [ClassStudentIdCardsPdfController::class, 'view'])
-    ->middleware('auth')
+    ->middleware(['auth', 'can:view_student_profiles'])
     ->name('student-id-cards.class.view');
 
 Route::get('/classes/{class}/student-id-cards/download', [ClassStudentIdCardsPdfController::class, 'download'])
-    ->middleware('auth')
+    ->middleware(['auth', 'can:view_student_profiles'])
     ->name('student-id-cards.class.download');
 
 Route::get('/classes/{class}/student-list/download', ClassStudentListPdfController::class)
-    ->middleware('auth')
+    ->middleware(['auth', 'can:view_student_profiles'])
     ->name('student-list.class.download');
 
 Route::get('/subject-list/download', SubjectListPdfController::class)
-    ->middleware('auth')
+    ->middleware(['auth', 'can:view_academic'])
     ->name('subject-list.download');
 
 Route::get('/teacher-list/download', TeacherListPdfController::class)
-    ->middleware('auth')
+    ->middleware(['auth', 'can:view_teacher_profiles'])
     ->name('teacher-list.download');
 
 Route::get('/teacher-id-cards/view', [TeacherIdCardsPdfController::class, 'view'])
-    ->middleware('auth')
+    ->middleware(['auth', 'can:view_teacher_profiles'])
     ->name('teacher-id-cards.view');
 
 Route::get('/teacher-id-cards/download', [TeacherIdCardsPdfController::class, 'download'])
-    ->middleware('auth')
+    ->middleware(['auth', 'can:view_teacher_profiles'])
     ->name('teacher-id-cards.download');
 
 Route::get('/teacher-id-cards/{teacher}/view', [TeacherIdCardsPdfController::class, 'show'])
@@ -155,46 +155,46 @@ Route::get('/teacher-id-cards/{teacher}/view', [TeacherIdCardsPdfController::cla
     ->name('teacher-id-cards.teacher.view');
 
 Route::get('/staff-id-cards/view', [StaffIdCardsPdfController::class, 'view'])
-    ->middleware('auth')
+    ->middleware(['auth', 'can:view_staff_profiles'])
     ->name('staff-id-cards.view');
 
 Route::get('/staff-id-cards/download', [StaffIdCardsPdfController::class, 'download'])
-    ->middleware('auth')
+    ->middleware(['auth', 'can:view_staff_profiles'])
     ->name('staff-id-cards.download');
 
 Route::get('/staff-id-cards/{staff}/view', [StaffIdCardsPdfController::class, 'show'])
-    ->middleware('auth')
+    ->middleware(['auth', 'can:view_staff_profiles'])
     ->name('staff-id-cards.staff.view');
 
 Route::get('/classes/{class}/attendance-report/{year}/{month}/download', ClassAttendanceReportPdfController::class)
-    ->middleware('auth')
+    ->middleware(['auth', 'can:view_attendance'])
     ->whereNumber(['year', 'month'])
     ->name('attendance-report.class.download');
 
 Route::get('/attendance-report/employees/{year}/{month}/download', EmployeeAttendanceReportPdfController::class)
-    ->middleware('auth')
+    ->middleware(['auth', 'can:view_attendance'])
     ->whereNumber(['year', 'month'])
     ->name('attendance-report.employees.download');
 
 Route::get('/attendance-report/teachers/{year}/{month}/download', TeacherAttendanceSheetPdfController::class)
-    ->middleware('auth')
+    ->middleware(['auth', 'can:view_attendance'])
     ->whereNumber(['year', 'month'])
     ->name('attendance-report.teachers.download');
 
 Route::get('/exams/{exam}/schedule/download', ExamSchedulePdfController::class)
-    ->middleware('auth')
+    ->middleware(['auth', 'can:view_academic'])
     ->name('exams.schedule.download');
 
 Route::get('/exams/{exam}/tabulation-sheet/download', ExamTabulationSheetPdfController::class)
-    ->middleware('auth')
+    ->middleware(['auth', 'can:view_academic'])
     ->name('exams.tabulation-sheet.download');
 
 Route::get('/exams/{exam}/result-report/download', ExamResultReportPdfController::class)
-    ->middleware('auth')
+    ->middleware(['auth', 'can:view_academic'])
     ->name('exams.result-report.download');
 
 Route::get('/fee-payments/{batchId}/slip', FeePaymentSlipPdfController::class)
-    ->middleware('auth')
+    ->middleware(['auth', 'can:view_fee_payments'])
     ->name('fee-payments.slip.download');
 
 // No 'auth' middleware here — this app has no generic named 'login' route (Filament panels

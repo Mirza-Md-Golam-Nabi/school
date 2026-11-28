@@ -273,7 +273,7 @@ it('aborts with 404 when rankings have not been calculated yet', function () {
         ->toThrow(NotFoundHttpException::class);
 });
 
-it('downloads a tabulation sheet PDF for an authenticated user', function () {
+it('downloads a tabulation sheet PDF for a user allowed to view exams', function () {
     $class = Classes::create(['name' => 'Class 4', 'level' => ClassLevel::Primary, 'order' => 4, 'has_group' => false]);
     $exam = makeTabulationExam($class);
 
@@ -290,7 +290,7 @@ it('downloads a tabulation sheet PDF for an authenticated user', function () {
     recordTabulationResult($exam, $subject, $student, 80);
     recordTabulationRanking($exam, $student, 80, 1);
 
-    $response = $this->actingAs(User::factory()->create())
+    $response = $this->actingAs(grantSuperAdmin(User::factory()->create()))
         ->get(route('exams.tabulation-sheet.download', ['exam' => $exam]));
 
     $response->assertOk();
@@ -356,7 +356,7 @@ it('honors an explicit A3 landscape choice when building the PDF', function () {
     recordTabulationResult($exam, $subject, $student, 80);
     recordTabulationRanking($exam, $student, 80, 1);
 
-    $response = $this->actingAs(User::factory()->create())
+    $response = $this->actingAs(grantSuperAdmin(User::factory()->create()))
         ->get(route('exams.tabulation-sheet.download', ['exam' => $exam, 'pageSize' => 'A3', 'orientation' => 'L']));
 
     $response->assertOk();

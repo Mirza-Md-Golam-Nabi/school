@@ -66,7 +66,7 @@ Model Policy একটাও নেই। Policy না থাকলে এব�
 
 **ডেটা প্রকাশ:**
 
-Pages: `SeatPlan`, `StudentIdCards`, `TeacherIdCards`, `StaffIdCards`, `StudentAttendanceReport`। এবং web.php-র সব PDF route শুধু `auth` — student বা teacher-ও URL দিয়ে অন্য class-এর student list, ID card, attendance report, marksheet, tabulation sheet ডাউনলোড করতে পারে (controller-এ কোনো check নেই, যেমন `ClassStudentListPdfController`)।
+Pages: `SeatPlan`, `StudentIdCards`, `TeacherIdCards`, `StaffIdCards`, `StudentAttendanceReport`। web.php-র PDF route-গুলো ঠিক করা হয়েছে — এখন প্রতিটায় সংশ্লিষ্ট `can:` permission লাগে ([Document Management ৭.৩](07-document-management.md))।
 
 **Registration:** ঠিক করা হয়েছে — admin panel-এ public registration বন্ধ, `/admin/register` 404 ([architecture](../00-architecture.md#০১৮-জানা-সমস্যা-ও-সতর্কতা))।
 
