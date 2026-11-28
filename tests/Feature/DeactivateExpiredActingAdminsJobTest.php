@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\SyncActingAdminRolesAction;
 use App\Jobs\DeactivateExpiredActingAdminsJob;
 use App\Models\ActingAdmin;
 use App\Models\User;
@@ -28,7 +29,7 @@ it('deactivates an acting admin record whose to_date has passed and revokes the 
     ]);
     $actingUser->assignRole('super_admin_acting');
 
-    (new DeactivateExpiredActingAdminsJob)->handle();
+    (new DeactivateExpiredActingAdminsJob)->handle(app(SyncActingAdminRolesAction::class));
 
     expect($actingAdmin->fresh()->is_active)->toBeFalse()
         ->and($actingUser->fresh()->hasRole('super_admin_acting'))->toBeFalse();
@@ -46,7 +47,7 @@ it('does not touch a record whose to_date is today', function () {
         'is_active' => true,
     ]);
 
-    (new DeactivateExpiredActingAdminsJob)->handle();
+    (new DeactivateExpiredActingAdminsJob)->handle(app(SyncActingAdminRolesAction::class));
 
     expect($actingAdmin->fresh()->is_active)->toBeTrue()
         ->and($actingUser->fresh()->hasRole('super_admin_acting'))->toBeTrue();
@@ -64,7 +65,7 @@ it('does not touch a record whose to_date is in the future', function () {
         'is_active' => true,
     ]);
 
-    (new DeactivateExpiredActingAdminsJob)->handle();
+    (new DeactivateExpiredActingAdminsJob)->handle(app(SyncActingAdminRolesAction::class));
 
     expect($actingAdmin->fresh()->is_active)->toBeTrue()
         ->and($actingUser->fresh()->hasRole('super_admin_acting'))->toBeTrue();
@@ -82,7 +83,7 @@ it('does not touch a record already inactive', function () {
         'is_active' => false,
     ]);
 
-    (new DeactivateExpiredActingAdminsJob)->handle();
+    (new DeactivateExpiredActingAdminsJob)->handle(app(SyncActingAdminRolesAction::class));
 
     expect($actingAdmin->fresh()->is_active)->toBeFalse();
 });
@@ -99,7 +100,7 @@ it('never deactivates a permanent record (null to_date), regardless of how old f
         'is_active' => true,
     ]);
 
-    (new DeactivateExpiredActingAdminsJob)->handle();
+    (new DeactivateExpiredActingAdminsJob)->handle(app(SyncActingAdminRolesAction::class));
 
     expect($actingAdmin->fresh()->is_active)->toBeTrue()
         ->and($actingUser->fresh()->hasRole('super_admin_acting'))->toBeTrue();
@@ -125,10 +126,50 @@ it('keeps the role when another active record still covers the same user', funct
         'is_active' => true,
     ]);
 
-    (new DeactivateExpiredActingAdminsJob)->handle();
+    (new DeactivateExpiredActingAdminsJob)->handle(app(SyncActingAdminRolesAction::class));
 
     expect($expired->fresh()->is_active)->toBeFalse()
         ->and($actingUser->fresh()->hasRole('super_admin_acting'))->toBeTrue();
+});
+
+it('grants the role when a future-dated record reaches its from_date', function () {
+    $superAdmin = User::factory()->create();
+    $actingUser = User::factory()->create();
+
+    $this->travelTo(today()->subDays(2));
+
+    ActingAdmin::create([
+        'user_id' => $actingUser->id,
+        'assigned_by' => $superAdmin->id,
+        'from_date' => today()->addDays(2),
+        'to_date' => today()->addDays(5),
+        'is_active' => true,
+    ]);
+
+    expect($actingUser->fresh()->hasRole('super_admin_acting'))->toBeFalse();
+
+    $this->travelBack();
+
+    (new DeactivateExpiredActingAdminsJob)->handle(app(SyncActingAdminRolesAction::class));
+
+    expect($actingUser->fresh()->hasRole('super_admin_acting'))->toBeTrue();
+});
+
+it('does not grant the role before a future from_date arrives', function () {
+    $superAdmin = User::factory()->create();
+    $actingUser = User::factory()->create();
+
+    ActingAdmin::create([
+        'user_id' => $actingUser->id,
+        'assigned_by' => $superAdmin->id,
+        'from_date' => today()->addDay(),
+        'to_date' => today()->addDays(5),
+        'is_active' => true,
+    ]);
+
+    (new DeactivateExpiredActingAdminsJob)->handle(app(SyncActingAdminRolesAction::class));
+
+    expect($actingUser->fresh()->hasRole('super_admin_acting'))->toBeFalse();
 });
 
 it('is scheduled to run daily at 00:10', function () {

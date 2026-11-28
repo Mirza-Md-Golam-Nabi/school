@@ -83,11 +83,11 @@ Cancelled — enum-এ আছে
 
 ## ৮.৭ Acting admin
 
-- `ActingAdminObserver::syncActingRoles($user)` — created / updated / deleted-এ: active, `from_date <= today`, `to_date` null বা `>= today` রেকর্ডগুলোর level অনুযায়ী role assign / remove
+- `SyncActingAdminRolesAction::handle($user)` (`ActingAdminObserver` created / updated / deleted-এ চালায়): active, `from_date <= today`, `to_date` null বা `>= today` রেকর্ডগুলোর level অনুযায়ী role assign / remove
 - `super_admin_acting`: `ActingAdminRoleSeeder` — `edit_school_settings` ছাড়া সব permission
 - `acting_admin`: `SyncActingAdminRolePermissionsAction` — `admin` role-এর permission mirror (admin role edit করার পরেও sync হওয়া উচিত — `EditRole` দেখুন)
 - `User::canAccessPanel('admin')` এই দুই role-কে admin panel-এ ঢুকতে দেয়; `Gate::before` bypass পায় না
-- `DeactivateExpiredActingAdminsJob` — `to_date < today` ও active → per-model `update(['is_active' => false])` (observer fire করতে)
+- `DeactivateExpiredActingAdminsJob` (রোজ 00:10) — `to_date < today` ও active → per-model `update(['is_active' => false])` (observer fire করতে); তারপর active ও `from_date <= today` রেকর্ড থাকা প্রতিটা user-এর জন্য `SyncActingAdminRolesAction` — ভবিষ্যৎ `from_date`-এর দায়িত্ব সেই দিন নিজে থেকে চালু হয়
 - Eligible user: `ActingAdmin::activeUser()` — active teacher বা staff profile আছে
 
 ## ৮.৮ Public holiday
@@ -101,7 +101,7 @@ Cancelled — enum-এ আছে
 ## ৮.১০ জানা সমস্যা ও সতর্কতা
 
 1. ~~HR resource-এ authorization নেই~~ — ঠিক করা হয়েছে (৮.৩); `ActingAdminResource`-এর privilege escalation-ও ঠিক করা হয়েছে।
-2. **ভবিষ্যৎ `from_date`-এর acting admin কখনো নিজে থেকে চালু হয় না।** Role শুধু model event-এ sync হয়, আর daily job শুধু মেয়াদ শেষ হলে বন্ধ করে। Daily job-এ `from_date = today` রেকর্ডগুলোর জন্যও `syncActingRoles` চালানো দরকার।
+2. ~~ভবিষ্যৎ `from_date`-এর acting admin নিজে থেকে চালু হয় না~~ — ঠিক করা হয়েছে (৮.৭, daily job)।
 3. Approve হলে `attendances`-এ `AttendanceStatus::Leave` row তৈরি হয় না — শুধু `leave_attendance_logs`। ফলে attendance পেজে ছুটির দিন "Not marked" বা হাতে দেওয়া Absent দেখাতে পারে; `Leave` status কোড কোথাও লেখে না।
 4. `allowed_days_per_year` apply বা approve-এ enforce হয় না — শুধু teacher-এর MyLeave-এ দেখানো।
 5. `Cancelled` status-এর জন্য কোনো UI action নেই।

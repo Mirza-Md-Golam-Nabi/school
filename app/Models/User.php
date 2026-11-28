@@ -71,6 +71,14 @@ class User extends Authenticatable implements FilamentUser, HasAvatar, MustVerif
         return $this->hasOne(StaffProfile::class);
     }
 
+    /**
+     * Acting-admin assignments held by this user.
+     */
+    public function actingAdmins(): HasMany
+    {
+        return $this->hasMany(ActingAdmin::class);
+    }
+
     public function noticeReads(): HasMany
     {
         return $this->hasMany(NoticeRead::class);
