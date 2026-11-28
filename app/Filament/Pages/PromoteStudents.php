@@ -2,7 +2,9 @@
 
 namespace App\Filament\Pages;
 
+use App\Enums\Permissions\ProfilePermission;
 use App\Enums\StudentStatus;
+use App\Filament\Concerns\RequiresPermission;
 use App\Models\Classes;
 use BackedEnum;
 use Filament\Pages\Page;
@@ -13,6 +15,13 @@ use UnitEnum;
 
 class PromoteStudents extends Page
 {
+    use RequiresPermission;
+
+    protected static function requiredPermission(): BackedEnum
+    {
+        return ProfilePermission::PROMOTE_STUDENTS;
+    }
+
     protected string $view = 'filament.pages.promote-students';
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedArrowTrendingUp;

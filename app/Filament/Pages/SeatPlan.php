@@ -2,7 +2,9 @@
 
 namespace App\Filament\Pages;
 
+use App\Enums\Permissions\DocumentPermission;
 use App\Enums\StudentStatus;
+use App\Filament\Concerns\RequiresPermission;
 use App\Models\Classes;
 use App\Support\DocumentLocale;
 use BackedEnum;
@@ -14,6 +16,13 @@ use UnitEnum;
 
 class SeatPlan extends Page
 {
+    use RequiresPermission;
+
+    protected static function requiredPermission(): BackedEnum
+    {
+        return DocumentPermission::VIEW_ADMIT_CARDS;
+    }
+
     protected string $view = 'filament.pages.seat-plan';
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedTableCells;

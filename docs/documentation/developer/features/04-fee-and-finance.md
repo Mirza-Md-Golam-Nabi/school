@@ -57,7 +57,7 @@
 
 সব fee resource `HasEntityPermissions` (`{action}_{table}`) — `view/create/edit/delete` × `fee_types`, `fee_structures`, `fee_discounts`, `student_fee_invoices`, `fee_payments`, `late_fee_rules`, `school_accounts`। অতিরিক্ত: `mark_fee_default`, `recover_fee_default` (`FeeDefaultActions`)।
 
-**সতর্কতা:** `StudentFeeDiscountResource` `HasEntityPermissions` ব্যবহার করে না এবং কোনো override নেই — permission ছাড়া যেকোনো admin-panel ইউজার শিক্ষার্থীকে ছাড় দিতে পারে। এর জন্য `FeePermission`-এ আলাদা কোনো permission-ও নেই (`view_student_fee_discounts` ইত্যাদি enum-এ নেই)।
+**ঠিক করা হয়েছে:** `StudentFeeDiscountResource` এখন `HasEntityPermissions` ব্যবহার করে, নতুন permission `view/create/edit/delete_student_fee_discounts` (`FeePermission`)। Production-এ `PermissionSeeder` ও `permission:cache-reset` চালাতে হবে।
 
 ## ৪.৪ Fee type ↔ school account
 
@@ -158,7 +158,7 @@ SMS অভিভাবকের নম্বরে, `SmsSetting`-এ event চ�
 
 ## ৪.১৫ জানা সমস্যা ও সতর্কতা
 
-1. `StudentFeeDiscountResource`-এ authorization নেই এবং permission enum-ও নেই (৪.৩)।
+1. ~~`StudentFeeDiscountResource`-এ authorization নেই~~ — ঠিক করা হয়েছে (৪.৩)।
 2. **Late fee কার্যকর নয়:** `LateFeeRuleResource` navigation থেকে লুকানো (`LateFeeRuleNavigationHiddenTest`), আর কোনো action বা command `late_fee_rules` পড়ে invoice-এ `fine_amount` বসায় না — সব generator `fine_amount = 0` দেয়। জরিমানা শুধু হাতে।
 3. Payment gateway (bKash ইত্যাদি) নেই — ইচ্ছাকৃতভাবে স্থগিত। `PaymentMethod::Bkash` / `Nagad` শুধু হাতে এন্ট্রির লেবেল।
 4. `FeePaymentForm`-এর class filter `Classes::pluck()` — inactive class-ও দেখায় (former student-এর জন্য সম্ভবত ইচ্ছাকৃত)।

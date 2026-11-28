@@ -19,6 +19,11 @@ enum FeePermission: string
     case EDIT_FEE_DISCOUNTS = 'edit_fee_discounts';
     case DELETE_FEE_DISCOUNTS = 'delete_fee_discounts';
 
+    case VIEW_STUDENT_FEE_DISCOUNTS = 'view_student_fee_discounts';
+    case CREATE_STUDENT_FEE_DISCOUNTS = 'create_student_fee_discounts';
+    case EDIT_STUDENT_FEE_DISCOUNTS = 'edit_student_fee_discounts';
+    case DELETE_STUDENT_FEE_DISCOUNTS = 'delete_student_fee_discounts';
+
     case VIEW_STUDENT_FEE_INVOICES = 'view_student_fee_invoices';
     case CREATE_STUDENT_FEE_INVOICES = 'create_student_fee_invoices';
     case EDIT_STUDENT_FEE_INVOICES = 'edit_student_fee_invoices';

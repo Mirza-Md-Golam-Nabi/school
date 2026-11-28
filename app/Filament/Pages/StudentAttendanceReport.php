@@ -2,6 +2,8 @@
 
 namespace App\Filament\Pages;
 
+use App\Enums\Permissions\AttendancePermission;
+use App\Filament\Concerns\RequiresPermission;
 use App\Models\Classes;
 use App\Models\StaffProfile;
 use App\Models\TeacherProfile;
@@ -23,6 +25,13 @@ use UnitEnum;
  */
 class StudentAttendanceReport extends Page
 {
+    use RequiresPermission;
+
+    protected static function requiredPermission(): BackedEnum
+    {
+        return AttendancePermission::VIEW_ATTENDANCE;
+    }
+
     protected string $view = 'filament.pages.student-attendance-report';
 
     /** @var array<string, mixed>|null */

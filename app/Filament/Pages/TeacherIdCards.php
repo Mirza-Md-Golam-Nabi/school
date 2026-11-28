@@ -3,9 +3,11 @@
 namespace App\Filament\Pages;
 
 use App\Actions\BuildTeacherIdCardsPdfAction;
+use App\Enums\Permissions\ProfilePermission;
 use App\Enums\TeacherIdCardField;
 use App\Filament\Concerns\ConfiguresIdCardFields;
 use App\Filament\Concerns\PicksIdCardDesign;
+use App\Filament\Concerns\RequiresPermission;
 use App\Models\TeacherProfile;
 use App\Support\TeacherIdCardLayout;
 use BackedEnum;
@@ -22,6 +24,12 @@ class TeacherIdCards extends Page
 {
     use ConfiguresIdCardFields;
     use PicksIdCardDesign;
+    use RequiresPermission;
+
+    protected static function requiredPermission(): BackedEnum
+    {
+        return ProfilePermission::VIEW_TEACHER_PROFILES;
+    }
 
     protected string $view = 'filament.pages.teacher-id-cards';
 

@@ -9,6 +9,7 @@ use App\Filament\Resources\StudentFeeDiscounts\Pages\ManageClassStudentFeeDiscou
 use App\Filament\Resources\StudentFeeDiscounts\Schemas\StudentFeeDiscountForm;
 use App\Filament\Resources\StudentFeeDiscounts\Tables\StudentFeeDiscountsTable;
 use App\Models\StudentFeeDiscount;
+use App\Traits\Permissions\HasEntityPermissions;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -18,6 +19,8 @@ use UnitEnum;
 
 class StudentFeeDiscountResource extends Resource
 {
+    use HasEntityPermissions;
+
     protected static ?string $model = StudentFeeDiscount::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedTag;

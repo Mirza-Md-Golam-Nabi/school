@@ -51,7 +51,7 @@
 
 `ProfilePermission` — student / teacher / staff প্রতিটার `view`, `create`, `edit`, `delete`, `restore`, `force_delete`। তিনটা resource `HasEntityPermissions` ব্যবহার করে (permission নাম = `{action}_{table}`, যেমন `edit_student_profiles`)। `RolePermissionEnforcementTest` restore / force delete যাচাই করে।
 
-**সতর্কতা:** `PromoteStudents`, `PromoteStudentsForClass`, `BulkPromoteStudentsForClass`-এ `canAccess()` নেই — admin panel-এর যেকোনো ইউজার promote করতে এবং promotion-এর সাথে ফি নিতে পারে।
+**ঠিক করা হয়েছে:** `PromoteStudents`, `PromoteStudentsForClass`, `BulkPromoteStudentsForClass` এখন `RequiresPermission` trait দিয়ে নতুন `promote_students` permission চায় (`ProfilePermission::PROMOTE_STUDENTS`)। Production-এ `php artisan db:seed --class=PermissionSeeder` ও `permission:cache-reset` চালিয়ে role-এ permission দিতে হবে।
 
 ## ৩.৪ Student তৈরি ও user account
 
@@ -146,7 +146,7 @@ Landing page year options: চলতি ও আগের বছর; ডিফল
 
 ## ৩.১২ জানা সমস্যা ও সতর্কতা
 
-1. Promotion page-গুলোতে authorization নেই (৩.৩)।
+1. ~~Promotion page-গুলোতে authorization নেই~~ — ঠিক করা হয়েছে (৩.৩)।
 2. নতুন student, import ও password reset — সবগুলোতে একই পরিচিত পাসওয়ার্ড `password`। প্রথম লগইনে বদল বাধ্যতামূলক হলেও, Student ID অনুমানযোগ্য (school code + ক্রমিক) হওয়ায় শিক্ষার্থী প্রথম লগইনের আগে অন্য কেউ ঢুকে PIN বসিয়ে দিতে পারে। প্রাথমিক পাসওয়ার্ড random করার কথা বিবেচনা করুন।
 3. Teacher ও staff-এর ডিফল্ট পাসওয়ার্ডও `password`, এবং তাদের প্রথম লগইনে বদল বাধ্যতামূলক নয় (`EnsurePasswordIsChanged` শুধু Student প্যানেলে)।
 4. Staff-এর spreadsheet import নেই।

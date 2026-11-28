@@ -24,4 +24,6 @@ enum ProfilePermission: string
     case DELETE_STAFF_PROFILES = 'delete_staff_profiles';
     case RESTORE_STAFF_PROFILES = 'restore_staff_profiles';
     case FORCE_DELETE_STAFF_PROFILES = 'force_delete_staff_profiles';
+
+    case PROMOTE_STUDENTS = 'promote_students';
 }

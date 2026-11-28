@@ -64,11 +64,11 @@
 | `StudentAttendance`, `StudentAttendanceRanking`, `ClassAttendanceRanking`, `LateArrivalsReport`, সব `*Detail` / `*History`, `AttendanceModificationDetails` | `view_attendance` |
 | `MarkStudentAttendance`, `TeacherAttendance`, `StaffAttendance`, `ExamAttendanceTotals` | `mark_attendance` |
 | `ManageAttendanceSettings` | `manage_attendance_settings` |
-| `AttendanceDeviceResource` | — (নিচে দেখুন) |
+| `AttendanceDeviceResource` | `manage_attendance_devices` (সব action) |
 
 সব page `HasAttendancePagePermission::canAccess()` ব্যবহার করে। `RolePermissionEnforcementTest` Mark Attendance গেট যাচাই করে।
 
-**সতর্কতা:** `AttendanceDeviceResource`-এ কোনো authorization override নেই — permission ছাড়া staff-এর জন্যও `canViewAny()` `true`। `manage_attendance_devices` permission enum-এ আছে, কিন্তু resource-এ ব্যবহার হয় না। ফলে যেকোনো admin-panel ইউজার device token regenerate করতে, enrollment মুছতে বা removal approve করতে পারে।
+**ঠিক করা হয়েছে:** `AttendanceDeviceResource` এখন `HasEntityPermissions` ব্যবহার করে, আর `permissionName()` সব action-এর জন্য `manage_attendance_devices` ফেরত দেয় — তাই দেখা, তৈরি, সম্পাদনা, মোছা সব এই একটা permission চায় (`RemainingPagePermissionTest`)।
 
 ## ২.৪ Manual attendance
 
@@ -218,7 +218,7 @@ Agent-এর config-এ device API token লাগে।
 
 ## ২.১৫ জানা সমস্যা ও সতর্কতা
 
-1. `AttendanceDeviceResource`-এ authorization নেই (২.৩)।
+1. ~~`AttendanceDeviceResource`-এ authorization নেই~~ — ঠিক করা হয়েছে (২.৩)।
 2. `AttendanceMode::ClassWise` setting আছে, কিন্তু marking UI সবসময় `subject_id = null` (daily) লেখে — ClassWise কার্যত বাস্তবায়িত নয়। Device ব্যবহার করলে Daily রাখতেই হবে।
 3. ADMS driver enum আছে, endpoint নেই।
 4. Card number হাতে দেওয়ার স্ক্রিন (USB reader) এখনো নেই — card number device থেকে sync report-এ আসে।

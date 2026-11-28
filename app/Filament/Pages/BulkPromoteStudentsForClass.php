@@ -6,8 +6,10 @@ use App\Actions\FindDuplicateRollsAction;
 use App\Actions\PromoteStudentsAction;
 use App\Actions\ResolveDefaultPromotionOptionalSubjects;
 use App\Enums\ExamConfigType;
+use App\Enums\Permissions\ProfilePermission;
 use App\Enums\PromotionStatus;
 use App\Filament\Concerns\DescribesPromotionSession;
+use App\Filament\Concerns\RequiresPermission;
 use App\Models\Classes;
 use App\Models\ClassGroupSubject;
 use App\Models\Exam;
@@ -16,6 +18,7 @@ use App\Models\StudentFeeInvoice;
 use App\Models\StudentMeritRanking;
 use App\Models\StudentOptionalSubject;
 use App\Models\StudentProfile;
+use BackedEnum;
 use Closure;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
@@ -31,6 +34,12 @@ use Livewire\Attributes\Url;
 class BulkPromoteStudentsForClass extends Page
 {
     use DescribesPromotionSession;
+    use RequiresPermission;
+
+    protected static function requiredPermission(): BackedEnum
+    {
+        return ProfilePermission::PROMOTE_STUDENTS;
+    }
 
     protected static bool $shouldRegisterNavigation = false;
 

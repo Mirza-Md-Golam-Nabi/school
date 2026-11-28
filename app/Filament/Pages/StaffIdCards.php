@@ -3,9 +3,11 @@
 namespace App\Filament\Pages;
 
 use App\Actions\BuildStaffIdCardsPdfAction;
+use App\Enums\Permissions\ProfilePermission;
 use App\Enums\StaffIdCardField;
 use App\Filament\Concerns\ConfiguresIdCardFields;
 use App\Filament\Concerns\PicksIdCardDesign;
+use App\Filament\Concerns\RequiresPermission;
 use App\Models\StaffProfile;
 use App\Support\StaffIdCardLayout;
 use BackedEnum;
@@ -22,6 +24,12 @@ class StaffIdCards extends Page
 {
     use ConfiguresIdCardFields;
     use PicksIdCardDesign;
+    use RequiresPermission;
+
+    protected static function requiredPermission(): BackedEnum
+    {
+        return ProfilePermission::VIEW_STAFF_PROFILES;
+    }
 
     protected string $view = 'filament.pages.staff-id-cards';
 

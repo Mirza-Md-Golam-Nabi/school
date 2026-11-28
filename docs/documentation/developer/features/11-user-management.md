@@ -60,17 +60,13 @@ Model Policy একটাও নেই। Policy না থাকলে এব�
 | `ActingAdminResource` | নিজেকে Acting Super Admin বানাতে পারত | প্রতিটা কাজে `*_acting_admins`; Acting Super Admin level শুধু Super Admin দেয়; নিজেকে বা নিজের assignment বদলানো যায় না |
 | `SchoolSettings`, `GradeScaleSettings`, `QuestionBankSettings` | `view/edit_school_settings` কোথাও চেক হতো না | `HasSchoolSettingsPermission` — view ছাড়া 403, edit ছাড়া read-only ও save 403 |
 
-**ডেটা পরিবর্তন:**
+**ডেটা পরিবর্তন:** ঠিক করা হয়েছে — Academic resource, admin marks entry, HR resource, `StudentFeeDiscountResource`, `AttendanceDeviceResource` ও তিনটা Promotion page এখন permission চায়।
 
-`StudentFeeDiscountResource`, `AttendanceDeviceResource`; Pages: `PromoteStudents`, `PromoteStudentsForClass`, `BulkPromoteStudentsForClass`। (Academic resource, admin marks entry ও HR resource ঠিক করা হয়েছে।)
-
-**ডেটা প্রকাশ:**
-
-Pages: `SeatPlan`, `StudentIdCards`, `TeacherIdCards`, `StaffIdCards`, `StudentAttendanceReport`। web.php-র PDF route-গুলো ঠিক করা হয়েছে — এখন প্রতিটায় সংশ্লিষ্ট `can:` permission লাগে ([Document Management ৭.৩](07-document-management.md))।
+**ডেটা প্রকাশ:** ঠিক করা হয়েছে — `SeatPlan`, `StudentIdCards`, `TeacherIdCards`, `StaffIdCards`, `StudentAttendanceReport` page ও web.php-র সব PDF route এখন সংশ্লিষ্ট permission চায় ([Document Management ৭.৩](07-document-management.md))।
 
 **Registration:** ঠিক করা হয়েছে — admin panel-এ public registration বন্ধ, `/admin/register` 404 ([architecture](../00-architecture.md#০১৮-জানা-সমস্যা-ও-সতর্কতা))।
 
-বাকি সমাধানের প্রস্তাবিত ক্রম: PDF controller-এ panel + permission + ownership চেক → বাকি resource-এ `HasEntityPermissions` বা academic permission → Pest টেস্ট (`RolePermissionEnforcementTest` বাড়ানো)।
+বাকি কাজ: Admin dashboard widget-এর `canView()` (panels ১৪.৬), teacher-এর fee slip শুধু নিজের class-এ সীমিত করা।
 
 ## ১১.৫ নতুন permission যোগ করার নিয়ম
 
@@ -82,4 +78,4 @@ Pages: `SeatPlan`, `StudentIdCards`, `TeacherIdCards`, `StaffIdCards`, `StudentA
 
 ## ১১.৬ টেস্ট
 
-`RolePermissionEnforcementTest`, `AdminAccessControlTest`, `ActivityLogRoleTest`, `ActingAdminTest`।
+`RolePermissionEnforcementTest`, `AdminAccessControlTest`, `EntityPermissionActionsTest`, `AcademicPermissionTest`, `HrPermissionTest`, `RemainingPagePermissionTest`, `PdfRouteAuthorizationTest`, `ActivityLogRoleTest`, `ActingAdminTest`।

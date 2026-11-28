@@ -8,8 +8,10 @@ use App\Actions\PromoteStudentsAction;
 use App\Actions\ResolveDefaultPromotionOptionalSubjects;
 use App\Enums\ExamConfigType;
 use App\Enums\PaymentMethod;
+use App\Enums\Permissions\ProfilePermission;
 use App\Enums\PromotionStatus;
 use App\Filament\Concerns\DescribesPromotionSession;
+use App\Filament\Concerns\RequiresPermission;
 use App\Filament\Resources\StudentFeeInvoices\Actions\FeeDefaultActions;
 use App\Models\Classes;
 use App\Models\ClassGroupSubject;
@@ -19,6 +21,7 @@ use App\Models\FeeStructure;
 use App\Models\Section;
 use App\Models\StudentMeritRanking;
 use App\Models\StudentProfile;
+use BackedEnum;
 use Carbon\Carbon;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
@@ -46,6 +49,12 @@ class PromoteStudentsForClass extends Page implements HasTable
 {
     use DescribesPromotionSession;
     use InteractsWithTable;
+    use RequiresPermission;
+
+    protected static function requiredPermission(): BackedEnum
+    {
+        return ProfilePermission::PROMOTE_STUDENTS;
+    }
 
     private const LEAVING_STATUSES = [PromotionStatus::Graduated->value, PromotionStatus::Transferred->value, PromotionStatus::Dropped->value];
 

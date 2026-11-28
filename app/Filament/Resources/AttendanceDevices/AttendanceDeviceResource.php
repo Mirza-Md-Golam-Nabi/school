@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\AttendanceDevices;
 
 use App\Enums\Permissions\AttendancePermission;
-use App\Filament\Concerns\HasAttendancePagePermission;
 use App\Filament\Resources\AttendanceDevices\Pages\CreateAttendanceDevice;
 use App\Filament\Resources\AttendanceDevices\Pages\EditAttendanceDevice;
 use App\Filament\Resources\AttendanceDevices\Pages\ListAttendanceDevices;
@@ -11,6 +10,7 @@ use App\Filament\Resources\AttendanceDevices\RelationManagers\DeviceUsersRelatio
 use App\Filament\Resources\AttendanceDevices\Schemas\AttendanceDeviceForm;
 use App\Filament\Resources\AttendanceDevices\Tables\AttendanceDevicesTable;
 use App\Models\AttendanceDevice;
+use App\Traits\Permissions\HasEntityPermissions;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -20,7 +20,7 @@ use UnitEnum;
 
 class AttendanceDeviceResource extends Resource
 {
-    use HasAttendancePagePermission;
+    use HasEntityPermissions;
 
     protected static ?string $model = AttendanceDevice::class;
 
@@ -32,9 +32,13 @@ class AttendanceDeviceResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'name';
 
-    protected static function attendancePermission(): AttendancePermission
+    /**
+     * One permission covers viewing and managing devices: each action
+     * (create, edit, delete...) checks manage_attendance_devices.
+     */
+    protected static function permissionName(string $action): string
     {
-        return AttendancePermission::MANAGE_ATTENDANCE_DEVICES;
+        return AttendancePermission::MANAGE_ATTENDANCE_DEVICES->value;
     }
 
     public static function form(Schema $schema): Schema
