@@ -51,7 +51,7 @@
 
 `HrPermission`: leave types CRUD; leave applications `view`, `create`, `approve`, `reject`; public holidays CRUD; acting admins CRUD; `view_school_settings`, `edit_school_settings`।
 
-**সতর্কতা:** `LeaveTypeResource`, `LeaveApplicationResource`, `ActingAdminResource`, `PublicHolidayResource` — চারটাতেই কোনো authorization override নেই (permission ছাড়া staff-এর জন্য `canViewAny()` / `canCreate()` `true`)। বিশেষ করে `ActingAdminResource`: **যেকোনো admin-panel ইউজার নিজেকে Acting Super Admin বানাতে পারে** — privilege escalation। approve/reject action-এ permission চেক আছে কিনা আলাদা করে যাচাই করুন; resource-স্তরে নেই।
+**সতর্কতা:** `LeaveTypeResource`, `LeaveApplicationResource`, `ActingAdminResource`, `PublicHolidayResource` — চারটাতেই কোনো authorization override নেই (permission ছাড়া staff-এর জন্য `canViewAny()` / `canCreate()` `true`)। বিশেষ করে `ActingAdminResource`: **যেকোনো admin-panel ইউজার নিজেকে Acting Super Admin বানাতে পারে** — privilege escalation। Table-এর `approve` / `reject` action-এও `authorize()` বা `can()` নেই — `approve_leave_applications` / `reject_leave_applications` permission enum-এ থাকলেও কোথাও চেক হয় না।
 
 ## ৮.৪ Leave type ও assignment
 
