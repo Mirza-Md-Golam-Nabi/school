@@ -139,6 +139,6 @@ it('shows the save action once the edit permission is granted', function () {
     Livewire::test(SchoolSettings::class)->assertActionVisible('save');
 });
 
-it('has no public registration page on the admin panel', function () {
-    test()->get('/admin/register')->assertNotFound();
-});
+it('has no public registration page on any panel', function (string $panel) {
+    test()->get("/{$panel}/register")->assertNotFound();
+})->with(['admin', 'teacher', 'student']);

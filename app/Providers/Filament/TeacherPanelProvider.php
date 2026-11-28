@@ -5,7 +5,6 @@ namespace App\Providers\Filament;
 use App\Filament\Plugins\PwaInstallPlugin;
 use App\Filament\Teacher\Pages\Auth\EditProfile;
 use App\Filament\Teacher\Pages\Auth\Login;
-use App\Filament\Teacher\Pages\Auth\Register;
 use App\Filament\Teacher\Pages\Dashboard;
 use App\Http\Middleware\SetLocale;
 use App\Support\QuestionBankConnection;

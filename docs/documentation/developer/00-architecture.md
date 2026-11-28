@@ -452,6 +452,6 @@ API ও JSON রিকোয়েস্টের exception সবসময় J
 ## ০.১৮ জানা সমস্যা ও সতর্কতা
 
 1. ~~Admin প্যানেলে public registration চালু~~ — **ঠিক করা হয়েছে:** `AdminPanelProvider` থেকে `->registration()` সরানো হয়েছে ও `Admin\Pages\Auth\Register` মুছে ফেলা হয়েছে; `/admin/register` এখন 404 (`AdminAccessControlTest`)। নতুন admin শুধু Super Admin User Management থেকে তৈরি করে।
-2. `Teacher\Pages\Auth\Register` ও `Student\Pages\Auth\Register` ক্লাস আছে, কিন্তু প্যানেলে `->registration()` চালু নয় — অব্যবহৃত।
+2. ~~`Teacher\Pages\Auth\Register` ও `Student\Pages\Auth\Register` অব্যবহৃত পড়ে ছিল~~ — মুছে ফেলা হয়েছে; কোনো প্যানেলে self-registration নেই।
 3. প্রোডাকশন seeder Super Admin-কে `password` পাসওয়ার্ড দেয় — প্রথম লগইনের পরেই বদলাতে হবে।
 4. Payment gateway (bKash ইত্যাদি) এখনো নেই — ইচ্ছাকৃতভাবে স্থগিত।

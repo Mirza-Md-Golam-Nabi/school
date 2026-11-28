@@ -17,7 +17,10 @@ it('renders the webpush subscribe script for an authenticated admin', function (
 });
 
 it('does not render the webpush subscribe script for a guest on the login page', function () {
+    // The login page does register the service worker — for the PWA install
+    // button (PwaInstallTest) — so check for markers only the push script has.
     test()->get('/admin/login')
         ->assertOk()
-        ->assertDontSee('serviceWorker', false);
+        ->assertDontSee('/push-subscriptions', false)
+        ->assertDontSee('PushManager', false);
 });

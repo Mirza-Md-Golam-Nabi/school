@@ -5,7 +5,6 @@ namespace App\Providers\Filament;
 use App\Filament\Plugins\PwaInstallPlugin;
 use App\Filament\Student\Pages\Auth\EditProfile;
 use App\Filament\Student\Pages\Auth\Login;
-use App\Filament\Student\Pages\Auth\Register;
 use App\Filament\Student\Pages\Auth\RequestPinPasswordReset;
 use App\Filament\Student\Pages\Dashboard;
 use App\Http\Middleware\EnsurePasswordIsChanged;
