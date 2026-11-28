@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Actions\ResolveEligibleStudentsForSubject;
+use App\Enums\Permissions\AcademicPermission;
 use App\Filament\Resources\Exams\ExamResource;
 use App\Models\ExamSubjectConfig;
 use App\Models\StudentResult;
@@ -38,6 +39,14 @@ class EnterStudentMarks extends Page
 
     /** @var array<int|string, array<string, mixed>> */
     public array $marks = [];
+
+    /**
+     * Entering marks changes exam results, so it needs the academic edit permission.
+     */
+    public static function canAccess(): bool
+    {
+        return (bool) auth()->user()?->can(AcademicPermission::EDIT_ACADEMIC->value);
+    }
 
     public function mount(): void
     {

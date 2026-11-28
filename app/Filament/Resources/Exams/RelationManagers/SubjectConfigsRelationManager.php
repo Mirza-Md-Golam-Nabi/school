@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Exams\RelationManagers;
 
 use App\Enums\ExamNotificationKind;
+use App\Filament\Pages\EnterStudentMarks;
 use App\Filament\Resources\Exams\Actions\ExamNotificationActions;
 use App\Models\ExamNotificationBatch;
 use App\Models\ExamSubjectConfig;
@@ -424,7 +425,7 @@ class SubjectConfigsRelationManager extends RelationManager
     private static function canEnterMarks(ExamSubjectConfig $record): bool
     {
         if (self::isAdminPanel()) {
-            return true;
+            return EnterStudentMarks::canAccess();
         }
 
         $teacherProfile = auth()->user()?->teacherProfile;

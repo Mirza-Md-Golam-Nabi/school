@@ -13,6 +13,7 @@ use App\Filament\Resources\Classes\RelationManagers\TeacherSubjectsRelationManag
 use App\Filament\Resources\Classes\Schemas\ClassesForm;
 use App\Filament\Resources\Classes\Tables\ClassesTable;
 use App\Models\Classes;
+use App\Traits\Permissions\HasAcademicPermissions;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -24,6 +25,8 @@ use UnitEnum;
 
 class ClassesResource extends Resource
 {
+    use HasAcademicPermissions;
+
     protected static ?string $model = Classes::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedAcademicCap;

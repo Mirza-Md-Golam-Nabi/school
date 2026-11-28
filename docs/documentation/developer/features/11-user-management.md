@@ -38,7 +38,7 @@
 | প্যাটার্ন | কোথায় | নোট |
 |---|---|---|
 | `HasEntityPermissions` | বেশিরভাগ resource | `{view,create,edit,delete,restore,force_delete}_{table}`; সব `get*AuthorizationResponse()` (viewAny, view, create, edit, delete, deleteAny, restore(Any), forceDelete(Any)) override করে, আর `can*()` সেগুলো থেকেই পড়ে — তাই Edit/Delete/bulk Delete বাটন permission না থাকলে লুকায় (`EntityPermissionActionsTest`)। নিজস্ব নিয়মের জন্য resource-এ `entityPermissionResponse($action)` ব্যবহার করুন (যেমন `RoleResource`) |
-| `HasAcademicPermissions` | শুধু তৈরি, কোথাও সক্রিয় নয় | `GroupResource`-এ comment করা |
+| `HasAcademicPermissions` | Academic Structure-এর ৬টা resource | `HasEntityPermissions` ব্যবহার করে, শুধু permission নাম `{action}_academic` |
 | `HasAttendancePagePermission` | attendance page | `canAccess()` |
 | `HasSmsPermission` | SMS page / resource | `canAccess()` |
 | `get*AuthorizationResponse()` | `SmsVendorResource` | Filament 5-এ action লুকানোর সঠিক উপায় |
@@ -62,7 +62,7 @@ Model Policy একটাও নেই। Policy না থাকলে এব�
 
 **ডেটা পরিবর্তন:**
 
-`SubjectResource`, `GroupResource`, `ClassesResource`, `ExamTypeResource`, `ExamResource`, `ResultRuleResource`, `LeaveTypeResource`, `LeaveApplicationResource` (approve/reject action সহ), `PublicHolidayResource`, `StudentFeeDiscountResource`, `AttendanceDeviceResource`; Pages: `EnterStudentMarks` (admin), `PromoteStudents`, `PromoteStudentsForClass`, `BulkPromoteStudentsForClass`।
+`LeaveTypeResource`, `LeaveApplicationResource` (approve/reject action সহ), `PublicHolidayResource`, `StudentFeeDiscountResource`, `AttendanceDeviceResource`; Pages: `PromoteStudents`, `PromoteStudentsForClass`, `BulkPromoteStudentsForClass`। (Academic resource ও admin marks entry ঠিক করা হয়েছে।)
 
 **ডেটা প্রকাশ:**
 

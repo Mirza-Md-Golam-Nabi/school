@@ -15,6 +15,7 @@ use App\Filament\Resources\Exams\RelationManagers\TabulationSheetRelationManager
 use App\Filament\Resources\Exams\Schemas\ExamForm;
 use App\Filament\Resources\Exams\Tables\ExamsTable;
 use App\Models\Exam;
+use App\Traits\Permissions\HasAcademicPermissions;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -26,6 +27,8 @@ use UnitEnum;
 
 class ExamResource extends Resource
 {
+    use HasAcademicPermissions;
+
     protected static ?string $model = Exam::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedClipboardDocumentCheck;

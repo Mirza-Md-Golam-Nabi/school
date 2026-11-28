@@ -74,20 +74,15 @@
 
 Enum: `AcademicPermission` — `view_academic`, `create_academic`, `edit_academic`, `delete_academic`, `force_delete_academic`, `restore_academic`, `send_exam_notifications`। Trait: `app/Traits/Permissions/HasAcademicPermissions.php`।
 
-**সতর্কতা — বর্তমান অবস্থা:** Academic Structure-এর কোনো Resource বা Page আসলে এই permission চেক করে না।
+**অবস্থা (ঠিক করা হয়েছে):** Academic Structure-এর সব Resource ও admin মার্কস এন্ট্রি পেজ এখন এই permission চেক করে (`AcademicPermissionTest`)।
 
-| Class | অবস্থা |
+| Class | গেট |
 |---|---|
-| `GroupResource` | `// use HasAcademicPermissions;` — comment করা |
-| `SubjectResource`, `ClassesResource`, `ExamTypeResource`, `ExamResource`, `ResultRuleResource` | কোনো `can*()` / `get*AuthorizationResponse()` override নেই, কোনো Policy নেই |
-| `Pages\EnterStudentMarks` (admin) | `canAccess()` নেই — শুধু query param চেক করে |
-| `Pages\GradeScaleSettings` | ঠিক করা হয়েছে — `HasSchoolSettingsPermission` (দেখতে `view_school_settings`, save করতে `edit_school_settings`) |
-
-ফলাফল: Admin প্যানেলে ঢুকতে পারে এমন যেকোনো ইউজার (staff সহ, কোনো permission ছাড়াই) বিষয়, ক্লাস, পরীক্ষা, Result Rule, গ্রেডিং স্কেল তৈরি, সম্পাদনা ও মুছতে পারে, আর যেকোনো মার্কস বদলাতে পারে। (যাচাই: permission ছাড়া একজন staff ইউজারের জন্য `SubjectResource::canViewAny()` ও `canCreate()` দুটোই `true`।)
+| `SubjectResource`, `GroupResource`, `ClassesResource`, `ExamTypeResource`, `ExamResource`, `ResultRuleResource` | `HasAcademicPermissions` — `HasEntityPermissions`-এর উপর বানানো, permission নাম `{action}_academic` (সব `get*AuthorizationResponse()` সহ) |
+| `Pages\EnterStudentMarks` (admin) | `canAccess()` → `edit_academic`; Exam view-এর Enter Marks বাটনও admin panel-এ এই চেক মানে |
+| `Pages\GradeScaleSettings` | `HasSchoolSettingsPermission` (দেখতে `view_school_settings`, save করতে `edit_school_settings`) |
 
 ব্যতিক্রম: `ExamNotificationActions::canSend()` ঠিকভাবে `send_exam_notifications` এবং admin panel চেক করে।
-
-সমাধানের দিক: Filament 5-এ `get{ViewAny,Create,Edit,Delete,...}AuthorizationResponse()` override করুন (শুধু `canCreate()` নয় — memory note দেখুন) অথবা Model Policy যোগ করুন; custom page-এ `canAccess()`।
 
 Teacher প্যানেলে marks entry ঠিকভাবে সীমিত — `Teacher\Pages\EnterStudentMarks::teacherCanEnterMarks()` → `TeacherProfile::isAssignedToTeach($classId, $subjectId, $exam->session_year)`, না হলে 403। Teacher প্যানেলের SubjectConfigs table-এ Create/Delete bulk action `isAdminPanel()` দিয়ে লুকানো।
 
@@ -278,7 +273,7 @@ mPDF সীমাবদ্ধতা: table cell-এ border-radius নেই, row
 
 ## ১.১৮ জানা সমস্যা ও সতর্কতা
 
-1. **Authorization নেই** (১.৩) — Academic Structure-এর সব Resource ও admin `EnterStudentMarks`। (`GradeScaleSettings` ঠিক করা হয়েছে।)
+1. ~~Authorization নেই~~ — ঠিক করা হয়েছে (১.৩): সব Academic resource `*_academic` permission চায়, admin marks entry `edit_academic` চায়।
 2. `ClassesTable`-এ row-level Delete action নেই, কিন্তু bulk Delete/ForceDelete/Restore আছে।
 3. `Classes → SubjectsRelationManager`-এর bulk action-এ `DeleteBulkAction` আছে, যা pivot নয়, **`subjects` রেকর্ড নিজেই** soft delete করে (সব ক্লাস থেকে বিষয় হারিয়ে যায়)। সম্ভবত শুধু `DetachBulkAction` থাকা উচিত।
 4. `ExamForm`-এর Class select `Classes::pluck()` — inactive class-ও দেখায়; `ListExams` card শুধু active class দেখায়।

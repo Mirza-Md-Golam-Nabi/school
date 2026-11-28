@@ -8,6 +8,7 @@ use App\Filament\Resources\ExamTypes\Pages\ListExamTypes;
 use App\Filament\Resources\ExamTypes\Schemas\ExamTypeForm;
 use App\Filament\Resources\ExamTypes\Tables\ExamTypesTable;
 use App\Models\ExamType;
+use App\Traits\Permissions\HasAcademicPermissions;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -19,6 +20,8 @@ use UnitEnum;
 
 class ExamTypeResource extends Resource
 {
+    use HasAcademicPermissions;
+
     protected static ?string $model = ExamType::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedClipboardDocumentList;

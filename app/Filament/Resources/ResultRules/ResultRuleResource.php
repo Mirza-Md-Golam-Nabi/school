@@ -8,6 +8,7 @@ use App\Filament\Resources\ResultRules\Pages\ListResultRules;
 use App\Filament\Resources\ResultRules\Schemas\ResultRuleForm;
 use App\Filament\Resources\ResultRules\Tables\ResultRulesTable;
 use App\Models\ResultRule;
+use App\Traits\Permissions\HasAcademicPermissions;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -17,6 +18,8 @@ use UnitEnum;
 
 class ResultRuleResource extends Resource
 {
+    use HasAcademicPermissions;
+
     protected static ?string $model = ResultRule::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCalculator;

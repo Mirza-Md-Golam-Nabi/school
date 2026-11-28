@@ -100,9 +100,14 @@ trait HasEntityPermissions
         return static::entityPermissionResponse('force_delete');
     }
 
+    protected static function permissionName(string $action): string
+    {
+        return $action.'_'.static::permissionEntity();
+    }
+
     protected static function entityPermissionResponse(string $action): Response
     {
-        return static::userCan($action.'_'.static::permissionEntity())
+        return static::userCan(static::permissionName($action))
             ? Response::allow()
             : Response::deny('এই কাজের অনুমতি আপনার নেই।');
     }

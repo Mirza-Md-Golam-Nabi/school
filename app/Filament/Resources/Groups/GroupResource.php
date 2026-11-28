@@ -29,7 +29,7 @@ use UnitEnum;
 
 class GroupResource extends Resource
 {
-    // use HasAcademicPermissions;
+    use HasAcademicPermissions;
 
     protected static ?string $model = Group::class;
 
