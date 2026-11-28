@@ -3,12 +3,22 @@
 namespace App\Filament\Widgets;
 
 use App\Enums\TransactionType;
+use App\Filament\Resources\AccountTransactions\AccountTransactionResource;
 use App\Models\AccountTransaction;
 use Filament\Widgets\ChartWidget;
 
 class IncomeExpenseChartWidget extends ChartWidget
 {
     protected static ?int $sort = 9;
+
+    /**
+     * Shows the school's income, expense and balance, so only users who may
+     * view account transactions see it.
+     */
+    public static function canView(): bool
+    {
+        return AccountTransactionResource::canViewAny();
+    }
 
     protected int|string|array $columnSpan = [
         'default' => 'full',

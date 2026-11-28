@@ -15,6 +15,15 @@ class FinanceOverviewWidget extends Widget
 
     protected static ?int $sort = 8;
 
+    /**
+     * Shows the school's income, expense and balance, so only users who may
+     * view account transactions see it.
+     */
+    public static function canView(): bool
+    {
+        return AccountTransactionResource::canViewAny();
+    }
+
     protected int|string|array $columnSpan = [
         'default' => 'full',
     ];

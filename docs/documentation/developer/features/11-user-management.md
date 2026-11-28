@@ -66,7 +66,7 @@ Model Policy একটাও নেই। Policy না থাকলে এব�
 
 **Registration:** ঠিক করা হয়েছে — admin panel-এ public registration বন্ধ, `/admin/register` 404 ([architecture](../00-architecture.md#০১৮-জানা-সমস্যা-ও-সতর্কতা))।
 
-বাকি কাজ: Admin dashboard widget-এর `canView()` (panels ১৪.৬), teacher-এর fee slip শুধু নিজের class-এ সীমিত করা।
+বাকি কাজ: teacher-এর fee slip শুধু নিজের class-এ সীমিত করা। (Dashboard widget-এর `canView()` ঠিক করা হয়েছে — panels ১৪.৬।)
 
 ## ১১.৫ নতুন permission যোগ করার নিয়ম
 
@@ -78,4 +78,4 @@ Model Policy একটাও নেই। Policy না থাকলে এব�
 
 ## ১১.৬ টেস্ট
 
-`RolePermissionEnforcementTest`, `AdminAccessControlTest`, `EntityPermissionActionsTest`, `AcademicPermissionTest`, `HrPermissionTest`, `RemainingPagePermissionTest`, `PdfRouteAuthorizationTest`, `ActivityLogRoleTest`, `ActingAdminTest`।
+`RolePermissionEnforcementTest`, `AdminAccessControlTest`, `EntityPermissionActionsTest`, `AcademicPermissionTest`, `HrPermissionTest`, `RemainingPagePermissionTest`, `PdfRouteAuthorizationTest`, `DashboardWidgetPermissionTest`, `ActivityLogRoleTest`, `ActingAdminTest`।

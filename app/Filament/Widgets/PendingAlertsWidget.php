@@ -24,6 +24,8 @@ class PendingAlertsWidget extends Widget
     protected static bool $isLazy = false;
 
     /**
+     * Each alert links to a page, so it only shows to users who may open that page.
+     *
      * @return array<string, mixed>
      */
     public function getViewData(): array
@@ -44,7 +46,7 @@ class PendingAlertsWidget extends Widget
 
         $alerts = [];
 
-        if ($unpublishedExams > 0) {
+        if ($unpublishedExams > 0 && ExamResource::canViewAny()) {
             $alerts[] = [
                 'label' => __('Exam Finished, Result Not Published'),
                 'count' => $this->formatCount($unpublishedExams),
@@ -54,7 +56,7 @@ class PendingAlertsWidget extends Widget
             ];
         }
 
-        if ($pendingLeaves > 0) {
+        if ($pendingLeaves > 0 && LeaveApplicationResource::canViewAny()) {
             $alerts[] = [
                 'label' => __('Leave Application Pending'),
                 'count' => $this->formatCount($pendingLeaves),
@@ -64,7 +66,7 @@ class PendingAlertsWidget extends Widget
             ];
         }
 
-        if ($overdueInvoices > 0) {
+        if ($overdueInvoices > 0 && StudentFeeInvoiceResource::canViewAny()) {
             $alerts[] = [
                 'label' => __('Due Fee (:count invoices)', ['count' => $this->localizeNumber($overdueInvoices)]),
                 'count' => '৳ '.number_format($totalDue),

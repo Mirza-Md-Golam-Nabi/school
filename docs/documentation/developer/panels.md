@@ -28,8 +28,8 @@ Dashboard: `app/Filament/Admin/Pages/Dashboard.php` — columns `default 2, md 2
 | 5 | `StudentAttendanceRankingWidget` | Top Attendance |
 | 6 | `AcademicQuickActionsWidget` | Create Exam, Result Publish, Marksheet, Admit Card, Manage Class |
 | 7 | `PendingAlertsWidget` | exam শেষ কিন্তু unpublished; pending leave; due fee invoice সংখ্যা |
-| 8 | `FinanceOverviewWidget` | Net Balance, Total Due Fee, Defaulted Fee |
-| 9 | `IncomeExpenseChartWidget` | Income / Expense chart |
+| 8 | `FinanceOverviewWidget` | Net Balance, Total Due Fee, Defaulted Fee (`view_account_transactions` লাগে) |
+| 9 | `IncomeExpenseChartWidget` | Income / Expense chart (`view_account_transactions` লাগে) |
 
 Navigation ম্যাপ: [00-architecture.md ০.৮](00-architecture.md#০৮-admin-প্যানেলের-navigation-ম্যাপ)।
 
@@ -112,7 +112,7 @@ Middleware: `EnsurePasswordIsChanged` — `must_change_password` থাকলে
 ## ১৪.৬ জানা সমস্যা ও সতর্কতা
 
 1. **Teacher self-attendance:** `Teacher\Pages\MyAttendance::markAs()` শিক্ষককে আজকের জন্য নিজেকে Present / Absent / Leave দিতে দেয় (`updateOrCreate`, `source = manual`)। কোনো permission বা approval নেই, আর device-এর তৈরি row-ও manual দিয়ে overwrite হয় (তারপর device আর সেটা বদলাতে পারে না)। স্কুল device ব্যবহার করলে এটা উপস্থিতির নির্ভরযোগ্যতা নষ্ট করে।
-2. Admin dashboard widget-গুলোর `canView()` নেই — permission ছাড়া staff-ও Finance Overview (net balance, due) দেখে।
+2. ~~Admin dashboard widget-এ `canView()` নেই~~ — ঠিক করা হয়েছে: `FinanceOverviewWidget` ও `IncomeExpenseChartWidget` শুধু `view_account_transactions` থাকলে দেখায়; `PendingAlertsWidget`-এর প্রতিটা alert শুধু তার লিংকের পেজ (`Exam`, `LeaveApplication`, `StudentFeeInvoice`) দেখার অনুমতি থাকলে দেখায় (`DashboardWidgetPermissionTest`)।
 3. Teacher `StudentAttendance` সব active class দেখায় (শুধু নিজের নয়); wrong-teacher notification দিয়ে নজরদারি।
 4. Teacher Exams resource-এ permission নেই, শুধু taught-class scope।
 5. Student exam result পেজে পুরো class-এর নাম ও নম্বর দেখায় — privacy নীতির বিষয়, ইচ্ছাকৃত হলে নথিভুক্ত রাখুন।
