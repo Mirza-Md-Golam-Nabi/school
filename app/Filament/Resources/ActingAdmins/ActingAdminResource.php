@@ -60,42 +60,17 @@ class ActingAdminResource extends Resource
         return [ActingAdminLevel::Admin->value => ActingAdminLevel::Admin->getLabel()];
     }
 
-    public static function canCreate(): bool
-    {
-        return static::getCreateAuthorizationResponse()->allowed();
-    }
-
-    public static function canEdit(Model $record): bool
-    {
-        return static::getEditAuthorizationResponse($record)->allowed();
-    }
-
-    public static function canDelete(Model $record): bool
-    {
-        return static::getDeleteAuthorizationResponse($record)->allowed();
-    }
-
-    public static function getCreateAuthorizationResponse(): Response
-    {
-        return self::permissionResponse('create_acting_admins');
-    }
-
     public static function getEditAuthorizationResponse(Model $record): Response
     {
-        return self::assignmentResponse($record, 'edit_acting_admins');
+        return self::assignmentResponse($record, 'edit');
     }
 
     public static function getDeleteAuthorizationResponse(Model $record): Response
     {
-        return self::assignmentResponse($record, 'delete_acting_admins');
+        return self::assignmentResponse($record, 'delete');
     }
 
-    public static function getDeleteAnyAuthorizationResponse(): Response
-    {
-        return self::permissionResponse('delete_acting_admins');
-    }
-
-    private static function assignmentResponse(Model $record, string $permission): Response
+    private static function assignmentResponse(Model $record, string $action): Response
     {
         if (static::isSuperAdmin()) {
             return Response::allow();
@@ -109,14 +84,7 @@ class ActingAdminResource extends Resource
             return Response::deny('নিজের Acting Admin দায়িত্ব নিজে বদলানো যাবে না।');
         }
 
-        return self::permissionResponse($permission);
-    }
-
-    private static function permissionResponse(string $permission): Response
-    {
-        return auth()->user()?->can($permission)
-            ? Response::allow()
-            : Response::deny('এই কাজের অনুমতি আপনার নেই।');
+        return static::entityPermissionResponse($action);
     }
 
     public static function form(Schema $schema): Schema

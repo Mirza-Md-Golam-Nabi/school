@@ -37,14 +37,14 @@
 
 | প্যাটার্ন | কোথায় | নোট |
 |---|---|---|
-| `HasEntityPermissions` | বেশিরভাগ resource | `{view,create,edit,delete,restore,force_delete}_{table}`; Filament `canViewAny()` ইত্যাদি override |
+| `HasEntityPermissions` | বেশিরভাগ resource | `{view,create,edit,delete,restore,force_delete}_{table}`; সব `get*AuthorizationResponse()` (viewAny, view, create, edit, delete, deleteAny, restore(Any), forceDelete(Any)) override করে, আর `can*()` সেগুলো থেকেই পড়ে — তাই Edit/Delete/bulk Delete বাটন permission না থাকলে লুকায় (`EntityPermissionActionsTest`)। নিজস্ব নিয়মের জন্য resource-এ `entityPermissionResponse($action)` ব্যবহার করুন (যেমন `RoleResource`) |
 | `HasAcademicPermissions` | শুধু তৈরি, কোথাও সক্রিয় নয় | `GroupResource`-এ comment করা |
 | `HasAttendancePagePermission` | attendance page | `canAccess()` |
 | `HasSmsPermission` | SMS page / resource | `canAccess()` |
 | `get*AuthorizationResponse()` | `SmsVendorResource` | Filament 5-এ action লুকানোর সঠিক উপায় |
 | `Gate::before` | `AppServiceProvider` | `super-admin` সব bypass |
 
-Filament 5 নোট: `canCreate()` / `canEdit()` override করলে create/edit action সবসময় লুকায় না — `get{Create,Edit,Delete,...}AuthorizationResponse()` override করুন।
+Filament 5 নোট: action ও page `get{Create,Edit,Delete,...}AuthorizationResponse()` দিয়ে authorize হয়; শুধু `canCreate()` / `canEdit()` override করলে বাটন লুকায় না। আগে `HasEntityPermissions` শুধু `can*()` override করত, ফলে শুধু `view_*` থাকা ইউজারও Edit বাটন দেখত ও bulk Delete চালাতে পারত — এখন ঠিক করা হয়েছে।
 
 Model Policy একটাও নেই। Policy না থাকলে এবং resource-এ override না থাকলে Filament **সব কিছু allow** করে।
 
