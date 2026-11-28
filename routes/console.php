@@ -8,6 +8,7 @@ use App\Console\Commands\PrunePdfThumbnails;
 use App\Console\Commands\PrunePushNotificationDeliveries;
 use App\Console\Commands\ResendUnacknowledgedPushNotifications;
 use App\Console\Commands\SendCentralStudentReport;
+use App\Console\Commands\SyncLeaveAttendance;
 use App\Jobs\DeactivateExpiredActingAdminsJob;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -33,6 +34,11 @@ Schedule::command(GenerateMonthlySalaryInvoices::class)->lastDayOfMonth('23:00')
 // school day is over, a device has reported since, and the day has punches, and it
 // never touches anyone who already has an attendance row.
 Schedule::command(MarkAbsentAttendance::class)->hourly()->withoutOverlapping();
+
+// Write Leave into attendance for approved leave days once each school day is
+// over. Hourly and safe to repeat — a day someone attended is never touched,
+// and a late-syncing punch still turns a Leave day into Present.
+Schedule::command(SyncLeaveAttendance::class)->hourly()->withoutOverlapping();
 
 // Check leave excess daily at 8:00 AM — creates excess logs for absent employees
 Schedule::command(CheckLeaveExcess::class)->dailyAt('08:00');

@@ -12,7 +12,10 @@ use Illuminate\Support\Facades\DB;
 
 class ApproveLeaveApplicationAction
 {
-    public function __construct(private readonly WorkingDaysCalculator $calculator) {}
+    public function __construct(
+        private readonly WorkingDaysCalculator $calculator,
+        private readonly RecordLeaveAttendanceAction $recordLeaveAttendance,
+    ) {}
 
     public function handle(LeaveApplication $application, User $actionedBy, ?string $remarks = null): void
     {
@@ -25,6 +28,9 @@ class ApproveLeaveApplicationAction
             ]);
 
             $this->createAttendanceLogs($application);
+
+            // Leave approved after (part of) it was taken fills the days already over.
+            $this->recordLeaveAttendance->handleApplication($application);
         });
     }
 

@@ -125,7 +125,7 @@ Device-agnostic রাখা হয়েছে, যাতে ভবিষ্য
 - প্রথম punch = entry
 - Exit: দিনে check-in ও check-out দুই state থাকলে state বিশ্বাসযোগ্য → entry-র পরের শেষ check-out; সব punch একই state হলে শেষ punch, শুধু যদি entry থেকে `attendance.exit_after_minutes` (২৫) দূরে
 - Status: entry > `lateAfterFor()` → `Late`, না হলে `Present`
-- **Manual বা Leave row device কখনো overwrite করে না** — শুধু ফাঁকা `exit_time` পূরণ করতে পারে; Device-sourced row recompute হয়
+- **Manual row (হাতে দেওয়া Leave-সহ) device কখনো overwrite করে না** — শুধু ফাঁকা `exit_time` পূরণ করতে পারে; Device-sourced row (auto Absent, approved ছুটির Leave) recompute হয়
 - শুধু আজকের punch notify করে (laptop অনেকদিন বন্ধ থাকার পর প্রথম sync-এ পুরনো punch notify হয় না)
 - guardian SMS একটা batch-এ (`DeviceEntry` / `DeviceExit`)
 
@@ -173,6 +173,8 @@ Capacity limit admin form-এ দেয় (pyzk `read_sizes()` নির্ভ�
 4. সেদিন অন্তত একটা punch আছে
 
 Skip: approved leave, ইতিমধ্যে যেকোনো attendance row আছে, কোনো device-এ enroll নেই। Absent row `source = device` — দেরিতে punch এলে present/late-এ upgrade হয়। ClassWise mode উপেক্ষিত।
+
+Approved leave-এর দিনে `Leave` row আলাদা `RecordLeaveAttendanceAction` (`attendance:record-leave`) লেখে — device-এর ওপর নির্ভর করে না; বিস্তারিত [HR ৮.৬](08-hr-and-staff.md)।
 
 ## ২.১১ Exam attendance totals
 

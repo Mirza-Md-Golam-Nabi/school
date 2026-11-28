@@ -79,7 +79,9 @@ Cancelled — enum-এ আছে
 - `AttendanceObserver` — attendance তৈরি/আপডেট হলে leave log sync: ছুটির দিনে present/late হলে `joined` (Joined Early)
 - `CheckLeaveExcess` — to_date পার হওয়া approved leave-এর পরের দিন থেকে টানা absent দিন গোনে, প্রথম present/late-এ থামে → `leave_excess_logs` (`absent` / Absent (Excess))
 - `MarkAbsentForDateAction` approved leave-এ থাকা ব্যক্তিকে absent করে না
-- Device processing `AttendanceStatus::Leave` row overwrite করে না
+- `RecordLeaveAttendanceAction` (`attendance:record-leave`, hourly; গতকাল ও আজ) — দিন শেষ হলে (`exit_time` + `MarkAbsentForDateAction::MINUTES_AFTER_EXIT`) approved leave-এর working day-তে `attendances`-এ `Leave` row লেখে, `source = device`। আগেভাগে লেখে না, তাই ছুটির মধ্যে কাজে ফিরলে সেদিন Present থাকে আর observer log-কে `joined` করে। আগে থেকে row থাকলে ছোঁয় না — ব্যতিক্রম auto Absent (device-sourced), সেটা Leave হয়
+- Approve-এর সময় `handleApplication()` — দেরিতে অনুমোদিত ছুটির ইতিমধ্যে শেষ হওয়া দিনগুলো পূরণ করে
+- Device processing শুধু manual row (হাতে দেওয়া Leave-সহ) overwrite করে না; system-এর লেখা Leave row punch পেলে Present / Late হয়
 
 ## ৮.৭ Acting admin
 
@@ -96,13 +98,13 @@ Cancelled — enum-এ আছে
 
 ## ৮.৯ টেস্ট
 
-`LeaveApplicationTest`, `LeaveApplicationEditRestrictionTest`, `LeaveTypeAssignmentTest`, `ActingAdminTest`, `DeactivateExpiredActingAdminsJobTest`, `ActivityLogLeaveHolidayActingAdminTest`, `ActivityLogTeacherLeaveApplicationTest`।
+`LeaveApplicationTest`, `LeaveApplicationEditRestrictionTest`, `LeaveTypeAssignmentTest`, `ActingAdminTest`, `DeactivateExpiredActingAdminsJobTest`, `ActivityLogLeaveHolidayActingAdminTest`, `ActivityLogTeacherLeaveApplicationTest`, `LeaveAttendanceRecordingTest`।
 
 ## ৮.১০ জানা সমস্যা ও সতর্কতা
 
 1. ~~HR resource-এ authorization নেই~~ — ঠিক করা হয়েছে (৮.৩); `ActingAdminResource`-এর privilege escalation-ও ঠিক করা হয়েছে।
 2. ~~ভবিষ্যৎ `from_date`-এর acting admin নিজে থেকে চালু হয় না~~ — ঠিক করা হয়েছে (৮.৭, daily job)।
-3. Approve হলে `attendances`-এ `AttendanceStatus::Leave` row তৈরি হয় না — শুধু `leave_attendance_logs`। ফলে attendance পেজে ছুটির দিন "Not marked" বা হাতে দেওয়া Absent দেখাতে পারে; `Leave` status কোড কোথাও লেখে না।
+3. ~~Approve হলে `attendances`-এ `Leave` row তৈরি হয় না~~ — ঠিক করা হয়েছে (৮.৬, `LeaveAttendanceRecordingTest`)। Approved ছুটি পরে মুছে ফেললে আগে লেখা Leave row থেকে যায়।
 4. `allowed_days_per_year` apply বা approve-এ enforce হয় না — শুধু teacher-এর MyLeave-এ দেখানো।
 5. `Cancelled` status-এর জন্য কোনো UI action নেই।
 6. Approve / reject-এ আবেদনকারীকে notification যায় না।

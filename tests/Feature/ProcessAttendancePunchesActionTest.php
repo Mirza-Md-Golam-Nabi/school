@@ -284,7 +284,28 @@ it('never rewrites a manual attendance row but fills in its missing exit time', 
         ->and($manual->exit_time)->toBe('13:50:00');
 });
 
-it('never overwrites an approved leave', function () {
+it('never overwrites a leave entered by hand', function () {
+    Notification::fake();
+    $device = AttendanceDevice::factory()->create();
+    $teacher = TeacherProfile::factory()->create();
+    punchRuleEnroll($device, $teacher);
+
+    $leave = Attendance::create([
+        'attendable_type' => $teacher->getMorphClass(),
+        'attendable_id' => $teacher->id,
+        'date' => '2026-09-28',
+        'status' => AttendanceStatus::Leave,
+        'source' => AttendanceSource::Manual,
+    ]);
+
+    punchRulePunch($device, '2026-09-28 09:00:00');
+    punchRuleProcess($device);
+
+    expect($leave->fresh()->status)->toBe(AttendanceStatus::Leave)
+        ->and($leave->fresh()->entry_time)->toBeNull();
+});
+
+it('turns a system-written leave day into present when the person punches in', function () {
     Notification::fake();
     $device = AttendanceDevice::factory()->create();
     $teacher = TeacherProfile::factory()->create();
@@ -298,11 +319,11 @@ it('never overwrites an approved leave', function () {
         'source' => AttendanceSource::Device,
     ]);
 
-    punchRulePunch($device, '2026-09-28 09:00:00');
+    punchRulePunch($device, '2026-09-28 08:05:00');
     punchRuleProcess($device);
 
-    expect($leave->fresh()->status)->toBe(AttendanceStatus::Leave)
-        ->and($leave->fresh()->entry_time)->toBeNull();
+    expect($leave->fresh()->status)->toBe(AttendanceStatus::Present)
+        ->and($leave->fresh()->entry_time)->toBe('08:05:00');
 });
 
 it('replaces a device-created absent row when the person turns up later', function () {

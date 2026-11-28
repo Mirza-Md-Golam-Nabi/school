@@ -39,18 +39,21 @@ class AttendanceObserver
 
         $isPresent = in_array($attendance->status->value, ['present', 'late'], true);
 
-        LeaveAttendanceLog::updateOrCreate(
-            [
+        // Matched with whereDate: the stored date may carry a time part
+        // (written through the date cast) or not (written by the approval upsert).
+        $log = LeaveAttendanceLog::where('leave_application_id', $activeLeave->id)
+            ->whereDate('date', $attendance->date)
+            ->first() ?? new LeaveAttendanceLog([
                 'leave_application_id' => $activeLeave->id,
                 'date' => $attendance->date->toDateString(),
-            ],
-            [
-                'status' => $isPresent
-                    ? LeaveAttendanceStatus::Joined->value
-                    : LeaveAttendanceStatus::OnLeave->value,
-                'is_within_approved_range' => true,
-                'remarks' => $isPresent ? 'Joined early — attendance marked.' : null,
-            ],
-        );
+            ]);
+
+        $log->fill([
+            'status' => $isPresent
+                ? LeaveAttendanceStatus::Joined->value
+                : LeaveAttendanceStatus::OnLeave->value,
+            'is_within_approved_range' => true,
+            'remarks' => $isPresent ? 'Joined early — attendance marked.' : null,
+        ])->save();
     }
 }
