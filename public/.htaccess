@@ -5,6 +5,18 @@
 
     RewriteEngine On
 
+    # Force HTTPS — browsers refuse to install the PWA (and register the
+    # service worker) on plain HTTP. Skipped on localhost for local dev.
+    # The path comes from THE_REQUEST, not REQUEST_URI: when the root
+    # .htaccess (created by deploy.sh) rewrites into public/, REQUEST_URI
+    # becomes /public/... and the redirect would leak "/public" into the URL.
+    # The query string is appended by mod_rewrite automatically.
+    RewriteCond %{HTTPS} off
+    RewriteCond %{HTTP:X-Forwarded-Proto} !https
+    RewriteCond %{HTTP_HOST} !^(localhost|127\.0\.0\.1)(:\d+)?$ [NC]
+    RewriteCond %{THE_REQUEST} ^\S+\s+([^?\s]*)
+    RewriteRule ^ https://%{HTTP_HOST}%1 [L,R=301,NE]
+
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
